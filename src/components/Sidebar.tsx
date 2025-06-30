@@ -1,132 +1,70 @@
 
 import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRole } from '@/types';
+import { Button } from '@/components/ui/button';
 import { 
-  Calendar, 
+  LayoutDashboard, 
   Users, 
+  Briefcase, 
   FileText, 
-  User,
-  FileImage,
-  FileVideo,
-  BarChart3
+  CreditCard, 
+  Bell, 
+  Settings,
+  LogOut
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const { user, logout } = useAuth();
+  const { logout, user } = useAuth();
 
-  if (!user) return null;
-
-  const getNavigationItems = (role: UserRole) => {
-    const baseItems = [
-      { name: 'Dashboard', path: '/dashboard', icon: FileText },
-    ];
-
-    switch (role) {
-      case 'admin':
-        return [
-          ...baseItems,
-          { name: 'Tasks Overview', path: '/tasks', icon: BarChart3 },
-          { name: 'Users', path: '/users', icon: Users },
-          { name: 'All Jobs', path: '/jobs', icon: FileText },
-          { name: 'Clients', path: '/clients', icon: User },
-          { name: 'Reports', path: '/reports', icon: FileText },
-        ];
-      case 'receptionist':
-        return [
-          ...baseItems,
-          { name: 'Tasks Overview', path: '/tasks', icon: BarChart3 },
-          { name: 'Calendar', path: '/calendar', icon: Calendar },
-          { name: 'Clients', path: '/clients', icon: User },
-          { name: 'Jobs', path: '/jobs', icon: FileText },
-          { name: 'Payments', path: '/payments', icon: FileText },
-        ];
-      case 'photographer':
-        return [
-          ...baseItems,
-          { name: 'Photo Sessions', path: '/photo-sessions', icon: FileImage },
-          { name: 'My Tasks', path: '/tasks', icon: FileText },
-        ];
-      case 'designer':
-        return [
-          ...baseItems,
-          { name: 'Design Tasks', path: '/design-tasks', icon: FileText },
-          { name: 'My Tasks', path: '/tasks', icon: FileText },
-        ];
-      case 'editor':
-        return [
-          ...baseItems,
-          { name: 'Video Tasks', path: '/video-tasks', icon: FileVideo },
-          { name: 'My Tasks', path: '/tasks', icon: FileText },
-        ];
-      case 'client':
-        return [
-          ...baseItems,
-          { name: 'My Projects', path: '/my-projects', icon: FileText },
-          { name: 'Downloads', path: '/downloads', icon: FileText },
-        ];
-      default:
-        return baseItems;
-    }
+  const handleLogout = () => {
+    logout();
   };
 
-  const navigationItems = getNavigationItems(user.role);
-
-  const getRoleColor = (role: UserRole) => {
-    const colors = {
-      admin: 'bg-red-100 text-red-800',
-      receptionist: 'bg-green-100 text-green-800',
-      photographer: 'bg-blue-100 text-blue-800',
-      designer: 'bg-purple-100 text-purple-800',
-      editor: 'bg-orange-100 text-orange-800',
-      client: 'bg-gray-100 text-gray-800',
-    };
-    return colors[role];
-  };
+  const menuItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
+    { icon: Users, label: 'Clients', href: '/clients' },
+    { icon: Briefcase, label: 'Jobs', href: '/jobs' },
+    { icon: FileText, label: 'Files', href: '/files' },
+    { icon: CreditCard, label: 'Payments', href: '/payments' },
+    { icon: Bell, label: 'Notifications', href: '/notifications' },
+    { icon: Settings, label: 'Settings', href: '/settings' },
+  ];
 
   return (
-    <div className="w-64 bg-white shadow-lg h-screen flex flex-col">
-      <div className="p-6 border-b">
-        <h1 className="text-xl font-bold text-gray-800">Studio Manager</h1>
-        <div className="mt-3">
-          <p className="text-sm font-medium text-gray-700">{user.name}</p>
-          <span className={`inline-block px-2 py-1 text-xs rounded-full mt-1 ${getRoleColor(user.role)}`}>
-            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </span>
-        </div>
+    <div className="bg-gray-900 text-white w-64 min-h-screen flex flex-col">
+      <div className="p-4 border-b border-gray-700">
+        <h1 className="text-xl font-bold">Media Manager</h1>
+        {user && (
+          <p className="text-sm text-gray-300 mt-1">
+            {user.user_metadata?.name || user.email}
+          </p>
+        )}
       </div>
-
+      
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navigationItems.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`
-                }
+          {menuItems.map((item) => (
+            <li key={item.href}>
+              <a
+                href={item.href}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 transition-colors"
               >
-                <item.icon className="mr-3 h-4 w-4" />
-                {item.name}
-              </NavLink>
+                <item.icon size={20} />
+                <span>{item.label}</span>
+              </a>
             </li>
           ))}
         </ul>
       </nav>
-
-      <div className="p-4 border-t">
+      
+      <div className="p-4 border-t border-gray-700">
         <Button
-          onClick={logout}
-          variant="outline"
-          className="w-full"
+          onClick={handleLogout}
+          variant="ghost"
+          className="w-full justify-start text-white hover:bg-gray-800"
         >
-          Sign Out
+          <LogOut size={20} className="mr-3" />
+          Logout
         </Button>
       </div>
     </div>
