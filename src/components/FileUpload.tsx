@@ -1,154 +1,74 @@
+
 import React, { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, File, X } from 'lucide-react';
-import { useApi } from '@/hooks/useApi';
-import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FileUploadProps {
   jobId: string;
-  onUploadComplete: () => void;
+  onFileUploaded?: () => void;
 }
 
-const FileUpload: React.FC<FileUploadProps> = ({ jobId, onUploadComplete }) => {
-  const [files, setFiles] = useState<File[]>([]);
-  const [fileType, setFileType] = useState<string>('raw');
-  const [uploading, setUploading] = useState(false);
-  const { apiCall } = useApi();
+const FileUpload: React.FC<FileUploadProps> = ({ jobId, onFileUploaded }) => {
+  const { session } = useAuth();
+  const [file, setFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const selectedFiles = Array.from(event.target.files);
-      setFiles(prev => [...prev, ...selectedFiles]);
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
     }
   };
 
-  const removeFile = (index: number) => {
-    setFiles(prev => prev.filter((_, i) => i !== index));
-  };
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file || !session) return;
 
-  const handleUpload = async () => {
-    if (files.length === 0) {
-      toast({
-        title: "No files selected",
-        description: "Please select files to upload",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setUploading(true);
-
+    setIsLoading(true);
     try {
-      const formData = new FormData();
-      files.forEach(file => {
-        formData.append('files', file);
-      });
-      formData.append('file_type', fileType);
+      // For now, we'll just store file metadata
+      // In a real implementation, you'd upload to Supabase Storage
+      const { error } = await supabase
+        .from('job_files')
+        .insert([{
+          job_id: jobId,
+          file_name: file.name,
+          file_path: `/uploads/${file.name}`,
+          file_type: file.type,
+          file_size: file.size,
+          uploaded_by: session.user.id
+        }]);
 
-      await apiCall(`/files/job/${jobId}/upload`, {
-        method: 'POST',
-        body: formData,
-        headers: {} // Remove Content-Type to let browser set it with boundary
-      });
+      if (error) throw error;
 
-      toast({
-        title: "Files uploaded successfully",
-        description: `${files.length} file(s) uploaded`
-      });
-
-      setFiles([]);
-      onUploadComplete();
+      setFile(null);
+      onFileUploaded?.();
     } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload files",
-        variant: "destructive"
-      });
+      console.error('Error uploading file:', error);
     } finally {
-      setUploading(false);
+      setIsLoading(false);
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <Upload className="mr-2 h-5 w-5" />
-          Upload Files
-        </CardTitle>
+        <CardTitle>Upload File</CardTitle>
+        <CardDescription>Upload job-related files</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="file-type">File Type</Label>
-          <Select value={fileType} onValueChange={setFileType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="raw">RAW Files</SelectItem>
-              <SelectItem value="final">Final Files</SelectItem>
-              <SelectItem value="design">Design Files</SelectItem>
-              <SelectItem value="video">Video Files</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label htmlFor="file-input">Select Files</Label>
+      <CardContent>
+        <form onSubmit={handleUpload} className="space-y-4">
           <Input
-            id="file-input"
             type="file"
-            multiple
-            onChange={handleFileSelect}
-            accept="image/*,video/*,.pdf,.zip,.rar,.psd,.ai"
+            onChange={handleFileChange}
+            required
           />
-        </div>
-
-        {files.length > 0 && (
-          <div className="space-y-2">
-            <Label>Selected Files:</Label>
-            <div className="max-h-40 overflow-y-auto space-y-2">
-              {files.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-2 border rounded">
-                  <div className="flex items-center space-x-2">
-                    <File className="h-4 w-4" />
-                    <div>
-                      <p className="text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Button 
-          onClick={handleUpload} 
-          disabled={files.length === 0 || uploading}
-          className="w-full"
-        >
-          {uploading ? 'Uploading...' : `Upload ${files.length} File(s)`}
-        </Button>
+          <Button type="submit" disabled={isLoading || !file}>
+            {isLoading ? 'Uploading...' : 'Upload File'}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

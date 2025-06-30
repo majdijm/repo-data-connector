@@ -1,8 +1,7 @@
 
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Users as UsersIcon } from 'lucide-react';
+import UserManagement from '@/components/UserManagement';
 
 const Users = () => {
   return (
@@ -13,19 +12,7 @@ const Users = () => {
           <p className="text-gray-600 mt-2">Manage team members and client accounts</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <UsersIcon className="mr-2 h-5 w-5" />
-              All Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-12">
-              <p className="text-gray-500">User management functionality will be implemented here</p>
-            </div>
-          </CardContent>
-        </Card>
+        <UserManagement />
       </div>
     </DashboardLayout>
   );

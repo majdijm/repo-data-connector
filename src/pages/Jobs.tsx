@@ -1,53 +1,51 @@
+
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { FileText, Plus, Calendar, User, DollarSign } from 'lucide-react';
-import { useApi } from '@/hooks/useApi';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/hooks/use-toast';
 import JobForm from '@/components/JobForm';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Briefcase } from 'lucide-react';
 
 interface Job {
-  id: number;
+  id: string;
   title: string;
   type: string;
   status: string;
-  client_name: string;
-  assigned_to_name: string;
-  due_date: string;
-  session_date?: string;
   description: string;
-  price?: number;
+  price: number;
+  due_date: string;
   created_at: string;
 }
 
 const Jobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showJobForm, setShowJobForm] = useState(false);
-  const { apiCall } = useApi();
-  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setJobs(data);
+      }
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
   }, []);
 
-  const fetchJobs = async () => {
-    try {
-      const data = await apiCall('/jobs');
-      setJobs(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch jobs",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleJobAdded = () => {
+    fetchJobs();
   };
 
   const getStatusColor = (status: string) => {
@@ -61,18 +59,7 @@ const Jobs = () => {
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getTypeLabel = (type: string) => {
-    const labels = {
-      photo_session: 'Photo Session',
-      video_editing: 'Video Editing',
-      design: 'Design'
-    };
-    return labels[type as keyof typeof labels] || type;
-  };
-
-  const canCreateJobs = ['admin', 'receptionist'].includes(user?.role || '');
-
-  if (loading) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-64">
@@ -85,120 +72,65 @@ const Jobs = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Jobs Management</h1>
-            <p className="text-gray-600 mt-2">View and manage all jobs and assignments</p>
-          </div>
-          {canCreateJobs && (
-            <Dialog open={showJobForm} onOpenChange={setShowJobForm}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Job
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <JobForm
-                  onJobCreated={() => {
-                    setShowJobForm(false);
-                    fetchJobs();
-                  }}
-                  onCancel={() => setShowJobForm(false)}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Jobs</h1>
+          <p className="text-gray-600 mt-2">Manage your projects and tasks</p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <FileText className="mr-2 h-5 w-5" />
-              All Jobs
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {jobs.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No jobs</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by creating a new job.</p>
-                {canCreateJobs && (
-                  <div className="mt-6">
-                    <Button onClick={() => setShowJobForm(true)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create Job
-                    </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <JobForm onJobAdded={handleJobAdded} />
+          </div>
+          
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Briefcase className="mr-2 h-5 w-5" />
+                  All Jobs
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {jobs.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No jobs found. Create your first job!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {jobs.map((job) => (
+                      <div key={job.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900">{job.title}</h3>
+                            <p className="text-sm text-gray-600 capitalize">{job.type.replace('_', ' ')}</p>
+                            {job.description && (
+                              <p className="text-sm text-gray-500 mt-1">{job.description}</p>
+                            )}
+                            {job.due_date && (
+                              <p className="text-sm text-gray-400 mt-1">
+                                Due: {new Date(job.due_date).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end space-y-2">
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(job.status)}`}>
+                              {job.status.replace('_', ' ')}
+                            </span>
+                            {job.price > 0 && (
+                              <span className="text-sm font-medium text-green-600">
+                                ${job.price}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {jobs.map((job) => (
-                  <div key={job.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="font-medium text-gray-900">{job.title}</h3>
-                          <Badge className={getStatusColor(job.status)}>
-                            {job.status.replace('_', ' ')}
-                          </Badge>
-                          <Badge variant="outline">
-                            {getTypeLabel(job.type)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <User className="mr-1 h-4 w-4" />
-                            Client: {job.client_name}
-                          </div>
-                          
-                          {job.assigned_to_name && (
-                            <div className="flex items-center">
-                              <User className="mr-1 h-4 w-4" />
-                              Assigned: {job.assigned_to_name}
-                            </div>
-                          )}
-                          
-                          <div className="flex items-center">
-                            <Calendar className="mr-1 h-4 w-4" />
-                            Due: {new Date(job.due_date).toLocaleDateString()}
-                          </div>
-                          
-                          {job.session_date && (
-                            <div className="flex items-center">
-                              <Calendar className="mr-1 h-4 w-4" />
-                              Session: {new Date(job.session_date).toLocaleDateString()}
-                            </div>
-                          )}
-                          
-                          {job.price && (
-                            <div className="flex items-center">
-                              <DollarSign className="mr-1 h-4 w-4" />
-                              ${job.price.toLocaleString()}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {job.description && (
-                          <p className="text-sm text-gray-500 mt-2">{job.description}</p>
-                        )}
-                      </div>
-                      
-                      <div className="ml-4">
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
