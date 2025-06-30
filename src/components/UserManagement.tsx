@@ -17,7 +17,7 @@ interface UserProfile {
 }
 
 const UserManagement = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,8 +38,8 @@ const UserManagement = () => {
       const transformedUsers = authUsers.users.map(authUser => ({
         id: authUser.id,
         email: authUser.email || '',
-        name: authUser.user_metadata?.name || authUser.email,
-        role: authUser.user_metadata?.role || 'client',
+        name: authUser.raw_user_meta_data?.name || authUser.email,
+        role: authUser.raw_user_meta_data?.role || 'client',
         created_at: authUser.created_at
       }));
 
@@ -60,9 +60,13 @@ const UserManagement = () => {
     if (!user) return;
     
     try {
-      // Check current user's role from metadata
-      const role = user.user_metadata?.role || 'client';
-      setCurrentUserRole(role);
+      // Refresh the user session to get updated metadata
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const role = session.user.raw_user_meta_data?.role || 'client';
+        console.log('Current user role:', role);
+        setCurrentUserRole(role);
+      }
     } catch (error) {
       console.error('Error fetching current user role:', error);
     }
@@ -105,6 +109,24 @@ const UserManagement = () => {
     }
   };
 
+  const handleRefreshSession = async () => {
+    try {
+      await supabase.auth.refreshSession();
+      await fetchCurrentUserRole();
+      toast({
+        title: "Session Refreshed",
+        description: "Your session has been refreshed. Please check your access now."
+      });
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh session",
+        variant: "destructive"
+      });
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchCurrentUserRole();
@@ -141,8 +163,16 @@ const UserManagement = () => {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
-          <p className="text-gray-600">You don't have permission to manage users.</p>
-          <p className="text-sm text-gray-500 mt-2">Contact an administrator for access.</p>
+          <p className="text-gray-600 mb-4">You don't have permission to manage users.</p>
+          <p className="text-sm text-gray-500 mb-4">Current role: {currentUserRole}</p>
+          <div className="space-y-2">
+            <Button onClick={handleRefreshSession} variant="outline" className="mr-2">
+              Refresh Session
+            </Button>
+            <Button onClick={logout} variant="destructive">
+              Logout & Login Again
+            </Button>
+          </div>
         </div>
       </div>
     );
