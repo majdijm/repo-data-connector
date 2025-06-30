@@ -19,32 +19,35 @@ export const useApi = () => {
 
     setIsLoading(true);
     try {
-      let query = supabase.from(table);
+      let query = supabase.from(table as any);
 
       switch (operation) {
         case 'select':
+          let selectQuery = query.select();
           if (filters) {
             Object.keys(filters).forEach(key => {
-              query = query.eq(key, filters[key]);
+              selectQuery = selectQuery.eq(key, filters[key]);
             });
           }
-          return await query.select();
+          return await selectQuery;
         case 'insert':
           return await query.insert(data);
         case 'update':
+          let updateQuery = query.update(data);
           if (filters) {
             Object.keys(filters).forEach(key => {
-              query = query.eq(key, filters[key]);
+              updateQuery = updateQuery.eq(key, filters[key]);
             });
           }
-          return await query.update(data);
+          return await updateQuery;
         case 'delete':
+          let deleteQuery = query.delete();
           if (filters) {
             Object.keys(filters).forEach(key => {
-              query = query.eq(key, filters[key]);
+              deleteQuery = deleteQuery.eq(key, filters[key]);
             });
           }
-          return await query.delete();
+          return await deleteQuery;
         default:
           throw new Error('Invalid operation');
       }

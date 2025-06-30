@@ -10,7 +10,8 @@ import {
   CreditCard, 
   Bell, 
   Settings,
-  LogOut
+  LogOut,
+  UserCog
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -24,6 +25,7 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
     { icon: Users, label: 'Clients', href: '/clients' },
     { icon: Briefcase, label: 'Jobs', href: '/jobs' },
+    { icon: UserCog, label: 'Users', href: '/users' },
     { icon: FileText, label: 'Files', href: '/files' },
     { icon: CreditCard, label: 'Payments', href: '/payments' },
     { icon: Bell, label: 'Notifications', href: '/notifications' },

@@ -20,7 +20,7 @@ const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchUsers = async () => {
@@ -39,26 +39,29 @@ const UserManagement = () => {
     }
   };
 
-  const makeUserAdmin = async (email: string) => {
-    setIsUpdating(true);
+  const fetchCurrentUserRole = async () => {
+    if (!user) return;
+    
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('users')
-        .update({ role: 'admin' })
-        .eq('email', email);
+        .select('role')
+        .eq('email', user.email)
+        .single();
       
       if (error) throw error;
-      
-      fetchUsers(); // Refresh the list
-      console.log(`User ${email} has been made an admin`);
+      if (data) setCurrentUserRole(data.role);
     } catch (error) {
-      console.error('Error updating user role:', error);
-    } finally {
-      setIsUpdating(false);
+      console.error('Error fetching current user role:', error);
     }
   };
 
   const updateUserRole = async (userId: string, newRole: string) => {
+    if (currentUserRole !== 'admin') {
+      console.error('Only admins can update user roles');
+      return;
+    }
+
     setIsUpdating(true);
     try {
       const { error } = await supabase
@@ -78,14 +81,8 @@ const UserManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
-
-  // Quick function to make the current user admin
-  const makeMeAdmin = () => {
-    if (user?.email) {
-      makeUserAdmin(user.email);
-    }
-  };
+    fetchCurrentUserRole();
+  }, [user]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors = {
@@ -107,24 +104,20 @@ const UserManagement = () => {
     );
   }
 
+  // Only admins can see user management
+  if (currentUserRole !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
+          <p className="text-gray-600 mt-2">You don't have permission to manage users.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Admin Setup</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Current user: {user?.email}
-            </p>
-            <Button onClick={makeMeAdmin} disabled={isUpdating}>
-              {isUpdating ? 'Updating...' : 'Make Me Admin'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>User Management</CardTitle>
