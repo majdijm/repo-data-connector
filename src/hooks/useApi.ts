@@ -1,47 +1,61 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { useCallback } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useApi = () => {
-  const { token, logout } = useAuth();
+  const { session } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const apiCall = useCallback(async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${API_BASE_URL}${endpoint}`;
-    
-    const config: RequestInit = {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-    };
-
-    try {
-      const response = await fetch(url, config);
-
-      if (response.status === 401) {
-        logout();
-        throw new Error('Unauthorized');
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-
-      return response;
-    } catch (error) {
-      console.error('API call failed:', error);
-      throw error;
+  const apiCall = async (
+    table: string,
+    operation: 'select' | 'insert' | 'update' | 'delete',
+    data?: any,
+    filters?: any
+  ) => {
+    if (!session) {
+      throw new Error('No active session');
     }
-  }, [token, logout]);
 
-  return { apiCall };
+    setIsLoading(true);
+    try {
+      let query = supabase.from(table);
+
+      switch (operation) {
+        case 'select':
+          if (filters) {
+            Object.keys(filters).forEach(key => {
+              query = query.eq(key, filters[key]);
+            });
+          }
+          return await query.select();
+        case 'insert':
+          return await query.insert(data);
+        case 'update':
+          if (filters) {
+            Object.keys(filters).forEach(key => {
+              query = query.eq(key, filters[key]);
+            });
+          }
+          return await query.update(data);
+        case 'delete':
+          if (filters) {
+            Object.keys(filters).forEach(key => {
+              query = query.eq(key, filters[key]);
+            });
+          }
+          return await query.delete();
+        default:
+          throw new Error('Invalid operation');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    apiCall,
+    isLoading,
+    isAuthenticated: !!session
+  };
 };

@@ -1,62 +1,70 @@
-import { useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
-import { useAuth } from '@/contexts/AuthContext';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { io, Socket } from 'socket.io-client';
+
+let socket: Socket | null = null;
 
 export const useSocket = () => {
-  const { token, user } = useAuth();
-  const socketRef = useRef<Socket | null>(null);
+  const { session, user } = useAuth();
 
   useEffect(() => {
-    if (token && user) {
-      socketRef.current = io(SOCKET_URL, {
-        auth: {
-          token
-        }
-      });
+    if (session && user) {
+      // Only connect if we have a valid session
+      if (!socket) {
+        socket = io('ws://localhost:3006', {
+          auth: {
+            userId: user.id,
+            email: user.email
+          }
+        });
 
-      socketRef.current.on('connect', () => {
-        console.log('Connected to server');
-      });
+        socket.on('connect', () => {
+          console.log('Connected to socket server');
+        });
 
-      socketRef.current.on('disconnect', () => {
-        console.log('Disconnected from server');
-      });
-
-      socketRef.current.on('notification', (notification) => {
-        // Handle real-time notifications
-        console.log('New notification:', notification);
-      });
-
-      socketRef.current.on('job_status_changed', (data) => {
-        // Handle job status changes
-        console.log('Job status changed:', data);
-      });
-
-      return () => {
-        if (socketRef.current) {
-          socketRef.current.disconnect();
-        }
-      };
+        socket.on('disconnect', () => {
+          console.log('Disconnected from socket server');
+        });
+      }
+    } else {
+      // Disconnect if no session
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
     }
-  }, [token, user]);
 
-  const emitJobStatusUpdate = (jobId: string, status: string) => {
-    if (socketRef.current) {
-      socketRef.current.emit('job_status_update', { jobId, status });
+    return () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    };
+  }, [session, user]);
+
+  const emit = (event: string, data: any) => {
+    if (socket) {
+      socket.emit(event, data);
     }
   };
 
-  const markNotificationRead = (notificationId: string) => {
-    if (socketRef.current) {
-      socketRef.current.emit('mark_notification_read', notificationId);
+  const on = (event: string, callback: (data: any) => void) => {
+    if (socket) {
+      socket.on(event, callback);
+    }
+  };
+
+  const off = (event: string, callback?: (data: any) => void) => {
+    if (socket) {
+      socket.off(event, callback);
     }
   };
 
   return {
-    socket: socketRef.current,
-    emitJobStatusUpdate,
-    markNotificationRead
+    emit,
+    on,
+    off,
+    isConnected: socket?.connected || false
   };
 };
