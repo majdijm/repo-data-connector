@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Task Manager Setup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 10px 5px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .result {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Media Task Manager Database Setup</h1>
+  
+  <div>
+    <h2>Step 1: Test Supabase Connection</h2>
+    <button id="testConnection">Test Connection</button>
+    <div id="connectionResult" class="result"></div>
+  </div>
+  
+  <div>
+    <h2>Step 2: Create Database Tables</h2>
+    <button id="createTables">Create Tables</button>
+    <div id="tablesResult" class="result"></div>
+  </div>
+  
+  <div>
+    <h2>Step 3: Seed Default Users</h2>
+    <button id="seedUsers">Seed Users</button>
+    <div id="usersResult" class="result"></div>
+  </div>
+
+  <script>
+    document.getElementById('testConnection').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('connectionResult');
+      resultDiv.innerHTML = 'Testing connection...';
+      
+      try {
+        const response = await fetch('/api/setup/test-connection');
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+      }
+    });
+    
+    document.getElementById('createTables').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('tablesResult');
+      resultDiv.innerHTML = 'Creating tables...';
+      
+      try {
+        const response = await fetch('/api/setup/create-tables', {
+          method: 'POST'
+        });
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+      }
+    });
+    
+    document.getElementById('seedUsers').addEventListener('click', async () => {
+      const resultDiv = document.getElementById('usersResult');
+      resultDiv.innerHTML = 'Seeding users...';
+      
+      try {
+        const response = await fetch('/api/setup/seed-users', {
+          method: 'POST'
+        });
+        const data = await response.json();
+        resultDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+      } catch (error) {
+        resultDiv.innerHTML = `<pre>Error: ${error.message}</pre>`;
+      }
+    });
+  </script>
+</body>
+</html>
