@@ -32,17 +32,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Track if we're currently fetching a profile to prevent duplicate requests
-  const [fetchingProfile, setFetchingProfile] = useState<string | null>(null);
-
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
-    // Prevent duplicate fetches for the same user
-    if (fetchingProfile === userId) {
-      return null;
-    }
-
     try {
-      setFetchingProfile(userId);
       console.log('Fetching user profile for:', userId);
       
       const { data: profile, error: fetchError } = await supabase
@@ -95,8 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       return null;
-    } finally {
-      setFetchingProfile(null);
     }
   };
 
@@ -111,53 +100,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
     
     console.log('Setting up auth state listener');
-    
-    // Get initial session first
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session error:', error);
-          if (mounted) {
-            setError('Session error');
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        if (!mounted) return;
-        
-        console.log('Initial session check:', session?.user?.email);
-        
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          
-          // Fetch profile for initial session
-          const profile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUserProfile(profile);
-            if (!profile) {
-              setError('Failed to load or create user profile');
-            }
-            setIsLoading(false);
-          }
-        } else {
-          setIsLoading(false);
-        }
-      } catch (err) {
-        console.error('Initialize auth error:', err);
-        if (mounted) {
-          setError('Failed to initialize authentication');
-          setIsLoading(false);
-        }
-      }
-    };
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (!mounted) return;
@@ -166,28 +112,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setError(null);
         
+        // Handle profile fetching separately with a small delay to avoid blocking
         if (session?.user) {
-          // Only fetch profile if we don't already have one for this user
-          if (!userProfile || userProfile.id !== session.user.id) {
-            const profile = await fetchUserProfile(session.user.id);
+          setTimeout(() => {
             if (mounted) {
-              setUserProfile(profile);
-              if (!profile) {
-                setError('Failed to load or create user profile');
-              }
+              fetchUserProfile(session.user.id).then((profile) => {
+                if (mounted) {
+                  setUserProfile(profile);
+                  if (!profile) {
+                    setError('Failed to load or create user profile');
+                  }
+                  setIsLoading(false);
+                }
+              });
             }
-          }
+          }, 100);
         } else {
           setUserProfile(null);
-        }
-        
-        if (mounted) {
           setIsLoading(false);
         }
       }
     );
 
-    initializeAuth();
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('Session error:', error);
+        if (mounted) {
+          setError('Session error');
+          setIsLoading(false);
+        }
+        return;
+      }
+      
+      console.log('Initial session check:', session?.user?.email);
+      
+      if (!mounted) return;
+      
+      if (session?.user) {
+        setSession(session);
+        setUser(session.user);
+        
+        fetchUserProfile(session.user.id).then((profile) => {
+          if (mounted) {
+            setUserProfile(profile);
+            if (!profile) {
+              setError('Failed to load or create user profile');
+            }
+            setIsLoading(false);
+          }
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       console.log('Cleaning up auth listener');
