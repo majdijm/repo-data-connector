@@ -32,8 +32,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Track if we're currently fetching a profile to prevent duplicate requests
+  const [fetchingProfile, setFetchingProfile] = useState<string | null>(null);
+
   const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+    // Prevent duplicate fetches for the same user
+    if (fetchingProfile === userId) {
+      return null;
+    }
+
     try {
+      setFetchingProfile(userId);
       console.log('Fetching user profile for:', userId);
       
       const { data: profile, error: fetchError } = await supabase
@@ -72,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const { data: newProfile, error: createError } = await supabase
         .from('users')
-        .insert(newProfileData)
+        .upsert(newProfileData, { onConflict: 'id' })
         .select()
         .maybeSingle();
 
@@ -86,6 +95,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
       return null;
+    } finally {
+      setFetchingProfile(null);
     }
   };
 
@@ -101,41 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     console.log('Setting up auth state listener');
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        
-        if (!mounted) return;
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        setError(null);
-        
-        // Use setTimeout to defer profile fetching and avoid blocking the auth state change
-        if (session?.user) {
-          setTimeout(async () => {
-            if (!mounted) return;
-            
-            const profile = await fetchUserProfile(session.user.id);
-            if (mounted) {
-              setUserProfile(profile);
-              if (!profile) {
-                setError('Failed to load or create user profile');
-              }
-              setIsLoading(false);
-            }
-          }, 0);
-        } else {
-          setUserProfile(null);
-          if (mounted) {
-            setIsLoading(false);
-          }
-        }
-      }
-    );
-
-    // Initialize auth state
+    // Get initial session first
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -153,9 +130,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         console.log('Initial session check:', session?.user?.email);
         
-        // Don't set session/user here as the auth state listener will handle it
-        // Just ensure loading is false if no session
-        if (!session) {
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          
+          // Fetch profile for initial session
+          const profile = await fetchUserProfile(session.user.id);
+          if (mounted) {
+            setUserProfile(profile);
+            if (!profile) {
+              setError('Failed to load or create user profile');
+            }
+            setIsLoading(false);
+          }
+        } else {
           setIsLoading(false);
         }
       } catch (err) {
@@ -166,6 +154,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     };
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setError(null);
+        
+        if (session?.user) {
+          // Only fetch profile if we don't already have one for this user
+          if (!userProfile || userProfile.id !== session.user.id) {
+            const profile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setUserProfile(profile);
+              if (!profile) {
+                setError('Failed to load or create user profile');
+              }
+            }
+          }
+        } else {
+          setUserProfile(null);
+        }
+        
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    );
 
     initializeAuth();
 
