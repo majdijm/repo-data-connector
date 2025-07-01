@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { UserPlus } from 'lucide-react';
+import CreateUserDialog from './CreateUserDialog';
 
 interface UserProfile {
   id: string;
@@ -23,6 +25,7 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -63,7 +66,7 @@ const UserManagement = () => {
       // Refresh the user session to get updated metadata
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const role = session.user.raw_user_meta_data?.role || 'client';
+        const role = session.user.user_metadata?.role || 'client';
         console.log('Current user role:', role);
         setCurrentUserRole(role);
       }
@@ -127,6 +130,11 @@ const UserManagement = () => {
     }
   };
 
+  const handleUserCreated = () => {
+    fetchUsers(); // Refresh the users list
+    setIsCreateDialogOpen(false);
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchCurrentUserRole();
@@ -182,8 +190,20 @@ const UserManagement = () => {
     <div className="space-y-6">
       <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
         <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-t-lg">
-          <CardTitle className="text-xl font-bold">User Management</CardTitle>
-          <p className="text-teal-100 text-sm">Manage team members and assign roles</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl font-bold">User Management</CardTitle>
+              <p className="text-teal-100 text-sm">Manage team members and assign roles</p>
+            </div>
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              variant="outline"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Create User
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-6">
           <div className="grid gap-4">
@@ -223,6 +243,12 @@ const UserManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <CreateUserDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onUserCreated={handleUserCreated}
+      />
     </div>
   );
 };
