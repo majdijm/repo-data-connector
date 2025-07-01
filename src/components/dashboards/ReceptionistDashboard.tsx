@@ -11,9 +11,11 @@ import {
   DollarSign, 
   Calendar,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  TrendingUp
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 const ReceptionistDashboard = () => {
   const { stats, recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
@@ -56,6 +58,19 @@ const ReceptionistDashboard = () => {
     };
     return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
   };
+
+  // Analytics for receptionist role
+  const clientsData = clients.slice(0, 5).map(client => ({
+    name: client.name.split(' ')[0], // First name only for chart
+    totalPaid: client.total_paid || 0,
+    totalDue: client.total_due || 0
+  }));
+
+  const jobStatusData = [
+    { status: 'Pending', count: stats.pendingJobs },
+    { status: 'Active', count: stats.totalJobs - stats.pendingJobs - stats.completedJobs },
+    { status: 'Completed', count: stats.completedJobs }
+  ].filter(item => item.count > 0);
 
   return (
     <div className="space-y-8">
@@ -124,8 +139,58 @@ const ReceptionistDashboard = () => {
         </Card>
       </div>
 
+      {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Today's Jobs */}
+        {/* Job Status Analytics */}
+        {jobStatusData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Job Status Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={jobStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="status" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#3b82f6" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Client Payment Status */}
+        {clientsData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Client Payment Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={clientsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="totalPaid" fill="#10b981" name="Paid" />
+                  <Bar dataKey="totalDue" fill="#f59e0b" name="Due" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Recent Jobs */}
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -135,7 +200,7 @@ const ReceptionistDashboard = () => {
           </CardHeader>
           <CardContent>
             {recentJobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No jobs scheduled</p>
+              <p className="text-gray-500 text-center py-4">No jobs found</p>
             ) : (
               <div className="space-y-4">
                 {recentJobs.slice(0, 5).map((job) => (
