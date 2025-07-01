@@ -35,13 +35,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const createUserProfile = async (userId: string, email: string, name?: string): Promise<UserProfile | null> => {
     try {
       console.log('Creating user profile for:', userId, email);
+      
+      // Use upsert to handle cases where the user might already exist
       const { data: profile, error } = await supabase
         .from('users')
-        .insert({
+        .upsert({
           id: userId,
           email: email,
           name: name || email.split('@')[0],
-          role: 'client'
+          role: 'client',
+          password: 'managed_by_auth', // Required field, but actual auth is handled by Supabase Auth
+          is_active: true
+        }, {
+          onConflict: 'id'
         })
         .select()
         .single();
@@ -115,6 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Use setTimeout to avoid blocking the auth state change
           setTimeout(() => {
             if (mounted) {
               fetchUserProfile(session.user.id)
@@ -142,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
+    // Get initial session
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) {
