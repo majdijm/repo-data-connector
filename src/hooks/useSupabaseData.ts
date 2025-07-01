@@ -68,7 +68,7 @@ export const useSupabaseData = () => {
       // Fetch payments for revenue calculation
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
-        .select('amount');
+        .select('amount, job_id');
 
       if (paymentsError) throw paymentsError;
 
@@ -78,7 +78,7 @@ export const useSupabaseData = () => {
       const completedJobs = jobsData?.filter(job => job.status === 'completed').length || 0;
 
       // Get pending payments count (jobs with no payments)
-      const jobsWithPayments = new Set(paymentsData?.map(p => p.job_id) || []);
+      const jobsWithPayments = new Set(paymentsData?.map(p => p.job_id).filter(Boolean) || []);
       const pendingPayments = jobsData?.filter(job => !jobsWithPayments.has(job.id)).length || 0;
 
       setStats({

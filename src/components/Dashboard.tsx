@@ -202,9 +202,9 @@ const Dashboard = () => {
   const renderDashboard = () => {
     switch (userProfile.role) {
       case 'admin':
-        return <AdminDashboard stats={stats} recentJobs={recentJobs} isLoading={isLoading} />;
+        return <AdminDashboard />;
       case 'receptionist':
-        return <ReceptionistDashboard stats={stats} recentJobs={recentJobs} isLoading={isLoading} />;
+        return <ReceptionistDashboard />;
       case 'photographer':
         return <PhotographerDashboard userProfile={userProfile} />;
       case 'designer':
