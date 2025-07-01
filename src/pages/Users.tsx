@@ -2,12 +2,12 @@
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import UserManagement from '@/components/UserManagement';
-import AuthGuard from '@/components/AuthGuard';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { Users as UsersIcon, Shield, UserCheck } from 'lucide-react';
 
 const Users = () => {
   return (
-    <AuthGuard requiredRoles={['admin']}>
+    <ProtectedRoute requiredRoles={['admin']}>
       <DashboardLayout>
         <div className="space-y-8">
           <div className="bg-gradient-to-r from-teal-500 to-cyan-600 rounded-2xl p-8 text-white shadow-xl">
@@ -55,7 +55,7 @@ const Users = () => {
           <UserManagement />
         </div>
       </DashboardLayout>
-    </AuthGuard>
+    </ProtectedRoute>
   );
 };
 

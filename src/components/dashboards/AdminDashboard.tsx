@@ -21,9 +21,10 @@ interface DashboardStats {
 interface AdminDashboardProps {
   stats: DashboardStats;
   recentJobs: any[];
+  isLoading?: boolean;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs, isLoading = false }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -34,6 +35,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs }) =>
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -107,7 +119,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs }) =>
                   <Badge className={`${getStatusColor(job.status)} border-0`}>
                     {job.status.replace('_', ' ')}
                   </Badge>
-                  <span className="font-semibold">${Number(job.price).toFixed(2)}</span>
+                  <span className="font-semibold">${Number(job.price || 0).toFixed(2)}</span>
                 </div>
               </div>
             ))}

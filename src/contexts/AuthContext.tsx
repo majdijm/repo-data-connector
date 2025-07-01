@@ -84,29 +84,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (!mounted) return;
         
+        // Only synchronous operations in the callback
         setSession(session);
         setUser(session?.user ?? null);
         setError(null);
         
-        // Use setTimeout to defer profile fetching and avoid blocking the auth callback
+        // Defer async profile fetching to avoid blocking auth callback
         if (session?.user) {
           setTimeout(() => {
             if (mounted) {
-              fetchUserProfile(session.user.id).then(profile => {
-                if (mounted) {
-                  setUserProfile(profile);
-                  if (!profile) {
-                    setError('Failed to load user profile');
+              fetchUserProfile(session.user.id)
+                .then(profile => {
+                  if (mounted) {
+                    setUserProfile(profile);
+                    if (!profile) {
+                      setError('Failed to load user profile');
+                    }
+                    setIsLoading(false);
                   }
-                  setIsLoading(false);
-                }
-              }).catch(error => {
-                console.error('Error fetching profile in auth callback:', error);
-                if (mounted) {
-                  setError('Failed to load user profile');
-                  setIsLoading(false);
-                }
-              });
+                })
+                .catch(error => {
+                  console.error('Error fetching profile in auth callback:', error);
+                  if (mounted) {
+                    setError('Failed to load user profile');
+                    setIsLoading(false);
+                  }
+                });
             }
           }, 0);
         } else {
@@ -135,24 +138,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session.user);
         
-        // Use setTimeout to defer profile fetching
+        // Defer profile fetching for initial session as well
         setTimeout(() => {
           if (mounted) {
-            fetchUserProfile(session.user.id).then(profile => {
-              if (mounted) {
-                setUserProfile(profile);
-                if (!profile) {
-                  setError('Failed to load user profile');
+            fetchUserProfile(session.user.id)
+              .then(profile => {
+                if (mounted) {
+                  setUserProfile(profile);
+                  if (!profile) {
+                    setError('Failed to load user profile');
+                  }
+                  setIsLoading(false);
                 }
-                setIsLoading(false);
-              }
-            }).catch(error => {
-              console.error('Error fetching profile in initial session:', error);
-              if (mounted) {
-                setError('Failed to load user profile');
-                setIsLoading(false);
-              }
-            });
+              })
+              .catch(error => {
+                console.error('Error fetching profile in initial session:', error);
+                if (mounted) {
+                  setError('Failed to load user profile');
+                  setIsLoading(false);
+                }
+              });
           }
         }, 0);
       } else {

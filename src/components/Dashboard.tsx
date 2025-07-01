@@ -2,15 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { 
-  Users, 
-  Briefcase, 
-  DollarSign, 
-  Clock,
   AlertCircle,
   RefreshCw
 } from 'lucide-react';
@@ -57,7 +51,7 @@ const Dashboard = () => {
       setIsLoading(true);
       setError(null);
 
-      // Fetch clients count
+      // Fetch clients count with proper error handling
       const { count: clientsCount, error: clientsError } = await supabase
         .from('clients')
         .select('*', { count: 'exact', head: true });
@@ -66,7 +60,7 @@ const Dashboard = () => {
         console.error('Clients error:', clientsError);
       }
 
-      // Fetch jobs data
+      // Fetch jobs data with proper error handling
       const { data: jobs, count: jobsCount, error: jobsError } = await supabase
         .from('jobs')
         .select('*, clients(name)', { count: 'exact' })
@@ -77,7 +71,7 @@ const Dashboard = () => {
         console.error('Jobs error:', jobsError);
       }
 
-      // Fetch jobs by status
+      // Fetch jobs by status with proper error handling
       const { count: pendingCount, error: pendingError } = await supabase
         .from('jobs')
         .select('*', { count: 'exact', head: true })
@@ -96,7 +90,7 @@ const Dashboard = () => {
         console.error('Completed jobs error:', completedError);
       }
 
-      // Fetch payment statistics
+      // Fetch payment statistics with proper error handling
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('amount');
@@ -204,36 +198,40 @@ const Dashboard = () => {
     );
   }
 
-  // Route to role-specific dashboard
-  switch (userProfile.role) {
-    case 'admin':
-      return <AdminDashboard stats={stats} recentJobs={recentJobs} />;
-    case 'receptionist':
-      return <ReceptionistDashboard stats={stats} recentJobs={recentJobs} />;
-    case 'photographer':
-      return <PhotographerDashboard userProfile={userProfile} />;
-    case 'designer':
-      return <DesignerDashboard userProfile={userProfile} />;
-    case 'editor':
-      return <EditorDashboard userProfile={userProfile} />;
-    case 'client':
-      return <ClientDashboard userProfile={userProfile} />;
-    default:
-      return (
-        <div className="space-y-6">
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Unknown role: {userProfile.role}. Please contact an administrator.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={handleRefresh} className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      );
-  }
+  // Route to role-specific dashboard with proper role checking
+  const renderDashboard = () => {
+    switch (userProfile.role) {
+      case 'admin':
+        return <AdminDashboard stats={stats} recentJobs={recentJobs} isLoading={isLoading} />;
+      case 'receptionist':
+        return <ReceptionistDashboard stats={stats} recentJobs={recentJobs} isLoading={isLoading} />;
+      case 'photographer':
+        return <PhotographerDashboard userProfile={userProfile} />;
+      case 'designer':
+        return <DesignerDashboard userProfile={userProfile} />;
+      case 'editor':
+        return <EditorDashboard userProfile={userProfile} />;
+      case 'client':
+        return <ClientDashboard userProfile={userProfile} />;
+      default:
+        return (
+          <div className="space-y-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Unknown role: {userProfile.role}. Please contact an administrator.
+              </AlertDescription>
+            </Alert>
+            <Button onClick={handleRefresh} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+        );
+    }
+  };
+
+  return renderDashboard();
 };
 
 export default Dashboard;
