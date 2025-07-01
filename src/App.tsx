@@ -16,6 +16,7 @@ import DesignTasksPage from "./pages/DesignTasksPage";
 import FilesPage from "./pages/FilesPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import Settings from "./pages/Settings";
+import PackagesPage from "./pages/PackagesPage";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/users" element={<Users />} />
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
+            <Route path="/packages" element={<PackagesPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
             <Route path="/photo-sessions" element={<PhotoSessionsPage />} />
             <Route path="/video-tasks" element={<VideoTasksPage />} />

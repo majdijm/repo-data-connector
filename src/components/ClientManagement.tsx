@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Mail, Phone, MapPin, DollarSign, Edit, Eye } from 'lucide-react';
+import ClientPackageAssignment from './ClientPackageAssignment';
 
 interface Client {
   id: string;
@@ -266,6 +266,16 @@ const ClientManagement = () => {
                   )}
                 </div>
               </div>
+
+              {canManageClients && (
+                <div className="mt-6 pt-6 border-t">
+                  <ClientPackageAssignment
+                    clientId={client.id}
+                    clientName={client.name}
+                    onAssignmentChange={fetchClients}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}

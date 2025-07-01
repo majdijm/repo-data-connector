@@ -47,6 +47,54 @@ export type Database = {
           },
         ]
       }
+      client_packages: {
+        Row: {
+          client_id: string
+          created_at: string
+          end_date: string
+          id: string
+          is_active: boolean
+          package_id: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          is_active?: boolean
+          package_id: string
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          package_id?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_packages_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_packages_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
@@ -184,7 +232,10 @@ export type Database = {
           created_by: string | null
           description: string | null
           due_date: string | null
+          extra_cost: number | null
+          extra_cost_reason: string | null
           id: string
+          package_included: boolean | null
           price: number | null
           status: string
           title: string
@@ -198,7 +249,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          extra_cost?: number | null
+          extra_cost_reason?: string | null
           id?: string
+          package_included?: boolean | null
           price?: number | null
           status: string
           title: string
@@ -212,7 +266,10 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           due_date?: string | null
+          extra_cost?: number | null
+          extra_cost_reason?: string | null
           id?: string
+          package_included?: boolean | null
           price?: number | null
           status?: string
           title?: string
@@ -277,6 +334,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      packages: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_months: number
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_months: number
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_months?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {

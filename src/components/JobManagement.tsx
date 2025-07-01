@@ -336,6 +336,11 @@ const JobManagement = () => {
                     <Badge className={getStatusColor(job.status)}>
                       {job.status.replace('_', ' ')}
                     </Badge>
+                    {job.package_included && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                        Package Included
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
@@ -363,8 +368,25 @@ const JobManagement = () => {
                     <p className="text-sm text-gray-700 mb-3">{job.description}</p>
                   )}
 
-                  <div className="text-sm font-medium">
-                    Price: ${job.price || 0}
+                  <div className="text-sm space-y-1">
+                    {!job.package_included && (
+                      <div className="font-medium">
+                        Price: ${job.price || 0}
+                      </div>
+                    )}
+                    {job.extra_cost > 0 && (
+                      <div className="text-orange-600">
+                        Extra Cost: ${job.extra_cost}
+                        {job.extra_cost_reason && (
+                          <span className="text-gray-600"> - {job.extra_cost_reason}</span>
+                        )}
+                      </div>
+                    )}
+                    {job.package_included && (
+                      <div className="text-blue-600">
+                        Included in client package
+                      </div>
+                    )}
                   </div>
                 </div>
 
