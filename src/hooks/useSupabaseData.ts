@@ -19,10 +19,12 @@ interface Job {
   status: string;
   price: number;
   created_at: string;
+  client_id: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
   clients?: {
     name: string;
   };
-  assigned_to?: string;
 }
 
 interface Client {
