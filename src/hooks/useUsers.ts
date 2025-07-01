@@ -31,18 +31,32 @@ export const useUsers = () => {
       
       console.log('Fetching all users as admin...');
       
-      // Direct query to users table for admin users
-      const { data: usersData, error } = await supabase
+      // Use the RPC function or direct query with proper admin access
+      const { data: usersData, error: fetchError } = await supabase
         .from('users')
-        .select('id, email, name, role, is_active, created_at')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw error;
+      if (fetchError) {
+        console.error('Supabase error:', fetchError);
+        throw fetchError;
       }
       
-      setUsers(usersData || []);
-      console.log('Users fetched successfully:', usersData?.length || 0);
+      console.log('Raw users data from database:', usersData);
+      
+      // Transform the data to match our interface
+      const transformedUsers = usersData?.map(user => ({
+        id: user.id,
+        email: user.email,
+        name: user.name || 'No name',
+        role: user.role,
+        is_active: user.is_active ?? true,
+        created_at: user.created_at
+      })) || [];
+      
+      setUsers(transformedUsers);
+      console.log('Users fetched and transformed successfully:', transformedUsers.length);
+      
     } catch (err) {
       console.error('Error fetching users:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
@@ -57,15 +71,23 @@ export const useUsers = () => {
     }
 
     try {
+      console.log('Updating user role:', { userId, newRole });
+      
       const { error } = await supabase
         .from('users')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .update({ 
+          role: newRole, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', userId);
 
       if (error) {
+        console.error('Error updating user role:', error);
         throw error;
       }
 
+      console.log('User role updated successfully');
+      
       // Refresh users list
       await fetchUsers();
     } catch (error) {
@@ -76,6 +98,7 @@ export const useUsers = () => {
 
   useEffect(() => {
     if (userProfile) {
+      console.log('User profile loaded, fetching users...', userProfile);
       fetchUsers();
     }
   }, [userProfile]);
