@@ -13,6 +13,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import RoleTestPanel from '@/components/RoleTestPanel';
 
 const AdminDashboard: React.FC = () => {
   const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
@@ -62,6 +63,9 @@ const AdminDashboard: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-1">Overview of all studio operations</p>
       </div>
+
+      {/* Role Test Panel - Only visible to admins for testing */}
+      <RoleTestPanel />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

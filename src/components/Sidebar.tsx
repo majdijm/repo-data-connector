@@ -19,26 +19,44 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, userProfile } = useAuth();
   const location = useLocation();
 
   const handleLogout = () => {
     logout();
   };
 
-  const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
-    { icon: Users, label: 'Clients', href: '/clients' },
-    { icon: Briefcase, label: 'Jobs', href: '/jobs' },
-    { icon: UserCog, label: 'Users', href: '/users' },
-    { icon: Camera, label: 'Photo Sessions', href: '/photo-sessions' },
-    { icon: Video, label: 'Video Production', href: '/video-tasks' },
-    { icon: Palette, label: 'Design Projects', href: '/design-tasks' },
-    { icon: FileText, label: 'Files', href: '/files' },
-    { icon: CreditCard, label: 'Payments', href: '/payments' },
-    { icon: Bell, label: 'Notifications', href: '/notifications' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
-  ];
+  // Define menu items with role permissions
+  const getMenuItems = () => {
+    const role = userProfile?.role;
+    
+    const baseItems = [
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'] },
+    ];
+
+    const adminItems = [
+      { icon: Users, label: 'Clients', href: '/clients', roles: ['admin', 'receptionist'] },
+      { icon: Briefcase, label: 'Jobs', href: '/jobs', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
+      { icon: UserCog, label: 'Users', href: '/users', roles: ['admin'] },
+      { icon: Camera, label: 'Photo Sessions', href: '/photo-sessions', roles: ['admin', 'receptionist', 'photographer'] },
+      { icon: Video, label: 'Video Production', href: '/video-tasks', roles: ['admin', 'receptionist', 'editor'] },
+      { icon: Palette, label: 'Design Projects', href: '/design-tasks', roles: ['admin', 'receptionist', 'designer'] },
+      { icon: FileText, label: 'Files', href: '/files', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
+      { icon: CreditCard, label: 'Payments', href: '/payments', roles: ['admin', 'receptionist'] },
+    ];
+
+    const generalItems = [
+      { icon: Bell, label: 'Notifications', href: '/notifications', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'] },
+      { icon: Settings, label: 'Settings', href: '/settings', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'] },
+    ];
+
+    const allItems = [...baseItems, ...adminItems, ...generalItems];
+    
+    // Filter items based on user role
+    return allItems.filter(item => !role || item.roles.includes(role));
+  };
+
+  const menuItems = getMenuItems();
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -62,9 +80,16 @@ const Sidebar = () => {
           </div>
         </div>
         {user && (
-          <p className="text-sm text-teal-100 mt-2">
-            {user.user_metadata?.name || user.email}
-          </p>
+          <div className="mt-2">
+            <p className="text-sm text-teal-100">
+              {user.user_metadata?.name || user.email}
+            </p>
+            {userProfile?.role && (
+              <p className="text-xs text-teal-200 capitalize">
+                {userProfile.role}
+              </p>
+            )}
+          </div>
         )}
       </div>
       
