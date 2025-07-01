@@ -19,11 +19,10 @@ interface UserProfile {
 }
 
 const UserManagement = () => {
-  const { user, logout } = useAuth();
+  const { userProfile, logout, refreshUserProfile } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
@@ -58,34 +57,8 @@ const UserManagement = () => {
     }
   };
 
-  const fetchCurrentUserRole = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching current user role:', error);
-        // Fallback to user metadata
-        const role = user.user_metadata?.role || 'client';
-        setCurrentUserRole(role);
-        return;
-      }
-
-      setCurrentUserRole(userData?.role || 'client');
-    } catch (error) {
-      console.error('Error fetching current user role:', error);
-      const role = user.user_metadata?.role || 'client';
-      setCurrentUserRole(role);
-    }
-  };
-
   const updateUserRole = async (userId: string, newRole: string) => {
-    if (currentUserRole !== 'admin') {
+    if (userProfile?.role !== 'admin') {
       toast({
         title: "Access Denied",
         description: "Only admins can update user roles",
@@ -116,8 +89,9 @@ const UserManagement = () => {
         description: "User role updated successfully"
       });
 
-      // Refresh the users list
+      // Refresh the users list and current user profile
       await fetchUsers();
+      await refreshUserProfile();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
@@ -133,7 +107,7 @@ const UserManagement = () => {
   const handleRefreshSession = async () => {
     try {
       await supabase.auth.refreshSession();
-      await fetchCurrentUserRole();
+      await refreshUserProfile();
       toast({
         title: "Session Refreshed",
         description: "Your session has been refreshed. Please check your access now."
@@ -158,11 +132,10 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (userProfile) {
       fetchUsers();
-      fetchCurrentUserRole();
     }
-  }, [user]);
+  }, [userProfile]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors = {
@@ -184,7 +157,7 @@ const UserManagement = () => {
     );
   }
 
-  if (currentUserRole !== 'admin') {
+  if (userProfile?.role !== 'admin') {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center bg-white rounded-lg shadow-lg p-8 border border-gray-200">
@@ -195,7 +168,7 @@ const UserManagement = () => {
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
           <p className="text-gray-600 mb-4">You don't have permission to manage users.</p>
-          <p className="text-sm text-gray-500 mb-4">Current role: {currentUserRole}</p>
+          <p className="text-sm text-gray-500 mb-4">Current role: {userProfile?.role || 'Unknown'}</p>
           <div className="space-y-2">
             <Button onClick={handleRefreshSession} variant="outline" className="mr-2">
               Refresh Session
@@ -235,22 +208,22 @@ const UserManagement = () => {
             </div>
           ) : (
             <div className="grid gap-4">
-              {users.map((userProfile) => (
-                <div key={userProfile.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+              {users.map((user) => (
+                <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{userProfile.name}</h3>
-                    <p className="text-sm text-gray-600">{userProfile.email}</p>
+                    <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                    <p className="text-sm text-gray-600">{user.email}</p>
                     <p className="text-xs text-gray-400">
-                      Joined: {new Date(userProfile.created_at).toLocaleDateString()}
+                      Joined: {new Date(user.created_at).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <Badge className={`${getRoleBadgeColor(userProfile.role)} font-medium`}>
-                      {userProfile.role}
+                    <Badge className={`${getRoleBadgeColor(user.role)} font-medium`}>
+                      {user.role}
                     </Badge>
                     <Select
-                      value={userProfile.role}
-                      onValueChange={(newRole) => updateUserRole(userProfile.id, newRole)}
+                      value={user.role}
+                      onValueChange={(newRole) => updateUserRole(user.id, newRole)}
                       disabled={isUpdating}
                     >
                       <SelectTrigger className="w-36 border-gray-300">
@@ -273,8 +246,8 @@ const UserManagement = () => {
           
           <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              <strong>Info:</strong> Users are now automatically added to the database when created. 
-              You can update their roles directly from this interface.
+              <strong>Info:</strong> Users are automatically synchronized between Supabase Auth and your database. 
+              All user data is managed consistently across the application.
             </p>
           </div>
         </CardContent>

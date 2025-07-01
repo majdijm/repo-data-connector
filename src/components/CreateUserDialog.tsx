@@ -65,7 +65,6 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
 
     setIsLoading(true);
     try {
-      // Create user with regular signup since admin functions require service key
       const redirectUrl = `${window.location.origin}/`;
       
       const { data, error } = await supabase.auth.signUp({
@@ -82,10 +81,10 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
 
       if (error) throw error;
 
-      // Show success message with instructions
+      // Show success message
       toast({
         title: "User Created Successfully!",
-        description: `User ${formData.name} has been created. They can now log in with their email and password.`,
+        description: `User ${formData.name} has been created with role ${formData.role}. They can now log in with their email and password.`,
       });
 
       // Reset form
