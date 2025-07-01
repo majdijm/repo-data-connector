@@ -2,29 +2,21 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { 
   Users, 
   Briefcase, 
   DollarSign, 
-  Clock
+  Clock,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 
-interface DashboardStats {
-  totalClients: number;
-  totalJobs: number;
-  pendingJobs: number;
-  completedJobs: number;
-  totalRevenue: number;
-  pendingPayments: number;
-}
+const AdminDashboard: React.FC = () => {
+  const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
 
-interface AdminDashboardProps {
-  stats: DashboardStats;
-  recentJobs: any[];
-  isLoading?: boolean;
-}
-
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs, isLoading = false }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -35,6 +27,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs, isLo
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading dashboard data: {error}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={refetch} className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
