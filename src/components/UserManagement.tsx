@@ -29,27 +29,29 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      // Since we can't access auth.users directly, we'll show a placeholder
-      // In a real app, you'd have a profiles table or use server-side functions
-      console.log('Note: Using placeholder user data - in production you would need a profiles table');
-      
-      // For now, just show the current user
-      if (user) {
-        const currentUser = {
-          id: user.id,
-          email: user.email || '',
-          name: user.user_metadata?.name || user.email,
-          role: user.user_metadata?.role || 'client',
-          created_at: user.created_at || new Date().toISOString()
-        };
-        setUsers([currentUser]);
+      setIsLoading(true);
+      const { data: usersData, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users",
+          variant: "destructive"
+        });
+        return;
       }
+
+      setUsers(usersData || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
-        title: "Info",
-        description: "User list functionality requires additional setup",
-        variant: "default"
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -60,14 +62,25 @@ const UserManagement = () => {
     if (!user) return;
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const role = session.user.user_metadata?.role || 'client';
-        console.log('Current user role:', role);
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching current user role:', error);
+        // Fallback to user metadata
+        const role = user.user_metadata?.role || 'client';
         setCurrentUserRole(role);
+        return;
       }
+
+      setCurrentUserRole(userData?.role || 'client');
     } catch (error) {
       console.error('Error fetching current user role:', error);
+      const role = user.user_metadata?.role || 'client';
+      setCurrentUserRole(role);
     }
   };
 
@@ -81,11 +94,40 @@ const UserManagement = () => {
       return;
     }
 
-    toast({
-      title: "Note",
-      description: "Role updates require server-side implementation",
-      variant: "default"
-    });
+    try {
+      setIsUpdating(true);
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Error updating user role:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update user role",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "User role updated successfully"
+      });
+
+      // Refresh the users list
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleRefreshSession = async () => {
@@ -109,11 +151,17 @@ const UserManagement = () => {
   const handleUserCreated = () => {
     fetchUsers();
     setIsCreateDialogOpen(false);
+    toast({
+      title: "Success",
+      description: "User created successfully and will appear in the list"
+    });
   };
 
   useEffect(() => {
-    fetchUsers();
-    fetchCurrentUserRole();
+    if (user) {
+      fetchUsers();
+      fetchCurrentUserRole();
+    }
   }, [user]);
 
   const getRoleBadgeColor = (role: string) => {
@@ -181,46 +229,52 @@ const UserManagement = () => {
           </div>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid gap-4">
-            {users.map((userProfile) => (
-              <div key={userProfile.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{userProfile.name}</h3>
-                  <p className="text-sm text-gray-600">{userProfile.email}</p>
-                  <p className="text-xs text-gray-400">
-                    Joined: {new Date(userProfile.created_at).toLocaleDateString()}
-                  </p>
+          {users.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No users found. Create your first user to get started.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {users.map((userProfile) => (
+                <div key={userProfile.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900">{userProfile.name}</h3>
+                    <p className="text-sm text-gray-600">{userProfile.email}</p>
+                    <p className="text-xs text-gray-400">
+                      Joined: {new Date(userProfile.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Badge className={`${getRoleBadgeColor(userProfile.role)} font-medium`}>
+                      {userProfile.role}
+                    </Badge>
+                    <Select
+                      value={userProfile.role}
+                      onValueChange={(newRole) => updateUserRole(userProfile.id, newRole)}
+                      disabled={isUpdating}
+                    >
+                      <SelectTrigger className="w-36 border-gray-300">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="receptionist">Receptionist</SelectItem>
+                        <SelectItem value="photographer">Photographer</SelectItem>
+                        <SelectItem value="designer">Designer</SelectItem>
+                        <SelectItem value="editor">Editor</SelectItem>
+                        <SelectItem value="client">Client</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Badge className={`${getRoleBadgeColor(userProfile.role)} font-medium`}>
-                    {userProfile.role}
-                  </Badge>
-                  <Select
-                    value={userProfile.role}
-                    onValueChange={(newRole) => updateUserRole(userProfile.id, newRole)}
-                    disabled={isUpdating}
-                  >
-                    <SelectTrigger className="w-36 border-gray-300">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-200 shadow-lg">
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="receptionist">Receptionist</SelectItem>
-                      <SelectItem value="photographer">Photographer</SelectItem>
-                      <SelectItem value="designer">Designer</SelectItem>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           
           <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> Full user management requires setting up a profiles table and server-side functions. 
-              Currently, you can create new users who will be able to log in immediately.
+              <strong>Info:</strong> Users are now automatically added to the database when created. 
+              You can update their roles directly from this interface.
             </p>
           </div>
         </CardContent>
