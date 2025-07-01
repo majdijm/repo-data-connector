@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -7,6 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+
+// Updated Job interface to match database schema
+interface Job {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  price: number;
+  created_at: string;
+  client_id: string | null;
+  assigned_to: string | null;
+  due_date: string | null;
+  clients?: {
+    name: string;
+  };
+}
 
 const Tasks = () => {
   const { recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
