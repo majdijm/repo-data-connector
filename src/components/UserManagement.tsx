@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,103 +9,28 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, RefreshCw, AlertCircle } from 'lucide-react';
 import CreateUserDialog from './CreateUserDialog';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
+import { useUsers } from '@/hooks/useUsers';
 
 const UserManagement = () => {
   const { userProfile, isLoading: authLoading } = useAuth();
+  const { users, isLoading, error, refetch, updateUserRole } = useUsers();
   const { toast } = useToast();
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('Fetching users...');
-      
-      const { data: usersData, error } = await supabase
-        .from('users')
-        .select('id, email, name, role, is_active, created_at')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching users:', error);
-        setError('Failed to fetch users: ' + error.message);
-        toast({
-          title: "Error",
-          description: "Failed to fetch users: " + error.message,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Users fetched:', usersData);
-      setUsers(usersData || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setError('Failed to fetch users');
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateUserRole = async (userId: string, newRole: string) => {
-    if (userProfile?.role !== 'admin') {
-      toast({
-        title: "Access Denied",
-        description: "Only admins can update user roles",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleRoleUpdate = async (userId: string, newRole: string) => {
     try {
       setIsUpdating(true);
-      console.log('Updating user role:', userId, newRole);
-      
-      const { error } = await supabase
-        .from('users')
-        .update({ role: newRole, updated_at: new Date().toISOString() })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('Error updating user role:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update user role: " + error.message,
-          variant: "destructive"
-        });
-        return;
-      }
-
+      await updateUserRole(userId, newRole);
       toast({
         title: "Success",
         description: "User role updated successfully"
       });
-
-      await fetchUsers();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: "Failed to update user role: " + (error instanceof Error ? error.message : 'Unknown error'),
         variant: "destructive"
       });
     } finally {
@@ -115,19 +39,13 @@ const UserManagement = () => {
   };
 
   const handleUserCreated = () => {
-    fetchUsers();
+    refetch();
     setIsCreateDialogOpen(false);
     toast({
       title: "Success",
       description: "User created successfully"
     });
   };
-
-  useEffect(() => {
-    if (!authLoading && userProfile?.role === 'admin') {
-      fetchUsers();
-    }
-  }, [userProfile, authLoading]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors = {
@@ -179,7 +97,7 @@ const UserManagement = () => {
             {error}
           </AlertDescription>
         </Alert>
-        <Button onClick={fetchUsers} className="flex items-center gap-2">
+        <Button onClick={refetch} className="flex items-center gap-2">
           <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
@@ -235,7 +153,7 @@ const UserManagement = () => {
                     </Badge>
                     <Select
                       value={user.role}
-                      onValueChange={(newRole) => updateUserRole(user.id, newRole)}
+                      onValueChange={(newRole) => handleRoleUpdate(user.id, newRole)}
                       disabled={isUpdating}
                     >
                       <SelectTrigger className="w-36 border-gray-300">

@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -18,8 +17,6 @@ import ClientDashboard from '@/components/dashboards/ClientDashboard';
 
 const Dashboard = () => {
   const { userProfile, isLoading: authLoading, error: authError, refreshUserProfile } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleRefresh = async () => {
     await refreshUserProfile();
@@ -55,24 +52,6 @@ const Dashboard = () => {
     );
   }
 
-  // Show data error
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-        <Button onClick={handleRefresh} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
   // Show profile setup message if no profile
   if (!userProfile) {
     return (
@@ -97,8 +76,10 @@ const Dashboard = () => {
     );
   }
 
-  // Route to role-specific dashboard with proper role checking
-  const renderDashboard = () => {
+  // Route to role-specific dashboard based on user profile role
+  const renderRoleBasedDashboard = () => {
+    console.log('Rendering dashboard for role:', userProfile.role);
+    
     switch (userProfile.role) {
       case 'admin':
         return <AdminDashboard />;
@@ -130,7 +111,7 @@ const Dashboard = () => {
     }
   };
 
-  return renderDashboard();
+  return renderRoleBasedDashboard();
 };
 
 export default Dashboard;
