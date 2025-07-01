@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import VideoTasksPage from "./pages/VideoTasksPage";
 import DesignTasksPage from "./pages/DesignTasksPage";
 import FilesPage from "./pages/FilesPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +38,7 @@ const App = () => (
             <Route path="/design-tasks" element={<DesignTasksPage />} />
             <Route path="/files" element={<FilesPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<Settings />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
