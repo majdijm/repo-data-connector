@@ -19,8 +19,14 @@ export const useUsers = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
-    if (!userProfile || userProfile.role !== 'admin') {
-      setError('Access denied. Admin role required.');
+    if (!userProfile) {
+      setError('User profile not loaded');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!['admin', 'receptionist'].includes(userProfile.role)) {
+      setError('Access denied. Admin or receptionist role required.');
       setIsLoading(false);
       return;
     }
@@ -29,22 +35,20 @@ export const useUsers = () => {
       setIsLoading(true);
       setError(null);
       
-      console.log('Fetching all users as admin...');
+      console.log('Fetching users as:', userProfile.role);
       
-      // Use the RPC function or direct query with proper admin access
       const { data: usersData, error: fetchError } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('Supabase error:', fetchError);
+        console.error('Error fetching users:', fetchError);
         throw fetchError;
       }
       
-      console.log('Raw users data from database:', usersData);
+      console.log('Fetched users:', usersData);
       
-      // Transform the data to match our interface
       const transformedUsers = usersData?.map(user => ({
         id: user.id,
         email: user.email,
@@ -55,10 +59,10 @@ export const useUsers = () => {
       })) || [];
       
       setUsers(transformedUsers);
-      console.log('Users fetched and transformed successfully:', transformedUsers.length);
+      console.log('Users set successfully:', transformedUsers.length);
       
     } catch (err) {
-      console.error('Error fetching users:', err);
+      console.error('Error in fetchUsers:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
     } finally {
       setIsLoading(false);
@@ -66,7 +70,7 @@ export const useUsers = () => {
   };
 
   const updateUserRole = async (userId: string, newRole: string) => {
-    if (userProfile?.role !== 'admin') {
+    if (!userProfile || userProfile.role !== 'admin') {
       throw new Error('Access denied. Admin role required.');
     }
 
@@ -98,7 +102,7 @@ export const useUsers = () => {
 
   useEffect(() => {
     if (userProfile) {
-      console.log('User profile loaded, fetching users...', userProfile);
+      console.log('UserProfile loaded, fetching users...', userProfile);
       fetchUsers();
     }
   }, [userProfile]);
