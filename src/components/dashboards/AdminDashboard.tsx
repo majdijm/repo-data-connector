@@ -1,88 +1,86 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { mockJobs, mockClients, mockPayments } from '@/data/mockData';
-import { Users, FileText, Calendar, FileImage } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Users, 
+  Briefcase, 
+  DollarSign, 
+  Clock
+} from 'lucide-react';
 
-const AdminDashboard = () => {
-  const totalJobs = mockJobs.length;
-  const activeJobs = mockJobs.filter(job => job.status !== 'completed' && job.status !== 'delivered').length;
-  const totalClients = mockClients.length;
-  const totalRevenue = mockPayments.reduce((sum, payment) => sum + payment.amount, 0);
+interface DashboardStats {
+  totalClients: number;
+  totalJobs: number;
+  pendingJobs: number;
+  completedJobs: number;
+  totalRevenue: number;
+  pendingPayments: number;
+}
 
+interface AdminDashboardProps {
+  stats: DashboardStats;
+  recentJobs: any[];
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ stats, recentJobs }) => {
   const getStatusColor = (status: string) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      review: 'bg-purple-100 text-purple-800',
-      completed: 'bg-green-100 text-green-800',
-      delivered: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'review': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-2">Complete overview of studio operations</p>
+        <p className="text-gray-600 mt-1">Overview of all studio operations</p>
       </div>
 
-      {/* Stats Overview */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{totalJobs}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalClients}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{activeJobs}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Jobs</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalJobs}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Clients</p>
-                <p className="text-2xl font-bold text-gray-900">{totalClients}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Jobs</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingJobs}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <FileImage className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">${totalRevenue.toLocaleString()}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
@@ -94,46 +92,30 @@ const AdminDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockJobs.map((job) => (
+            {recentJobs.map((job) => (
               <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
-                  <h3 className="font-medium text-gray-900">{job.title}</h3>
-                  <p className="text-sm text-gray-500">{job.clientName}</p>
-                  <p className="text-sm text-gray-400">Due: {job.dueDate.toLocaleDateString()}</p>
+                  <h3 className="font-semibold">{job.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    Client: {job.clients?.name || 'N/A'} • Type: {job.type}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {new Date(job.created_at).toLocaleDateString()}
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(job.status)}`}>
+                  <Badge className={`${getStatusColor(job.status)} border-0`}>
                     {job.status.replace('_', ' ')}
-                  </span>
-                  <span className="text-sm text-gray-500">{job.assignedToName || 'Unassigned'}</span>
+                  </Badge>
+                  <span className="font-semibold">${Number(job.price).toFixed(2)}</span>
                 </div>
               </div>
             ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Team Workload */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Team Workload</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {['Mike Chen (Photographer)', 'Emma Wilson (Designer)', 'David Rodriguez (Editor)'].map((member, index) => (
-              <div key={member} className="flex items-center justify-between">
-                <span className="font-medium">{member}</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-32 bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full" 
-                      style={{ width: `${[75, 60, 90][index]}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm text-gray-500">{[3, 2, 4][index]} tasks</span>
-                </div>
+            {recentJobs.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No jobs found. Create your first job to get started!
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
