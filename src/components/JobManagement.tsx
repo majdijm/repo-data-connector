@@ -50,6 +50,7 @@ const JobManagement = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [filteredTeamMembers, setFilteredTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -106,6 +107,7 @@ const JobManagement = () => {
 
   const fetchTeamMembers = async () => {
     try {
+      console.log('Fetching team members...');
       const { data, error } = await supabase
         .from('users')
         .select('id, name, role')
@@ -113,10 +115,50 @@ const JobManagement = () => {
         .eq('is_active', true)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching team members:', error);
+        throw error;
+      }
+      
+      console.log('Team members fetched:', data);
       setTeamMembers(data || []);
+      
+      // Initially show all team members
+      setFilteredTeamMembers(data || []);
     } catch (error) {
       console.error('Error fetching team members:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch team members",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const filterTeamMembersByJobType = (jobType: string) => {
+    console.log('Filtering team members by job type:', jobType);
+    let filtered: TeamMember[] = [];
+    
+    switch (jobType) {
+      case 'photo_session':
+        filtered = teamMembers.filter(member => member.role === 'photographer');
+        break;
+      case 'video_editing':
+        filtered = teamMembers.filter(member => member.role === 'editor');
+        break;
+      case 'design':
+        filtered = teamMembers.filter(member => member.role === 'designer');
+        break;
+      default:
+        filtered = teamMembers;
+    }
+    
+    console.log('Filtered team members:', filtered);
+    setFilteredTeamMembers(filtered);
+    
+    // Reset assigned_to if current selection is not in filtered list
+    if (formData.assigned_to && !filtered.find(member => member.id === formData.assigned_to)) {
+      setFormData(prev => ({ ...prev, assigned_to: '' }));
     }
   };
 
@@ -125,6 +167,13 @@ const JobManagement = () => {
     fetchClients();
     fetchTeamMembers();
   }, []);
+
+  // Filter team members when job type changes
+  React.useEffect(() => {
+    if (teamMembers.length > 0) {
+      filterTeamMembersByJobType(formData.type);
+    }
+  }, [formData.type, teamMembers]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,7 +287,10 @@ const JobManagement = () => {
                 </div>
                 <div>
                   <Label htmlFor="type">Job Type</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                  <Select 
+                    value={formData.type} 
+                    onValueChange={(value) => setFormData({...formData, type: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -269,12 +321,15 @@ const JobManagement = () => {
                 </div>
                 <div>
                   <Label htmlFor="assigned_to">Assign To</Label>
-                  <Select value={formData.assigned_to} onValueChange={(value) => setFormData({...formData, assigned_to: value})}>
+                  <Select 
+                    value={formData.assigned_to} 
+                    onValueChange={(value) => setFormData({...formData, assigned_to: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                     <SelectContent>
-                      {teamMembers.map(member => (
+                      {filteredTeamMembers.map(member => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name} ({member.role})
                         </SelectItem>
@@ -324,6 +379,24 @@ const JobManagement = () => {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug info - remove this after testing */}
+      {showCreateForm && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-4">
+            <p className="text-sm text-blue-700">
+              Debug: Selected job type: {formData.type} | 
+              Available team members: {filteredTeamMembers.length} | 
+              Total team members: {teamMembers.length}
+            </p>
+            {filteredTeamMembers.length > 0 && (
+              <p className="text-sm text-blue-600 mt-1">
+                Available: {filteredTeamMembers.map(m => `${m.name} (${m.role})`).join(', ')}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
