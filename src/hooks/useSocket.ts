@@ -1,70 +1,83 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { io, Socket } from 'socket.io-client';
-
-let socket: Socket | null = null;
+import { supabase } from '@/integrations/supabase/client';
 
 export const useSocket = () => {
-  const { session, user } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (session && user) {
-      // Only connect if we have a valid session
-      if (!socket) {
-        socket = io('ws://localhost:3006', {
-          auth: {
-            userId: user.id,
-            email: user.email
+    if (user) {
+      // Subscribe to real-time notifications
+      const notificationsChannel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('New notification received:', payload);
+            // You can emit custom events here or use a state management solution
           }
-        });
+        )
+        .subscribe();
 
-        socket.on('connect', () => {
-          console.log('Connected to socket server');
-        });
+      // Subscribe to job status changes
+      const jobsChannel = supabase
+        .channel('jobs')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'jobs'
+          },
+          (payload) => {
+            console.log('Job status updated:', payload);
+          }
+        )
+        .subscribe();
 
-        socket.on('disconnect', () => {
-          console.log('Disconnected from socket server');
-        });
-      }
-    } else {
-      // Disconnect if no session
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
+      return () => {
+        supabase.removeChannel(notificationsChannel);
+        supabase.removeChannel(jobsChannel);
+      };
     }
+  }, [user]);
 
-    return () => {
-      if (socket) {
-        socket.disconnect();
-        socket = null;
-      }
-    };
-  }, [session, user]);
+  // Utility functions for real-time operations
+  const createNotification = async (userId: string, title: string, message: string) => {
+    const { error } = await supabase
+      .from('notifications')
+      .insert([{
+        user_id: userId,
+        title,
+        message
+      }]);
 
-  const emit = (event: string, data: any) => {
-    if (socket) {
-      socket.emit(event, data);
+    if (error) {
+      console.error('Error creating notification:', error);
     }
   };
 
-  const on = (event: string, callback: (data: any) => void) => {
-    if (socket) {
-      socket.on(event, callback);
-    }
-  };
+  const updateJobStatus = async (jobId: string, status: string) => {
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status })
+      .eq('id', jobId);
 
-  const off = (event: string, callback?: (data: any) => void) => {
-    if (socket) {
-      socket.off(event, callback);
+    if (error) {
+      console.error('Error updating job status:', error);
     }
   };
 
   return {
-    emit,
-    on,
-    off,
-    isConnected: socket?.connected || false
+    createNotification,
+    updateJobStatus,
+    isConnected: !!user
   };
 };

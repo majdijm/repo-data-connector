@@ -51,6 +51,30 @@ const NotificationsPage = () => {
 
   useEffect(() => {
     fetchNotifications();
+
+    // Set up real-time subscription for notifications
+    if (user) {
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('Notification change received:', payload);
+            fetchNotifications(); // Refresh notifications
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [user]);
 
   const markAsRead = async (notificationId: string) => {
@@ -154,7 +178,7 @@ const NotificationsPage = () => {
                 </div>
                 <div>
                   <h1 className="text-3xl font-bold">Notifications</h1>
-                  <p className="text-yellow-100 mt-1">Stay updated with your activities</p>
+                  <p className="text-yellow-100 mt-1">Stay updated with real-time activities</p>
                 </div>
               </div>
               {unreadCount > 0 && (

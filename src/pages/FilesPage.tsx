@@ -2,14 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Files, Upload, Download, Trash2, Eye } from 'lucide-react';
+import { Files, Upload, Download, Trash2, Eye, FileText, Image, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import FileUpload from '@/components/FileUpload';
 
 interface JobFile {
   id: string;
@@ -31,9 +31,8 @@ const FilesPage = () => {
   const { toast } = useToast();
   const [files, setFiles] = useState<JobFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedJobId, setSelectedJobId] = useState('');
-  const [fileType, setFileType] = useState('raw');
+  const [jobs, setJobs] = useState<any[]>([]);
 
   const fetchFiles = async () => {
     try {
@@ -62,52 +61,100 @@ const FilesPage = () => {
     }
   };
 
+  const fetchJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('id, title')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    }
+  };
+
   useEffect(() => {
     fetchFiles();
+    fetchJobs();
   }, []);
 
-  const handleFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedFile || !selectedJobId) return;
+  const downloadFile = async (file: JobFile) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('job-files')
+        .download(file.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "File downloaded successfully"
+      });
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download file",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteFile = async (file: JobFile) => {
+    if (!window.confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      const filePath = `jobs/${selectedJobId}/${Date.now()}-${selectedFile.name}`;
-      
-      const { error: uploadError } = await supabase.storage
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
         .from('job-files')
-        .upload(filePath, selectedFile);
+        .remove([file.file_path]);
 
-      if (uploadError) throw uploadError;
+      if (storageError) throw storageError;
 
+      // Delete from database
       const { error: dbError } = await supabase
         .from('job_files')
-        .insert([{
-          job_id: selectedJobId,
-          file_name: selectedFile.name,
-          file_path: filePath,
-          file_size: selectedFile.size,
-          file_type: fileType,
-          uploaded_by: userProfile?.id
-        }]);
+        .delete()
+        .eq('id', file.id);
 
       if (dbError) throw dbError;
 
       toast({
         title: "Success",
-        description: "File uploaded successfully"
+        description: "File deleted successfully"
       });
 
-      setSelectedFile(null);
-      setSelectedJobId('');
       fetchFiles();
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error deleting file:', error);
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: "Failed to delete file",
         variant: "destructive"
       });
     }
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
+      return <Image size={20} className="text-blue-500" />;
+    }
+    if (['mp4', 'avi', 'mov', 'wmv'].includes(ext || '')) {
+      return <Video size={20} className="text-red-500" />;
+    }
+    return <FileText size={20} className="text-gray-500" />;
   };
 
   const formatFileSize = (bytes: number) => {
@@ -119,6 +166,7 @@ const FilesPage = () => {
   };
 
   const canUpload = ['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile?.role || '');
+  const canDelete = ['admin', 'receptionist'].includes(userProfile?.role || '');
 
   return (
     <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
@@ -137,49 +185,27 @@ const FilesPage = () => {
           </div>
 
           {canUpload && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload size={20} />
-                  Upload File
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleFileUpload} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Input
-                        type="file"
-                        onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Input
-                        placeholder="Job ID"
-                        value={selectedJobId}
-                        onChange={(e) => setSelectedJobId(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <select
-                      value={fileType}
-                      onChange={(e) => setFileType(e.target.value)}
-                      className="w-full p-2 border rounded-md"
-                    >
-                      <option value="raw">Raw File</option>
-                      <option value="final">Final File</option>
-                      <option value="preview">Preview</option>
-                    </select>
-                  </div>
-                  <Button type="submit" disabled={!selectedFile || !selectedJobId}>
-                    Upload File
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Select Job for Upload</label>
+                <select
+                  value={selectedJobId}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                  className="w-full p-2 border rounded-md mb-4"
+                >
+                  <option value="">Select a job...</option>
+                  {jobs.map(job => (
+                    <option key={job.id} value={job.id}>{job.title}</option>
+                  ))}
+                </select>
+              </div>
+              {selectedJobId && (
+                <FileUpload 
+                  jobId={selectedJobId} 
+                  onFileUploaded={fetchFiles}
+                />
+              )}
+            </div>
           )}
 
           <div className="grid gap-4">
@@ -193,30 +219,38 @@ const FilesPage = () => {
                 <Card key={file.id}>
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">{file.file_name}</h3>
-                          <Badge variant={file.is_final ? "default" : "secondary"}>
-                            {file.file_type}
-                          </Badge>
+                      <div className="flex items-center gap-4 flex-1">
+                        {getFileIcon(file.file_name)}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold">{file.file_name}</h3>
+                            <Badge variant={file.is_final ? "default" : "secondary"}>
+                              {file.file_type}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-1">
+                            Job: {file.jobs?.title || 'Unknown'}
+                          </p>
+                          <p className="text-gray-500 text-sm">
+                            Size: {formatFileSize(file.file_size)} • 
+                            Uploaded: {new Date(file.created_at).toLocaleDateString()}
+                          </p>
                         </div>
-                        <p className="text-gray-600 text-sm mb-1">
-                          Job: {file.jobs?.title || 'Unknown'}
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          Size: {formatFileSize(file.file_size)} • 
-                          Uploaded: {new Date(file.created_at).toLocaleDateString()}
-                        </p>
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye size={16} />
-                        </Button>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => downloadFile(file)}
+                        >
                           <Download size={16} />
                         </Button>
-                        {canUpload && (
-                          <Button size="sm" variant="outline">
+                        {canDelete && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => deleteFile(file)}
+                          >
                             <Trash2 size={16} />
                           </Button>
                         )}
