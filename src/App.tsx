@@ -11,6 +11,11 @@ import Users from "./pages/Users";
 import JobsPage from "./pages/JobsPage";
 import ClientsPage from "./pages/ClientsPage";
 import PaymentsPage from "./pages/PaymentsPage";
+import PhotoSessionsPage from "./pages/PhotoSessionsPage";
+import VideoTasksPage from "./pages/VideoTasksPage";
+import DesignTasksPage from "./pages/DesignTasksPage";
+import FilesPage from "./pages/FilesPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +33,11 @@ const App = () => (
             <Route path="/jobs" element={<JobsPage />} />
             <Route path="/clients" element={<ClientsPage />} />
             <Route path="/payments" element={<PaymentsPage />} />
+            <Route path="/photo-sessions" element={<PhotoSessionsPage />} />
+            <Route path="/video-tasks" element={<VideoTasksPage />} />
+            <Route path="/design-tasks" element={<DesignTasksPage />} />
+            <Route path="/files" element={<FilesPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

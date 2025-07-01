@@ -1,21 +1,20 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import DashboardAnalytics from '@/components/DashboardAnalytics';
 import { 
   Users, 
   Briefcase, 
-  Clock, 
-  CheckCircle, 
   DollarSign, 
-  AlertTriangle,
-  RefreshCw,
-  AlertCircle
+  Clock,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
-import { useSupabaseData } from '@/hooks/useSupabaseData';
-import RoleTestPanel from '@/components/RoleTestPanel';
 
 const AdminDashboard = () => {
   const { stats, recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
@@ -48,166 +47,133 @@ const AdminDashboard = () => {
     );
   }
 
-  const statCards = [
-    {
-      title: 'Total Clients',
-      value: stats.totalClients,
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100'
-    },
-    {
-      title: 'Total Jobs',
-      value: stats.totalJobs,
-      icon: Briefcase,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
-    },
-    {
-      title: 'Pending Jobs',
-      value: stats.pendingJobs,
-      icon: Clock,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100'
-    },
-    {
-      title: 'Completed Jobs',
-      value: stats.completedJobs,
-      icon: CheckCircle,
-      color: 'text-emerald-600',
-      bgColor: 'bg-emerald-100'
-    },
-    {
-      title: 'Total Revenue',
-      value: `$${stats.totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
-    },
-    {
-      title: 'Pending Payments',
-      value: stats.pendingPayments,
-      icon: AlertTriangle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100'
-    }
-  ];
-
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      review: 'bg-purple-100 text-purple-800',
-      completed: 'bg-green-100 text-green-800',
-      cancelled: 'bg-red-100 text-red-800',
-    };
-    return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
-  };
-
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600 mt-1">Monitor and manage your studio operations</p>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
+        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <p className="text-blue-100">Complete overview of your media agency operations</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {statCards.map((stat, index) => (
-          <Card key={index} className="shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                </div>
-                <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Jobs */}
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5" />
-              Recent Jobs
-            </CardTitle>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Clients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {recentJobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No jobs found</p>
-            ) : (
-              <div className="space-y-4">
-                {recentJobs.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{job.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        {job.clients?.name || 'Unknown Client'} • ${job.price?.toLocaleString() || '0'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(job.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge className={getStatusBadge(job.status)}>
-                      {job.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="text-2xl font-bold">{stats.totalClients}</div>
+            <p className="text-xs text-muted-foreground">
+              Active client relationships
+            </p>
           </CardContent>
         </Card>
 
-        {/* Recent Clients */}
-        <Card className="shadow-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Recent Clients
-            </CardTitle>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Jobs</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {clients.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No clients found</p>
-            ) : (
-              <div className="space-y-4">
-                {clients.slice(0, 5).map((client) => (
-                  <div key={client.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{client.name}</h4>
-                      <p className="text-sm text-gray-600">{client.email}</p>
-                      <p className="text-xs text-gray-500">
-                        Joined: {new Date(client.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-green-600">
-                        Paid: ${client.total_paid?.toLocaleString() || '0'}
-                      </p>
-                      {client.total_due > 0 && (
-                        <p className="text-sm text-red-600">
-                          Due: ${client.total_due?.toLocaleString() || '0'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="text-2xl font-bold">{stats.totalJobs}</div>
+            <div className="flex gap-2 mt-1">
+              <Badge variant="secondary" className="text-xs">
+                {stats.pendingJobs} pending
+              </Badge>
+              <Badge variant="default" className="text-xs">
+                {stats.completedJobs} completed
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${stats.totalRevenue.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">
+              From completed projects
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingPayments}</div>
+            <p className="text-xs text-muted-foreground">
+              Jobs awaiting payment
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Role Testing Panel */}
-      <RoleTestPanel />
+      {/* Analytics Section */}
+      <div>
+        <div className="flex items-center gap-2 mb-6">
+          <TrendingUp className="h-5 w-5 text-blue-600" />
+          <h2 className="text-2xl font-bold">Analytics & Performance</h2>
+        </div>
+        <DashboardAnalytics />
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Jobs</CardTitle>
+            <CardDescription>Latest project activities</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {recentJobs.slice(0, 5).map(job => (
+              <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium">{job.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {job.clients?.name || 'No client'} • {job.type.replace('_', ' ')}
+                  </p>
+                </div>
+                <Badge variant={
+                  job.status === 'completed' ? 'default' : 
+                  job.status === 'in_progress' ? 'secondary' : 'outline'
+                }>
+                  {job.status.replace('_', ' ')}
+                </Badge>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Client Overview</CardTitle>
+            <CardDescription>Top clients by engagement</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {clients.slice(0, 5).map(client => (
+              <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex-1">
+                  <p className="font-medium">{client.name}</p>
+                  <p className="text-sm text-gray-500">{client.email}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-medium text-green-600">
+                    ${client.total_paid?.toLocaleString() || 0}
+                  </p>
+                  <p className="text-sm text-gray-500">paid</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
