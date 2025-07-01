@@ -5,9 +5,10 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, RefreshCw, AlertCircle } from 'lucide-react';
 import CreateUserDialog from './CreateUserDialog';
 
 interface UserProfile {
@@ -19,16 +20,19 @@ interface UserProfile {
 }
 
 const UserManagement = () => {
-  const { userProfile, logout, refreshUserProfile } = useAuth();
+  const { userProfile, logout, refreshUserProfile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
       const { data: usersData, error } = await supabase
         .from('users')
         .select('*')
@@ -36,6 +40,7 @@ const UserManagement = () => {
 
       if (error) {
         console.error('Error fetching users:', error);
+        setError('Failed to fetch users: ' + error.message);
         toast({
           title: "Error",
           description: "Failed to fetch users",
@@ -47,6 +52,7 @@ const UserManagement = () => {
       setUsers(usersData || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setError('Failed to fetch users');
       toast({
         title: "Error",
         description: "Failed to fetch users",
@@ -89,7 +95,6 @@ const UserManagement = () => {
         description: "User role updated successfully"
       });
 
-      // Refresh the users list and current user profile
       await fetchUsers();
       await refreshUserProfile();
     } catch (error) {
@@ -132,10 +137,10 @@ const UserManagement = () => {
   };
 
   useEffect(() => {
-    if (userProfile) {
+    if (!authLoading && userProfile) {
       fetchUsers();
     }
-  }, [userProfile]);
+  }, [userProfile, authLoading]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors = {
@@ -149,22 +154,43 @@ const UserManagement = () => {
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  if (isLoading) {
+  // Show loading state
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
 
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+        <Button onClick={fetchUsers} className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  // Access control
   if (userProfile?.role !== 'admin') {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center bg-white rounded-lg shadow-lg p-8 border border-gray-200">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0-6V7m0 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
           <p className="text-gray-600 mb-4">You don't have permission to manage users.</p>
