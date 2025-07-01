@@ -62,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUserProfile = async () => {
     if (user) {
-      setIsLoading(true);
       const profile = await fetchUserProfile(user.id);
       setUserProfile(profile);
       if (!profile) {
@@ -70,7 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setError(null);
       }
-      setIsLoading(false);
     }
   };
 
@@ -79,6 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     console.log('Setting up auth state listener');
 
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
@@ -89,23 +88,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setError(null);
         
+        // Use setTimeout to defer profile fetching and avoid blocking the auth callback
         if (session?.user) {
-          // Fetch profile after state is set
-          fetchUserProfile(session.user.id).then(profile => {
+          setTimeout(() => {
             if (mounted) {
-              setUserProfile(profile);
-              if (!profile) {
-                setError('Failed to load user profile');
-              }
-              setIsLoading(false);
+              fetchUserProfile(session.user.id).then(profile => {
+                if (mounted) {
+                  setUserProfile(profile);
+                  if (!profile) {
+                    setError('Failed to load user profile');
+                  }
+                  setIsLoading(false);
+                }
+              }).catch(error => {
+                console.error('Error fetching profile in auth callback:', error);
+                if (mounted) {
+                  setError('Failed to load user profile');
+                  setIsLoading(false);
+                }
+              });
             }
-          }).catch(error => {
-            console.error('Error fetching profile in auth callback:', error);
-            if (mounted) {
-              setError('Failed to load user profile');
-              setIsLoading(false);
-            }
-          });
+          }, 0);
         } else {
           setUserProfile(null);
           setIsLoading(false);
@@ -113,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
       if (sessionError) {
         console.error('Session error:', sessionError);
@@ -132,21 +135,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session.user);
         
-        fetchUserProfile(session.user.id).then(profile => {
+        // Use setTimeout to defer profile fetching
+        setTimeout(() => {
           if (mounted) {
-            setUserProfile(profile);
-            if (!profile) {
-              setError('Failed to load user profile');
-            }
-            setIsLoading(false);
+            fetchUserProfile(session.user.id).then(profile => {
+              if (mounted) {
+                setUserProfile(profile);
+                if (!profile) {
+                  setError('Failed to load user profile');
+                }
+                setIsLoading(false);
+              }
+            }).catch(error => {
+              console.error('Error fetching profile in initial session:', error);
+              if (mounted) {
+                setError('Failed to load user profile');
+                setIsLoading(false);
+              }
+            });
           }
-        }).catch(error => {
-          console.error('Error fetching profile in initial session:', error);
-          if (mounted) {
-            setError('Failed to load user profile');
-            setIsLoading(false);
-          }
-        });
+        }, 0);
       } else {
         setIsLoading(false);
       }
