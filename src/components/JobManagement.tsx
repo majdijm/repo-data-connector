@@ -24,6 +24,9 @@ interface Job {
   assigned_to: string | null;
   due_date: string | null;
   description: string | null;
+  package_included: boolean | null;
+  extra_cost: number | null;
+  extra_cost_reason: string | null;
   clients?: {
     name: string;
   };
@@ -374,7 +377,7 @@ const JobManagement = () => {
                         Price: ${job.price || 0}
                       </div>
                     )}
-                    {job.extra_cost > 0 && (
+                    {job.extra_cost && job.extra_cost > 0 && (
                       <div className="text-orange-600">
                         Extra Cost: ${job.extra_cost}
                         {job.extra_cost_reason && (

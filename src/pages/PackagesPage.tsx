@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import DashboardLayout from '@/components/DashboardLayout';
 import PackageManagement from '@/components/PackageManagement';
 
 const PackagesPage = () => {
