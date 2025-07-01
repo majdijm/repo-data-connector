@@ -45,7 +45,7 @@ const Tasks = () => {
     return recentJobs.filter(job => job.client_id === clientId && job.type === jobType);
   };
 
-  const isOverdue = (dueDateString: string) => {
+  const isOverdue = (dueDateString: string | null) => {
     if (!dueDateString) return false;
     return new Date() > new Date(dueDateString);
   };

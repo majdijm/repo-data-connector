@@ -31,27 +31,17 @@ export const useUsers = () => {
       
       console.log('Fetching all users as admin...');
       
-      // Use RPC call to bypass RLS for admin users
+      // Direct query to users table for admin users
       const { data: usersData, error } = await supabase
-        .rpc('get_all_users_admin');
+        .from('users')
+        .select('id, email, name, role, is_active, created_at')
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching users via RPC:', error);
-        // Fallback to direct query
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('users')
-          .select('id, email, name, role, is_active, created_at')
-          .order('created_at', { ascending: false });
-
-        if (fallbackError) {
-          throw fallbackError;
-        }
-        
-        setUsers(fallbackData || []);
-      } else {
-        setUsers(usersData || []);
+        throw error;
       }
-
+      
+      setUsers(usersData || []);
       console.log('Users fetched successfully:', usersData?.length || 0);
     } catch (err) {
       console.error('Error fetching users:', err);
