@@ -15,7 +15,8 @@ import {
   UserCog,
   Camera,
   Video,
-  Palette
+  Palette,
+  CheckSquare
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -35,8 +36,9 @@ const Sidebar = () => {
     ];
 
     const adminItems = [
-      { icon: Users, label: 'Clients', href: '/clients', roles: ['admin', 'receptionist'] },
+      { icon: Users, label: 'Clients', href: '/clients', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
       { icon: Briefcase, label: 'Jobs', href: '/jobs', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
+      { icon: CheckSquare, label: 'Tasks', href: '/tasks', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
       { icon: UserCog, label: 'Users', href: '/users', roles: ['admin'] },
       { icon: Camera, label: 'Photo Sessions', href: '/photo-sessions', roles: ['admin', 'receptionist', 'photographer'] },
       { icon: Video, label: 'Video Production', href: '/video-tasks', roles: ['admin', 'receptionist', 'editor'] },
