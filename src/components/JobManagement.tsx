@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUsers } from '@/hooks/useUsers';
-import { Calendar, Clock, User, FileText, Plus, Edit } from 'lucide-react';
+import { Calendar, Clock, User, FileText, Plus, Edit, Package, DollarSign } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -39,12 +39,29 @@ interface Client {
   email: string;
 }
 
+interface ClientPackage {
+  id: string;
+  client_id: string;
+  package_id: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  packages: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    duration_months: number;
+  };
+}
+
 const JobManagement = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const { users, isLoading: usersLoading } = useUsers();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -55,7 +72,10 @@ const JobManagement = () => {
     assigned_to: '',
     due_date: '',
     description: '',
-    price: 0
+    price: 0,
+    package_included: false,
+    extra_cost: 0,
+    extra_cost_reason: ''
   });
 
   // Filter team members based on job type from users data
@@ -128,10 +148,43 @@ const JobManagement = () => {
     }
   };
 
+  const fetchClientPackages = async (clientId: string) => {
+    if (!clientId) {
+      setClientPackages([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('client_packages')
+        .select(`
+          *,
+          packages (*)
+        `)
+        .eq('client_id', clientId)
+        .eq('is_active', true)
+        .gte('end_date', new Date().toISOString());
+
+      if (error) throw error;
+      setClientPackages(data || []);
+    } catch (error) {
+      console.error('Error fetching client packages:', error);
+      setClientPackages([]);
+    }
+  };
+
   React.useEffect(() => {
     fetchJobs();
     fetchClients();
   }, []);
+
+  React.useEffect(() => {
+    if (formData.client_id) {
+      fetchClientPackages(formData.client_id);
+    } else {
+      setClientPackages([]);
+    }
+  }, [formData.client_id]);
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,7 +212,10 @@ const JobManagement = () => {
         assigned_to: '',
         due_date: '',
         description: '',
-        price: 0
+        price: 0,
+        package_included: false,
+        extra_cost: 0,
+        extra_cost_reason: ''
       });
       setShowCreateForm(false);
       fetchJobs();
@@ -234,7 +290,7 @@ const JobManagement = () => {
             <CardTitle>Create New Job</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateJob} className="space-y-4">
+            <form onSubmit={handleCreateJob} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="title">Job Title</Label>
@@ -310,24 +366,129 @@ const JobManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    rows={3}
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                />
+              {/* Package and Pricing Section */}
+              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Package & Pricing
+                </h4>
+                
+                {/* Package Selection */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="package_included"
+                    checked={formData.package_included}
+                    onCheckedChange={(checked) => 
+                      setFormData({...formData, package_included: !!checked})
+                    }
+                  />
+                  <Label htmlFor="package_included" className="text-sm font-medium">
+                    This job is included in a client package
+                  </Label>
+                </div>
+
+                {/* Show active packages if package is selected */}
+                {formData.package_included && formData.client_id && (
+                  <div className="mt-3">
+                    {clientPackages.length > 0 ? (
+                      <div className="bg-blue-50 p-3 rounded-md">
+                        <p className="text-sm font-medium text-blue-800 mb-2">Active client packages:</p>
+                        {clientPackages.map(cp => (
+                          <div key={cp.id} className="text-sm text-blue-700 flex items-center gap-2">
+                            <Package className="h-3 w-3" />
+                            {cp.packages.name} - ${cp.packages.price} 
+                            (expires: {new Date(cp.end_date).toLocaleDateString()})
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Alert className="bg-yellow-50 border-yellow-200">
+                        <AlertDescription className="text-yellow-800">
+                          No active packages found for this client.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
+
+                {/* Regular Price (only show if not package included) */}
+                {!formData.package_included && (
+                  <div>
+                    <Label htmlFor="price" className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4" />
+                      Job Price
+                    </Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                      placeholder="0.00"
+                    />
+                  </div>
+                )}
+
+                {/* Extra Cost Section */}
+                <div className="space-y-3 pt-3 border-t">
+                  <Label className="text-sm font-medium text-gray-700">Additional Costs</Label>
+                  <div>
+                    <Label htmlFor="extra_cost" className="text-sm">Extra Cost (if any)</Label>
+                    <Input
+                      id="extra_cost"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.extra_cost}
+                      onChange={(e) => setFormData({...formData, extra_cost: Number(e.target.value)})}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  
+                  {formData.extra_cost > 0 && (
+                    <div>
+                      <Label htmlFor="extra_cost_reason" className="text-sm">
+                        Reason for extra cost
+                      </Label>
+                      <Textarea
+                        id="extra_cost_reason"
+                        value={formData.extra_cost_reason}
+                        onChange={(e) => setFormData({...formData, extra_cost_reason: e.target.value})}
+                        placeholder="e.g., model fees, studio rental, special equipment"
+                        rows={2}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Total Cost Display */}
+                <div className="pt-3 border-t bg-white p-3 rounded">
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Total Cost:</span>
+                    <span className="font-bold text-lg">
+                      {formData.package_included ? 
+                        `Package + $${formData.extra_cost || 0}` : 
+                        `$${(formData.price || 0) + (formData.extra_cost || 0)}`
+                      }
+                    </span>
+                  </div>
+                  {formData.package_included && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      Main service included in client package
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="flex gap-2">
