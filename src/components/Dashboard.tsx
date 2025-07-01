@@ -42,14 +42,13 @@ const Dashboard = () => {
     pendingPayments: 0,
   });
   const [recentJobs, setRecentJobs] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only fetch dashboard data if we have a user profile and auth is not loading
     if (!authLoading && userProfile) {
       fetchDashboardData();
-    } else if (!authLoading && !userProfile) {
-      setIsLoading(false);
     }
   }, [userProfile, authLoading]);
 
@@ -133,8 +132,8 @@ const Dashboard = () => {
     }
   };
 
-  // Show loading state
-  if (authLoading || isLoading) {
+  // Show loading state only when auth is loading
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">

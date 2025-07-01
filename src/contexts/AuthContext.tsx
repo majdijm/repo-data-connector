@@ -36,27 +36,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching user profile for:', userId);
       
-      // First try to get existing profile
       const { data: profile, error: fetchError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (profile && !fetchError) {
+      if (fetchError) {
+        console.error('Error fetching user profile:', fetchError);
+        return null;
+      }
+
+      if (profile) {
         console.log('User profile found:', profile);
         return profile;
       }
 
-      // If profile doesn't exist, get user data from auth and create profile
+      // If no profile exists, create one
+      console.log('No profile found, creating new profile');
       const { data: { user: authUser } } = await supabase.auth.getUser();
+      
       if (!authUser) {
         console.error('No authenticated user found');
         return null;
       }
 
-      console.log('Creating new user profile for:', authUser.email);
-      
       const newProfileData = {
         id: authUser.id,
         email: authUser.email!,
@@ -70,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .insert(newProfileData)
         .select()
-        .single();
+        .maybeSingle();
 
       if (createError) {
         console.error('Error creating user profile:', createError);
@@ -99,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         
         if (!mounted) return;
@@ -108,21 +112,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setError(null);
         
+        // Use setTimeout to defer profile fetching and avoid blocking the auth state change
         if (session?.user) {
-          // Fetch user profile
-          const profile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUserProfile(profile);
-            if (!profile) {
-              setError('Failed to load or create user profile');
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            const profile = await fetchUserProfile(session.user.id);
+            if (mounted) {
+              setUserProfile(profile);
+              if (!profile) {
+                setError('Failed to load or create user profile');
+              }
+              setIsLoading(false);
             }
-          }
+          }, 0);
         } else {
           setUserProfile(null);
-        }
-        
-        if (mounted) {
-          setIsLoading(false);
+          if (mounted) {
+            setIsLoading(false);
+          }
         }
       }
     );
@@ -144,20 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!mounted) return;
         
         console.log('Initial session check:', session?.user?.email);
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        if (session?.user) {
-          const profile = await fetchUserProfile(session.user.id);
-          if (mounted) {
-            setUserProfile(profile);
-            if (!profile) {
-              setError('Failed to load or create user profile');
-            }
-          }
-        }
-        
-        if (mounted) {
+        // Don't set session/user here as the auth state listener will handle it
+        // Just ensure loading is false if no session
+        if (!session) {
           setIsLoading(false);
         }
       } catch (err) {
