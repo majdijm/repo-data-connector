@@ -65,13 +65,11 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
 
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
+      // Create user in Supabase Auth with metadata
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             name: formData.name,
             role: formData.role
@@ -79,9 +77,30 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
         }
       });
 
-      if (error) throw error;
+      if (authError) {
+        throw authError;
+      }
 
-      // Show success message
+      // If user was created successfully, also create entry in users table
+      if (authData.user) {
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            name: formData.name,
+            role: formData.role,
+            password: 'managed_by_auth',
+            is_active: true
+          });
+
+        if (userError) {
+          console.error('Error creating user in users table:', userError);
+          // Don't throw here since auth user was created successfully
+          // The trigger should handle this, but we're adding as backup
+        }
+      }
+
       toast({
         title: "User Created Successfully!",
         description: `User ${formData.name} has been created with role ${formData.role}. They can now log in with their email and password.`,

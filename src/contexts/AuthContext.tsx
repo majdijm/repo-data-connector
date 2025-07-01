@@ -19,7 +19,7 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, password: string) => Promise<{ error: any }>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signup: (email: string, password: string, name: string, role?: string) => Promise<{ error: any }>;
   refreshUserProfile: () => Promise<void>;
 }
 
@@ -196,7 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (email: string, password: string, name: string, role: string = 'client') => {
     setError(null);
     setIsLoading(true);
     
@@ -210,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           emailRedirectTo: redirectUrl,
           data: {
             name: name,
+            role: role,
           }
         }
       });

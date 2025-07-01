@@ -16,114 +16,13 @@ import DesignerDashboard from '@/components/dashboards/DesignerDashboard';
 import EditorDashboard from '@/components/dashboards/EditorDashboard';
 import ClientDashboard from '@/components/dashboards/ClientDashboard';
 
-interface DashboardStats {
-  totalClients: number;
-  totalJobs: number;
-  pendingJobs: number;
-  completedJobs: number;
-  totalRevenue: number;
-  pendingPayments: number;
-}
-
 const Dashboard = () => {
   const { userProfile, isLoading: authLoading, error: authError, refreshUserProfile } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalClients: 0,
-    totalJobs: 0,
-    pendingJobs: 0,
-    completedJobs: 0,
-    totalRevenue: 0,
-    pendingPayments: 0,
-  });
-  const [recentJobs, setRecentJobs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Only fetch dashboard data if we have a user profile and auth is not loading
-    if (!authLoading && userProfile) {
-      fetchDashboardData();
-    }
-  }, [userProfile, authLoading]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Fetch clients count with proper error handling
-      const { count: clientsCount, error: clientsError } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
-
-      if (clientsError && clientsError.code !== 'PGRST116') {
-        console.error('Clients error:', clientsError);
-      }
-
-      // Fetch jobs data with proper error handling
-      const { data: jobs, count: jobsCount, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*, clients(name)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (jobsError && jobsError.code !== 'PGRST116') {
-        console.error('Jobs error:', jobsError);
-      }
-
-      // Fetch jobs by status with proper error handling
-      const { count: pendingCount, error: pendingError } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      if (pendingError && pendingError.code !== 'PGRST116') {
-        console.error('Pending jobs error:', pendingError);
-      }
-
-      const { count: completedCount, error: completedError } = await supabase
-        .from('jobs')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'completed');
-
-      if (completedError && completedError.code !== 'PGRST116') {
-        console.error('Completed jobs error:', completedError);
-      }
-
-      // Fetch payment statistics with proper error handling
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select('amount');
-
-      if (paymentsError && paymentsError.code !== 'PGRST116') {
-        console.error('Payments error:', paymentsError);
-      }
-
-      const totalRevenue = payments?.reduce((sum, payment) => sum + Number(payment.amount), 0) || 0;
-
-      setStats({
-        totalClients: clientsCount || 0,
-        totalJobs: jobsCount || 0,
-        pendingJobs: pendingCount || 0,
-        completedJobs: completedCount || 0,
-        totalRevenue,
-        pendingPayments: 0,
-      });
-
-      setRecentJobs(jobs || []);
-    } catch (error: any) {
-      console.error('Error fetching dashboard data:', error);
-      setError(error.message || 'Failed to load dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleRefresh = async () => {
     await refreshUserProfile();
-    if (userProfile) {
-      await fetchDashboardData();
-    }
   };
 
   // Show loading state only when auth is loading
