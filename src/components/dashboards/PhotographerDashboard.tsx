@@ -1,163 +1,144 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { mockJobs } from '@/data/mockData';
-import { Camera, Upload, Calendar, FileImage } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Camera, 
+  Upload, 
+  Clock, 
+  CheckCircle
+} from 'lucide-react';
 
-const PhotographerDashboard = () => {
-  const { user } = useAuth();
-  const photographerJobs = mockJobs.filter(job => 
-    job.assignedTo === user?.id && job.type === 'photo_session'
-  );
-  
-  const todaySessions = photographerJobs.filter(job => 
-    job.sessionDate && 
-    job.sessionDate.toDateString() === new Date().toDateString()
-  );
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  created_at: string;
+}
 
-  const upcomingSessions = photographerJobs.filter(job => 
-    job.sessionDate && job.sessionDate > new Date()
-  );
+interface PhotographerDashboardProps {
+  userProfile: UserProfile;
+}
 
-  const completedSessions = photographerJobs.filter(job => 
-    job.status === 'completed' || job.status === 'delivered'
-  );
+const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ userProfile }) => {
+  // Mock data for now - will be replaced with real data
+  const stats = {
+    activeSessions: 3,
+    upcomingSessions: 5,
+    completedSessions: 12,
+    pendingUploads: 2
+  };
+
+  const sessions = [
+    {
+      id: '1',
+      title: 'Wedding Photography - Sarah & John',
+      client: 'Sarah Johnson',
+      date: new Date().toISOString(),
+      status: 'pending',
+      type: 'wedding'
+    },
+    {
+      id: '2',
+      title: 'Corporate Headshots - Tech Corp',
+      client: 'Tech Corp',
+      date: new Date(Date.now() + 86400000).toISOString(),
+      status: 'scheduled',
+      type: 'corporate'
+    }
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'scheduled': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Photographer Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage your photo sessions and uploads</p>
+        <p className="text-gray-600 mt-1">Welcome back, {userProfile.name}!</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Today's Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">{todaySessions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Camera className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Upcoming</p>
-                <p className="text-2xl font-bold text-gray-900">{upcomingSessions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileImage className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{completedSessions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Upload className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Files Uploaded</p>
-                <p className="text-2xl font-bold text-gray-900">24</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Today's Sessions */}
-      {todaySessions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-blue-600">
-              <Calendar className="mr-2 h-5 w-5" />
-              Today's Sessions
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Sessions</CardTitle>
+            <Camera className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {todaySessions.map((session) => (
-                <div key={session.id} className="p-4 border rounded-lg bg-blue-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-gray-900">{session.title}</h3>
-                      <p className="text-gray-600">{session.clientName}</p>
-                      <p className="text-blue-600 text-sm">
-                        {session.sessionDate?.toLocaleTimeString()} - {session.description}
-                      </p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button size="sm">Upload Photos</Button>
-                      <Button size="sm" variant="outline">Mark Complete</Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="text-2xl font-bold">{stats.activeSessions}</div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Assigned Photo Sessions */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Upcoming Sessions</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.upcomingSessions}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Sessions</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.completedSessions}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Uploads</CardTitle>
+            <Upload className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingUploads}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Assigned Sessions */}
       <Card>
         <CardHeader>
-          <CardTitle>My Photo Sessions</CardTitle>
+          <CardTitle>Your Assigned Sessions</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {photographerJobs.map((job) => (
-              <div key={job.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{job.title}</h3>
-                    <p className="text-sm text-gray-600">{job.clientName}</p>
-                    <p className="text-sm text-gray-500 mt-1">{job.description}</p>
-                    <div className="flex items-center mt-2 space-x-4">
-                      <span className="text-sm text-gray-500">
-                        Session: {job.sessionDate?.toLocaleDateString()}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Due: {job.dueDate.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      job.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                      job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {job.status.replace('_', ' ')}
-                    </span>
-                    <div className="space-x-2">
-                      <Button size="sm" variant="outline">
-                        <Upload className="mr-1 h-3 w-3" />
-                        Upload RAW
-                      </Button>
-                      <Button size="sm">View Details</Button>
-                    </div>
-                  </div>
+            {sessions.map((session) => (
+              <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-semibold">{session.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    Client: {session.client} • Type: {session.type}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Date: {new Date(session.date).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge className={`${getStatusColor(session.status)} border-0`}>
+                    {session.status.replace('_', ' ')}
+                  </Badge>
                 </div>
               </div>
             ))}
+            {sessions.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No assigned sessions found.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

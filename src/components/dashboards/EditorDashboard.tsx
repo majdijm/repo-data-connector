@@ -1,164 +1,144 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { mockJobs } from '@/data/mockData';
-import { FileVideo, Upload, Calendar, FileImage } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Video, 
+  Upload, 
+  Clock, 
+  CheckCircle
+} from 'lucide-react';
 
-const EditorDashboard = () => {
-  const { user } = useAuth();
-  const editorJobs = mockJobs.filter(job => 
-    job.assignedTo === user?.id && job.type === 'video_editing'
-  );
-  
-  const activeTasks = editorJobs.filter(job => 
-    job.status === 'in_progress' || job.status === 'pending'
-  );
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  created_at: string;
+}
 
-  const reviewTasks = editorJobs.filter(job => job.status === 'review');
-  const completedTasks = editorJobs.filter(job => 
-    job.status === 'completed' || job.status === 'delivered'
-  );
+interface EditorDashboardProps {
+  userProfile: UserProfile;
+}
+
+const EditorDashboard: React.FC<EditorDashboardProps> = ({ userProfile }) => {
+  // Mock data for now - will be replaced with real data
+  const stats = {
+    activeProjects: 3,
+    pendingReview: 1,
+    completedProjects: 15,
+    pendingUploads: 2
+  };
+
+  const projects = [
+    {
+      id: '1',
+      title: 'Wedding Video Edit - Sarah & John',
+      client: 'Sarah Johnson',
+      dueDate: new Date(Date.now() + 345600000).toISOString(),
+      status: 'in_progress',
+      type: 'wedding'
+    },
+    {
+      id: '2',
+      title: 'Corporate Video - Tech Corp',
+      client: 'Tech Corp',
+      dueDate: new Date(Date.now() + 432000000).toISOString(),
+      status: 'review',
+      type: 'corporate'
+    }
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'review': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Video Editor Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage your video editing projects</p>
+        <p className="text-gray-600 mt-1">Welcome back, {userProfile.name}!</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileVideo className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Projects</p>
-                <p className="text-2xl font-bold text-gray-900">{activeTasks.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Calendar className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">In Review</p>
-                <p className="text-2xl font-bold text-gray-900">{reviewTasks.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileImage className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{completedTasks.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Upload className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Videos Delivered</p>
-                <p className="text-2xl font-bold text-gray-900">12</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Urgent Tasks */}
-      {activeTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-red-600">
-              <FileVideo className="mr-2 h-5 w-5" />
-              Urgent Video Projects
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+            <Video className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {activeTasks.map((task) => (
-                <div key={task.id} className="p-4 border rounded-lg bg-red-50">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-gray-900">{task.title}</h3>
-                      <p className="text-gray-600">{task.clientName}</p>
-                      <p className="text-red-600 text-sm mt-1">{task.description}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Due: {task.dueDate.toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button size="sm">Upload Edit</Button>
-                      <Button size="sm" variant="outline">Download Raw</Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <div className="text-2xl font-bold">{stats.activeProjects}</div>
           </CardContent>
         </Card>
-      )}
 
-      {/* All Video Projects */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingReview}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Projects</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.completedProjects}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Uploads</CardTitle>
+            <Upload className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingUploads}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Assigned Projects */}
       <Card>
         <CardHeader>
-          <CardTitle>My Video Projects</CardTitle>
+          <CardTitle>Your Video Projects</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {editorJobs.map((job) => (
-              <div key={job.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{job.title}</h3>
-                    <p className="text-sm text-gray-600">{job.clientName}</p>
-                    <p className="text-sm text-gray-500 mt-1">{job.description}</p>
-                    <div className="flex items-center mt-2 space-x-4">
-                      <span className="text-sm text-gray-500">
-                        Started: {job.createdAt.toLocaleDateString()}
-                      </span>
-                      <span className="text-sm text-gray-500">
-                        Due: {job.dueDate.toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end space-y-2">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      job.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                      job.status === 'review' ? 'bg-purple-100 text-purple-800' :
-                      job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {job.status.replace('_', ' ')}
-                    </span>
-                    <div className="space-x-2">
-                      <Button size="sm" variant="outline">
-                        <FileVideo className="mr-1 h-3 w-3" />
-                        Raw Files
-                      </Button>
-                      <Button size="sm">
-                        <Upload className="mr-1 h-3 w-3" />
-                        Upload
-                      </Button>
-                    </div>
-                  </div>
+            {projects.map((project) => (
+              <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-semibold">{project.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    Client: {project.client} • Type: {project.type}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Due: {new Date(project.dueDate).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Badge className={`${getStatusColor(project.status)} border-0`}>
+                    {project.status.replace('_', ' ')}
+                  </Badge>
                 </div>
               </div>
             ))}
+            {projects.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No assigned projects found.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -32,8 +32,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
+      console.log('Fetching user profile for:', userId);
       const { data: profile, error } = await supabase
         .from('users')
         .select('*')
@@ -45,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('User profile fetched:', profile);
       return profile;
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -62,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     
+    console.log('Setting up auth state listener');
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -73,64 +77,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer async operations with setTimeout to prevent blocking
+        // Handle user profile fetching with proper async pattern
         if (session?.user) {
+          // Use setTimeout to defer async operations and prevent blocking
           setTimeout(() => {
             if (mounted) {
-              fetchUserProfile(session.user.id).then(profile => {
-                if (mounted) {
-                  setUserProfile(profile);
-                  setIsLoading(false);
-                }
-              }).catch(err => {
-                console.error('Profile fetch error:', err);
-                if (mounted) {
-                  setError('Failed to load user profile');
-                  setIsLoading(false);
-                }
-              });
+              fetchUserProfile(session.user.id)
+                .then(profile => {
+                  if (mounted) {
+                    setUserProfile(profile);
+                    setIsLoading(false);
+                    setError(null);
+                  }
+                })
+                .catch(err => {
+                  console.error('Profile fetch error:', err);
+                  if (mounted) {
+                    setError('Failed to load user profile');
+                    setIsLoading(false);
+                  }
+                });
             }
           }, 0);
         } else {
+          // User logged out
           setUserProfile(null);
           setIsLoading(false);
+          setError(null);
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Session error:', error);
-        setError('Session error');
-        setIsLoading(false);
-        return;
-      }
-      
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id).then(profile => {
-          if (mounted) {
-            setUserProfile(profile);
-            setIsLoading(false);
-          }
-        }).catch(err => {
-          console.error('Profile fetch error:', err);
-          if (mounted) {
-            setError('Failed to load user profile');
-            setIsLoading(false);
-          }
-        });
-      } else {
-        setIsLoading(false);
-      }
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('Session error:', error);
+          setError('Session error');
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!mounted) return;
+        
+        console.log('Initial session check:', session?.user?.email);
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          fetchUserProfile(session.user.id)
+            .then(profile => {
+              if (mounted) {
+                setUserProfile(profile);
+                setIsLoading(false);
+                setError(null);
+              }
+            })
+            .catch(err => {
+              console.error('Profile fetch error:', err);
+              if (mounted) {
+                setError('Failed to load user profile');
+                setIsLoading(false);
+              }
+            });
+        } else {
+          setIsLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Get session error:', err);
+        if (mounted) {
+          setError('Failed to get session');
+          setIsLoading(false);
+        }
+      });
 
     return () => {
+      console.log('Cleaning up auth listener');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -138,44 +161,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    setIsLoading(true);
     
-    if (error) {
-      setError(error.message);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
+      }
+      
+      return { error };
+    } catch (err: any) {
+      const errorMessage = err?.message || 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsLoading(false);
+      return { error: err };
     }
-    
-    return { error };
   };
 
   const signup = async (email: string, password: string, name: string) => {
     setError(null);
-    const redirectUrl = `${window.location.origin}/`;
+    setIsLoading(true);
     
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          name: name,
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: name,
+          }
         }
+      });
+      
+      if (error) {
+        setError(error.message);
+        setIsLoading(false);
       }
-    });
-    
-    if (error) {
-      setError(error.message);
+      
+      return { error };
+    } catch (err: any) {
+      const errorMessage = err?.message || 'An unexpected error occurred';
+      setError(errorMessage);
+      setIsLoading(false);
+      return { error: err };
     }
-    
-    return { error };
   };
 
   const logout = async () => {
     setError(null);
-    await supabase.auth.signOut();
-    setUserProfile(null);
+    
+    try {
+      await supabase.auth.signOut();
+      // State will be updated by the auth state change listener
+    } catch (err: any) {
+      console.error('Logout error:', err);
+      setError('Failed to logout');
+    }
   };
 
   const value = {

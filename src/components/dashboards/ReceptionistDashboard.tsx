@@ -1,149 +1,124 @@
 
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { mockJobs, mockClients, mockPayments } from '@/data/mockData';
-import { Calendar, Users, FileText, FileImage } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Calendar, 
+  Users, 
+  DollarSign, 
+  Clock
+} from 'lucide-react';
 
-const ReceptionistDashboard = () => {
-  const upcomingSessions = mockJobs.filter(job => 
-    job.sessionDate && job.sessionDate > new Date() && job.type === 'photo_session'
-  );
-  const pendingPayments = mockClients.filter(client => client.totalDue > 0);
-  const recentPayments = mockPayments.slice(-3);
+interface DashboardStats {
+  totalClients: number;
+  totalJobs: number;
+  pendingJobs: number;
+  completedJobs: number;
+  totalRevenue: number;
+  pendingPayments: number;
+}
+
+interface ReceptionistDashboardProps {
+  stats: DashboardStats;
+  recentJobs: any[];
+}
+
+const ReceptionistDashboard: React.FC<ReceptionistDashboardProps> = ({ stats, recentJobs }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'review': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Receptionist Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage clients, sessions, and payments</p>
-        </div>
-        <div className="space-x-2">
-          <Button className="bg-green-600 hover:bg-green-700">Add New Client</Button>
-          <Button variant="outline">Create Job</Button>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Receptionist Dashboard</h1>
+        <p className="text-gray-600 mt-1">Manage clients, sessions, and payments</p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Today's Sessions</p>
-                <p className="text-2xl font-bold text-gray-900">2</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Clients</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalClients}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <Users className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Clients</p>
-                <p className="text-2xl font-bold text-gray-900">{mockClients.length}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Today's Sessions</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingJobs}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Payments</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingPayments.length}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Payments</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.pendingPayments}</div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <FileImage className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">$12,500</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Upcoming Sessions */}
+      {/* Recent Jobs */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Calendar className="mr-2 h-5 w-5" />
-            Upcoming Sessions
-          </CardTitle>
+          <CardTitle>Recent Sessions & Jobs</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {upcomingSessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
-                <div>
-                  <h3 className="font-medium text-gray-900">{session.title}</h3>
-                  <p className="text-sm text-gray-600">{session.clientName}</p>
-                  <p className="text-sm text-blue-600">
-                    {session.sessionDate?.toLocaleDateString()} at {session.sessionDate?.toLocaleTimeString()}
+            {recentJobs.map((job) => (
+              <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex-1">
+                  <h3 className="font-semibold">{job.title}</h3>
+                  <p className="text-sm text-gray-600">
+                    Client: {job.clients?.name || 'N/A'} • Type: {job.type}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {new Date(job.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <Button variant="outline" size="sm">View Details</Button>
+                <div className="flex items-center space-x-2">
+                  <Badge className={`${getStatusColor(job.status)} border-0`}>
+                    {job.status.replace('_', ' ')}
+                  </Badge>
+                  <span className="font-semibold">${Number(job.price).toFixed(2)}</span>
+                </div>
               </div>
             ))}
+            {recentJobs.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No recent jobs found.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Pending Payments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pending Payments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendingPayments.map((client) => (
-                <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{client.name}</p>
-                    <p className="text-sm text-gray-500">Amount due: ${client.totalDue}</p>
-                  </div>
-                  <Button size="sm" variant="outline">Record Payment</Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Payments */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Payments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentPayments.map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
-                  <div>
-                    <p className="font-medium">${payment.amount}</p>
-                    <p className="text-sm text-gray-500">{payment.description}</p>
-                    <p className="text-xs text-gray-400">{payment.recordedAt.toLocaleDateString()}</p>
-                  </div>
-                  <span className="text-green-600 text-sm font-medium">Paid</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 };
