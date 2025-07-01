@@ -65,22 +65,27 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
 
     setIsLoading(true);
     try {
-      // Create user with Supabase Auth Admin
-      const { data, error } = await supabase.auth.admin.createUser({
+      // Create user with regular signup since admin functions require service key
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
-        user_metadata: {
-          name: formData.name,
-          role: formData.role
-        },
-        email_confirm: true // Auto-confirm email for admin-created users
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            name: formData.name,
+            role: formData.role
+          }
+        }
       });
 
       if (error) throw error;
 
+      // Show success message with instructions
       toast({
-        title: "Success!",
-        description: `User ${formData.name} created successfully`,
+        title: "User Created Successfully!",
+        description: `User ${formData.name} has been created. They can now log in with their email and password.`,
       });
 
       // Reset form
@@ -92,11 +97,24 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
       });
 
       onUserCreated();
+      onOpenChange(false);
     } catch (error: any) {
       console.error('Error creating user:', error);
+      
+      let errorMessage = "Failed to create user";
+      if (error.message?.includes("already registered")) {
+        errorMessage = "A user with this email already exists";
+      } else if (error.message?.includes("email")) {
+        errorMessage = "Please enter a valid email address";
+      } else if (error.message?.includes("password")) {
+        errorMessage = "Password must be at least 6 characters long";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

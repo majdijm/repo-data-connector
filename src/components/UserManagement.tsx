@@ -29,30 +29,27 @@ const UserManagement = () => {
 
   const fetchUsers = async () => {
     try {
-      // Get all auth users first
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      // Since we can't access auth.users directly, we'll show a placeholder
+      // In a real app, you'd have a profiles table or use server-side functions
+      console.log('Note: Using placeholder user data - in production you would need a profiles table');
       
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-        return;
+      // For now, just show the current user
+      if (user) {
+        const currentUser = {
+          id: user.id,
+          email: user.email || '',
+          name: user.user_metadata?.name || user.email,
+          role: user.user_metadata?.role || 'client',
+          created_at: user.created_at || new Date().toISOString()
+        };
+        setUsers([currentUser]);
       }
-
-      // Transform auth users to our format
-      const transformedUsers = authUsers.users.map(authUser => ({
-        id: authUser.id,
-        email: authUser.email || '',
-        name: authUser.raw_user_meta_data?.name || authUser.email,
-        role: authUser.raw_user_meta_data?.role || 'client',
-        created_at: authUser.created_at
-      }));
-
-      setUsers(transformedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive"
+        title: "Info",
+        description: "User list functionality requires additional setup",
+        variant: "default"
       });
     } finally {
       setIsLoading(false);
@@ -63,7 +60,6 @@ const UserManagement = () => {
     if (!user) return;
     
     try {
-      // Refresh the user session to get updated metadata
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const role = session.user.user_metadata?.role || 'client';
@@ -85,31 +81,11 @@ const UserManagement = () => {
       return;
     }
 
-    setIsUpdating(true);
-    try {
-      // Update user metadata in Supabase Auth
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        user_metadata: { role: newRole }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "User role updated successfully"
-      });
-      
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update user role",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+    toast({
+      title: "Note",
+      description: "Role updates require server-side implementation",
+      variant: "default"
+    });
   };
 
   const handleRefreshSession = async () => {
@@ -131,7 +107,7 @@ const UserManagement = () => {
   };
 
   const handleUserCreated = () => {
-    fetchUsers(); // Refresh the users list
+    fetchUsers();
     setIsCreateDialogOpen(false);
   };
 
@@ -160,7 +136,6 @@ const UserManagement = () => {
     );
   }
 
-  // Only admins can see user management
   if (currentUserRole !== 'admin') {
     return (
       <div className="flex items-center justify-center h-64">
@@ -193,7 +168,7 @@ const UserManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl font-bold">User Management</CardTitle>
-              <p className="text-teal-100 text-sm">Manage team members and assign roles</p>
+              <p className="text-teal-100 text-sm">Create new users and manage team members</p>
             </div>
             <Button
               onClick={() => setIsCreateDialogOpen(true)}
@@ -240,6 +215,13 @@ const UserManagement = () => {
                 </div>
               </div>
             ))}
+          </div>
+          
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Full user management requires setting up a profiles table and server-side functions. 
+              Currently, you can create new users who will be able to log in immediately.
+            </p>
           </div>
         </CardContent>
       </Card>
