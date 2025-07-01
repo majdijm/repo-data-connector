@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,8 @@ import {
   Camera,
   Video,
   Palette,
-  CheckSquare
+  CheckSquare,
+  Package
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -40,6 +40,7 @@ const Sidebar = () => {
       { icon: Briefcase, label: 'Jobs', href: '/jobs', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
       { icon: CheckSquare, label: 'Tasks', href: '/tasks', roles: ['admin', 'receptionist', 'photographer', 'designer', 'editor'] },
       { icon: UserCog, label: 'Users', href: '/users', roles: ['admin'] },
+      { icon: Package, label: 'Packages', href: '/packages', roles: ['admin', 'receptionist'] },
       { icon: Camera, label: 'Photo Sessions', href: '/photo-sessions', roles: ['admin', 'receptionist', 'photographer'] },
       { icon: Video, label: 'Video Production', href: '/video-tasks', roles: ['admin', 'receptionist', 'editor'] },
       { icon: Palette, label: 'Design Projects', href: '/design-tasks', roles: ['admin', 'receptionist', 'designer'] },
