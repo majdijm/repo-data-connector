@@ -22,10 +22,21 @@ interface Job {
   clients?: {
     name: string;
   };
+  assigned_to?: string;
+}
+
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  total_paid: number;
+  total_due: number;
+  created_at: string;
 }
 
 export const useSupabaseData = () => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({
     totalClients: 0,
     totalJobs: 0,
@@ -35,55 +46,77 @@ export const useSupabaseData = () => {
     pendingPayments: 0,
   });
   const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
-    if (!user) return;
+    if (!user || !userProfile) return;
 
     try {
       setIsLoading(true);
       setError(null);
 
-      // Fetch clients count
-      const { count: clientsCount, error: clientsError } = await supabase
-        .from('clients')
-        .select('*', { count: 'exact', head: true });
+      console.log('Fetching dashboard data for user:', userProfile.role);
 
-      if (clientsError) throw clientsError;
+      // Fetch data based on user role
+      let jobsQuery = supabase.from('jobs').select(`
+        *,
+        clients (
+          name
+        )
+      `);
 
-      // Fetch jobs with client information
-      const { data: jobsData, error: jobsError } = await supabase
-        .from('jobs')
-        .select(`
-          *,
-          clients (
-            name
-          )
-        `)
-        .order('created_at', { ascending: false });
+      let clientsQuery = supabase.from('clients').select('*');
 
-      if (jobsError) throw jobsError;
+      // Apply role-based filtering
+      if (userProfile.role === 'client') {
+        // Clients see only their own jobs
+        jobsQuery = jobsQuery.eq('client_id', userProfile.id);
+        clientsQuery = clientsQuery.eq('email', userProfile.email);
+      } else if (['photographer', 'designer', 'editor'].includes(userProfile.role)) {
+        // Team members see only assigned jobs
+        jobsQuery = jobsQuery.eq('assigned_to', user.id);
+      }
+      // Admins and receptionists see all data (no additional filtering)
 
-      // Fetch payments for revenue calculation
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select('amount, job_id');
+      const [jobsResult, clientsResult, paymentsResult] = await Promise.all([
+        jobsQuery.order('created_at', { ascending: false }),
+        clientsQuery.order('created_at', { ascending: false }),
+        supabase.from('payments').select('amount, job_id')
+      ]);
 
-      if (paymentsError) throw paymentsError;
+      if (jobsResult.error) {
+        console.error('Error fetching jobs:', jobsResult.error);
+        throw jobsResult.error;
+      }
+
+      if (clientsResult.error) {
+        console.error('Error fetching clients:', clientsResult.error);
+        throw clientsResult.error;
+      }
+
+      if (paymentsResult.error) {
+        console.error('Error fetching payments:', paymentsResult.error);
+        throw paymentsResult.error;
+      }
+
+      const jobsData = jobsResult.data || [];
+      const clientsData = clientsResult.data || [];
+      const paymentsData = paymentsResult.data || [];
 
       // Calculate stats
-      const totalRevenue = paymentsData?.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) || 0;
-      const pendingJobs = jobsData?.filter(job => job.status === 'pending').length || 0;
-      const completedJobs = jobsData?.filter(job => job.status === 'completed').length || 0;
+      const totalRevenue = paymentsData.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+      const pendingJobs = jobsData.filter(job => job.status === 'pending').length;
+      const completedJobs = jobsData.filter(job => job.status === 'completed').length;
 
       // Get pending payments count (jobs with no payments)
-      const jobsWithPayments = new Set(paymentsData?.map(p => p.job_id).filter(Boolean) || []);
-      const pendingPayments = jobsData?.filter(job => !jobsWithPayments.has(job.id)).length || 0;
+      const jobsWithPayments = new Set(paymentsData.map(p => p.job_id).filter(Boolean));
+      const pendingPayments = jobsData.filter(job => !jobsWithPayments.has(job.id)).length;
 
       setStats({
-        totalClients: clientsCount || 0,
-        totalJobs: jobsData?.length || 0,
+        totalClients: clientsData.length,
+        totalJobs: jobsData.length,
         pendingJobs,
         completedJobs,
         totalRevenue,
@@ -91,23 +124,29 @@ export const useSupabaseData = () => {
       });
 
       // Set recent jobs (last 10)
-      setRecentJobs(jobsData?.slice(0, 10) || []);
+      setRecentJobs(jobsData.slice(0, 10));
+      setClients(clientsData);
+
+      console.log('Dashboard data loaded successfully');
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching dashboard data');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
+    if (user && userProfile) {
+      fetchDashboardData();
+    }
+  }, [user, userProfile]);
 
   return {
     stats,
     recentJobs,
+    clients,
     isLoading,
     error,
     refetch: fetchDashboardData,

@@ -16,11 +16,12 @@ interface UserProfile {
   email: string;
   name?: string;
   role: string;
+  is_active: boolean;
   created_at: string;
 }
 
 const UserManagement = () => {
-  const { userProfile, logout, refreshUserProfile, isLoading: authLoading } = useAuth();
+  const { userProfile, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,9 +34,11 @@ const UserManagement = () => {
       setIsLoading(true);
       setError(null);
       
+      console.log('Fetching users...');
+      
       const { data: usersData, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, name, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -43,12 +46,13 @@ const UserManagement = () => {
         setError('Failed to fetch users: ' + error.message);
         toast({
           title: "Error",
-          description: "Failed to fetch users",
+          description: "Failed to fetch users: " + error.message,
           variant: "destructive"
         });
         return;
       }
 
+      console.log('Users fetched:', usersData);
       setUsers(usersData || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -75,16 +79,18 @@ const UserManagement = () => {
 
     try {
       setIsUpdating(true);
+      console.log('Updating user role:', userId, newRole);
+      
       const { error } = await supabase
         .from('users')
-        .update({ role: newRole })
+        .update({ role: newRole, updated_at: new Date().toISOString() })
         .eq('id', userId);
 
       if (error) {
         console.error('Error updating user role:', error);
         toast({
           title: "Error",
-          description: "Failed to update user role",
+          description: "Failed to update user role: " + error.message,
           variant: "destructive"
         });
         return;
@@ -96,7 +102,6 @@ const UserManagement = () => {
       });
 
       await fetchUsers();
-      await refreshUserProfile();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
@@ -109,35 +114,17 @@ const UserManagement = () => {
     }
   };
 
-  const handleRefreshSession = async () => {
-    try {
-      await supabase.auth.refreshSession();
-      await refreshUserProfile();
-      toast({
-        title: "Session Refreshed",
-        description: "Your session has been refreshed. Please check your access now."
-      });
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      toast({
-        title: "Error",
-        description: "Failed to refresh session",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleUserCreated = () => {
     fetchUsers();
     setIsCreateDialogOpen(false);
     toast({
       title: "Success",
-      description: "User created successfully and will appear in the list"
+      description: "User created successfully"
     });
   };
 
   useEffect(() => {
-    if (!authLoading && userProfile) {
+    if (!authLoading && userProfile?.role === 'admin') {
       fetchUsers();
     }
   }, [userProfile, authLoading]);
@@ -160,7 +147,23 @@ const UserManagement = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Access control
+  if (userProfile?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center bg-white rounded-lg shadow-lg p-8 border border-gray-200">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
+          <p className="text-gray-600 mb-4">You don't have permission to manage users.</p>
+          <p className="text-sm text-gray-500">Current role: {userProfile?.role || 'Unknown'}</p>
         </div>
       </div>
     );
@@ -184,30 +187,6 @@ const UserManagement = () => {
     );
   }
 
-  // Access control
-  if (userProfile?.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center bg-white rounded-lg shadow-lg p-8 border border-gray-200">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
-          <p className="text-gray-600 mb-4">You don't have permission to manage users.</p>
-          <p className="text-sm text-gray-500 mb-4">Current role: {userProfile?.role || 'Unknown'}</p>
-          <div className="space-y-2">
-            <Button onClick={handleRefreshSession} variant="outline" className="mr-2">
-              Refresh Session
-            </Button>
-            <Button onClick={logout} variant="destructive">
-              Logout & Login Again
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <Card className="shadow-lg border-0 bg-gradient-to-br from-white to-gray-50">
@@ -215,7 +194,7 @@ const UserManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl font-bold">User Management</CardTitle>
-              <p className="text-teal-100 text-sm">Create new users and manage team members</p>
+              <p className="text-teal-100 text-sm">Manage team members and user accounts ({users.length} users)</p>
             </div>
             <Button
               onClick={() => setIsCreateDialogOpen(true)}
@@ -237,11 +216,18 @@ const UserManagement = () => {
               {users.map((user) => (
                 <div key={user.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900">{user.name}</h3>
+                    <h3 className="font-semibold text-gray-900">{user.name || 'No name'}</h3>
                     <p className="text-sm text-gray-600">{user.email}</p>
-                    <p className="text-xs text-gray-400">
-                      Joined: {new Date(user.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs text-gray-400">
+                        Created: {new Date(user.created_at).toLocaleDateString()}
+                      </p>
+                      {!user.is_active && (
+                        <Badge variant="outline" className="text-xs bg-red-50 text-red-600 border-red-200">
+                          Inactive
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center space-x-3">
                     <Badge className={`${getRoleBadgeColor(user.role)} font-medium`}>
@@ -270,10 +256,10 @@ const UserManagement = () => {
             </div>
           )}
           
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
             <p className="text-sm text-blue-800">
               <strong>Info:</strong> Users are automatically synchronized between Supabase Auth and your database. 
-              All user data is managed consistently across the application.
+              New users created here will be able to log in immediately with their credentials.
             </p>
           </div>
         </CardContent>
