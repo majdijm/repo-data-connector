@@ -8,6 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -15,7 +17,9 @@ import { useUsers } from '@/hooks/useUsers';
 import { useJobWorkflow } from '@/hooks/useJobWorkflow';
 import { useNotifications } from '@/hooks/useNotifications';
 import WorkflowJobForm from './WorkflowJobForm';
-import { Calendar, Clock, User, FileText, Plus, Package, DollarSign, Workflow, Camera, Video, Palette } from 'lucide-react';
+import JobComments from './JobComments';
+import CalendarIntegration from './CalendarIntegration';
+import { Calendar, Clock, User, FileText, Plus, Package, DollarSign, Workflow, Camera, Video, Palette, Trash2, ChevronDown, ChevronUp, MessageSquare } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -72,6 +76,7 @@ const JobManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createMode, setCreateMode] = useState<'single' | 'workflow'>('single');
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     title: '',
@@ -290,8 +295,63 @@ const JobManagement = () => {
 
   const canManageJobs = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
   const canUpdateStatus = canManageJobs || ['photographer', 'designer', 'editor'].includes(userProfile?.role || '');
+  const canDeleteJobs = canManageJobs;
 
   const filteredTeamMembers = getFilteredTeamMembers(formData.type);
+
+  const handleDeleteJob = async (jobId: string, jobTitle: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Check if job has dependent jobs
+      const { data: dependentJobs } = await supabase
+        .from('jobs')
+        .select('id, title')
+        .eq('depends_on_job_id', jobId);
+
+      if (dependentJobs && dependentJobs.length > 0) {
+        toast({
+          title: "Cannot Delete Job",
+          description: `This job has ${dependentJobs.length} dependent job(s). Please delete or update dependent jobs first.`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('jobs')
+        .delete()
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Job "${jobTitle}" deleted successfully`
+      });
+
+      fetchJobs();
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete job",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleJobExpansion = (jobId: string) => {
+    const newExpanded = new Set(expandedJobs);
+    if (newExpanded.has(jobId)) {
+      newExpanded.delete(jobId);
+    } else {
+      newExpanded.add(jobId);
+    }
+    setExpandedJobs(newExpanded);
+  };
 
   return (
     <div className="space-y-6">
@@ -600,7 +660,7 @@ const JobManagement = () => {
                     <p className="text-sm text-gray-700 mb-3">{job.description}</p>
                   )}
 
-                  <div className="text-sm space-y-1">
+                  <div className="text-sm space-y-1 mb-3">
                     {!job.package_included && (
                       <div className="font-medium">
                         Price: ${job.price || 0}
@@ -620,10 +680,36 @@ const JobManagement = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Expandable section for comments and calendar */}
+                  <div className="mt-4">
+                    <Collapsible>
+                      <CollapsibleTrigger 
+                        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+                        onClick={() => toggleJobExpansion(job.id)}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                        View Details & Comments
+                        {expandedJobs.has(job.id) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-3">
+                        <CalendarIntegration job={job} />
+                        <JobComments 
+                          jobId={job.id} 
+                          jobTitle={job.title}
+                          clientName={job.clients?.name}
+                        />
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
                 </div>
 
-                {canUpdateStatus && (
-                  <div className="ml-4">
+                <div className="ml-4 flex items-center gap-2">
+                  {canUpdateStatus && (
                     <Select
                       value={job.status}
                       onValueChange={(value) => updateJobStatus(job.id, value)}
@@ -642,8 +728,40 @@ const JobManagement = () => {
                         )}
                       </SelectContent>
                     </Select>
-                  </div>
-                )}
+                  )}
+                  
+                  {canDeleteJobs && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-red-600 hover:bg-red-50">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{job.title}"? This action cannot be undone.
+                            {job.workflow_stage && (
+                              <div className="mt-2 p-2 bg-yellow-50 rounded text-yellow-800">
+                                <strong>Warning:</strong> This is part of a workflow. Deleting it may affect dependent jobs.
+                              </div>
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteJob(job.id, job.title)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Job
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
