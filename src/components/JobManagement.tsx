@@ -8,11 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUsers } from '@/hooks/useUsers';
-import { Calendar, Clock, User, FileText, Plus, Edit, Package, DollarSign } from 'lucide-react';
+import { useJobWorkflow } from '@/hooks/useJobWorkflow';
+import WorkflowJobForm from './WorkflowJobForm';
+import { Calendar, Clock, User, FileText, Plus, Edit, Package, DollarSign, Workflow, Camera, Video, Palette } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -31,6 +34,8 @@ interface Job {
   clients?: {
     name: string;
   };
+  workflow_stage?: string | null;
+  workflow_order?: number | null;
 }
 
 interface Client {
@@ -59,11 +64,13 @@ const JobManagement = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const { users, isLoading: usersLoading } = useUsers();
+  const { updateJobProgress } = useJobWorkflow();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createMode, setCreateMode] = useState<'single' | 'workflow'>('single');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -78,7 +85,6 @@ const JobManagement = () => {
     extra_cost_reason: ''
   });
 
-  // Filter team members based on job type from users data
   const getFilteredTeamMembers = (jobType: string) => {
     console.log('Filtering team members for job type:', jobType, 'from users:', users);
     
@@ -233,26 +239,10 @@ const JobManagement = () => {
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
     try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ status: newStatus })
-        .eq('id', jobId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Job status updated"
-      });
-
-      fetchJobs();
+      await updateJobProgress(jobId, newStatus);
+      fetchJobs(); // Refresh jobs to show updated status
     } catch (error) {
       console.error('Error updating job status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update job status",
-        variant: "destructive"
-      });
     }
   };
 
@@ -263,8 +253,29 @@ const JobManagement = () => {
       review: 'bg-purple-100 text-purple-800',
       completed: 'bg-green-100 text-green-800',
       delivered: 'bg-gray-100 text-gray-800',
+      waiting_dependency: 'bg-orange-100 text-orange-800',
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getWorkflowBadge = (job: Job) => {
+    if (job.workflow_stage) {
+      const badges = {
+        photo_session: { icon: <Camera className="h-3 w-3" />, label: 'Photo Session', color: 'bg-blue-100 text-blue-800' },
+        video_editing: { icon: <Video className="h-3 w-3" />, label: 'Video Editing', color: 'bg-green-100 text-green-800' },
+        design: { icon: <Palette className="h-3 w-3" />, label: 'Design', color: 'bg-purple-100 text-purple-800' }
+      };
+      const badge = badges[job.workflow_stage as keyof typeof badges];
+      if (badge) {
+        return (
+          <Badge className={`${badge.color} flex items-center gap-1`}>
+            {badge.icon}
+            {badge.label} #{job.workflow_order}
+          </Badge>
+        );
+      }
+    }
+    return null;
   };
 
   const canManageJobs = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
@@ -277,231 +288,262 @@ const JobManagement = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Job Management</h2>
         {canManageJobs && (
-          <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create Job
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => {
+                setCreateMode('single');
+                setShowCreateForm(true);
+              }} 
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Single Job
+            </Button>
+            <Button 
+              onClick={() => {
+                setCreateMode('workflow');
+                setShowCreateForm(true);
+              }} 
+              className="flex items-center gap-2"
+            >
+              <Workflow className="h-4 w-4" />
+              Photo Workflow
+            </Button>
+          </div>
         )}
       </div>
 
       {showCreateForm && canManageJobs && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Job</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreateJob} className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="title">Job Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({...formData, title: e.target.value})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="type">Job Type</Label>
-                  <Select 
-                    value={formData.type} 
-                    onValueChange={(value) => setFormData({...formData, type: value, assigned_to: ''})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="photo_session">Photo Session</SelectItem>
-                      <SelectItem value="video_editing">Video Editing</SelectItem>
-                      <SelectItem value="design">Design</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="client">Client</Label>
-                  <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="assigned_to">Assign To</Label>
-                  <Select 
-                    value={formData.assigned_to} 
-                    onValueChange={(value) => setFormData({...formData, assigned_to: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredTeamMembers.map(member => (
-                        <SelectItem key={member.id} value={member.id}>
-                          {member.name} ({member.role})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="due_date">Due Date</Label>
-                  <Input
-                    id="due_date"
-                    type="datetime-local"
-                    value={formData.due_date}
-                    onChange={(e) => setFormData({...formData, due_date: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
-                  />
-                </div>
-              </div>
-
-              {/* Package and Pricing Section */}
-              <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-semibold flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Package & Pricing
-                </h4>
-                
-                {/* Package Selection */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="package_included"
-                    checked={formData.package_included}
-                    onCheckedChange={(checked) => 
-                      setFormData({...formData, package_included: !!checked})
-                    }
-                  />
-                  <Label htmlFor="package_included" className="text-sm font-medium">
-                    This job is included in a client package
-                  </Label>
-                </div>
-
-                {/* Show active packages if package is selected */}
-                {formData.package_included && formData.client_id && (
-                  <div className="mt-3">
-                    {clientPackages.length > 0 ? (
-                      <div className="bg-blue-50 p-3 rounded-md">
-                        <p className="text-sm font-medium text-blue-800 mb-2">Active client packages:</p>
-                        {clientPackages.map(cp => (
-                          <div key={cp.id} className="text-sm text-blue-700 flex items-center gap-2">
-                            <Package className="h-3 w-3" />
-                            {cp.packages.name} - ${cp.packages.price} 
-                            (expires: {new Date(cp.end_date).toLocaleDateString()})
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <Alert className="bg-yellow-50 border-yellow-200">
-                        <AlertDescription className="text-yellow-800">
-                          No active packages found for this client.
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
-
-                {/* Regular Price (only show if not package included) */}
-                {!formData.package_included && (
-                  <div>
-                    <Label htmlFor="price" className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4" />
-                      Job Price
-                    </Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.price}
-                      onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
-                      placeholder="0.00"
-                    />
-                  </div>
-                )}
-
-                {/* Extra Cost Section */}
-                <div className="space-y-3 pt-3 border-t">
-                  <Label className="text-sm font-medium text-gray-700">Additional Costs</Label>
-                  <div>
-                    <Label htmlFor="extra_cost" className="text-sm">Extra Cost (if any)</Label>
-                    <Input
-                      id="extra_cost"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={formData.extra_cost}
-                      onChange={(e) => setFormData({...formData, extra_cost: Number(e.target.value)})}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  
-                  {formData.extra_cost > 0 && (
+        <div>
+          {createMode === 'workflow' ? (
+            <WorkflowJobForm 
+              onJobsCreated={() => {
+                setShowCreateForm(false);
+                fetchJobs();
+              }}
+              onCancel={() => setShowCreateForm(false)}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Job</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateJob} className="space-y-6">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="extra_cost_reason" className="text-sm">
-                        Reason for extra cost
-                      </Label>
-                      <Textarea
-                        id="extra_cost_reason"
-                        value={formData.extra_cost_reason}
-                        onChange={(e) => setFormData({...formData, extra_cost_reason: e.target.value})}
-                        placeholder="e.g., model fees, studio rental, special equipment"
-                        rows={2}
+                      <Label htmlFor="title">Job Title</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        required
                       />
                     </div>
-                  )}
-                </div>
-
-                {/* Total Cost Display */}
-                <div className="pt-3 border-t bg-white p-3 rounded">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">Total Cost:</span>
-                    <span className="font-bold text-lg">
-                      {formData.package_included ? 
-                        `Package + $${formData.extra_cost || 0}` : 
-                        `$${(formData.price || 0) + (formData.extra_cost || 0)}`
-                      }
-                    </span>
+                    <div>
+                      <Label htmlFor="type">Job Type</Label>
+                      <Select 
+                        value={formData.type} 
+                        onValueChange={(value) => setFormData({...formData, type: value, assigned_to: ''})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="photo_session">Photo Session</SelectItem>
+                          <SelectItem value="video_editing">Video Editing</SelectItem>
+                          <SelectItem value="design">Design</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  {formData.package_included && (
-                    <p className="text-xs text-gray-600 mt-1">
-                      Main service included in client package
-                    </p>
-                  )}
-                </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isLoading || usersLoading}>
-                  {isLoading ? 'Creating...' : 'Create Job'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="client">Client</Label>
+                      <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select client" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clients.map(client => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="assigned_to">Assign To</Label>
+                      <Select 
+                        value={formData.assigned_to} 
+                        onValueChange={(value) => setFormData({...formData, assigned_to: value})}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select team member" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredTeamMembers.map(member => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.name} ({member.role})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="due_date">Due Date</Label>
+                      <Input
+                        id="due_date"
+                        type="datetime-local"
+                        value={formData.due_date}
+                        onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Package and Pricing Section */}
+                  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Package & Pricing
+                    </h4>
+                    
+                    {/* Package Selection */}
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="package_included"
+                        checked={formData.package_included}
+                        onCheckedChange={(checked) => 
+                          setFormData({...formData, package_included: !!checked})
+                        }
+                      />
+                      <Label htmlFor="package_included" className="text-sm font-medium">
+                        This job is included in a client package
+                      </Label>
+                    </div>
+
+                    {/* Show active packages if package is selected */}
+                    {formData.package_included && formData.client_id && (
+                      <div className="mt-3">
+                        {clientPackages.length > 0 ? (
+                          <div className="bg-blue-50 p-3 rounded-md">
+                            <p className="text-sm font-medium text-blue-800 mb-2">Active client packages:</p>
+                            {clientPackages.map(cp => (
+                              <div key={cp.id} className="text-sm text-blue-700 flex items-center gap-2">
+                                <Package className="h-3 w-3" />
+                                {cp.packages.name} - ${cp.packages.price} 
+                                (expires: {new Date(cp.end_date).toLocaleDateString()})
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <Alert className="bg-yellow-50 border-yellow-200">
+                            <AlertDescription className="text-yellow-800">
+                              No active packages found for this client.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Regular Price (only show if not package included) */}
+                    {!formData.package_included && (
+                      <div>
+                        <Label htmlFor="price" className="flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Job Price
+                        </Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                          placeholder="0.00"
+                        />
+                      </div>
+                    )}
+
+                    {/* Extra Cost Section */}
+                    <div className="space-y-3 pt-3 border-t">
+                      <Label className="text-sm font-medium text-gray-700">Additional Costs</Label>
+                      <div>
+                        <Label htmlFor="extra_cost" className="text-sm">Extra Cost (if any)</Label>
+                        <Input
+                          id="extra_cost"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.extra_cost}
+                          onChange={(e) => setFormData({...formData, extra_cost: Number(e.target.value)})}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      
+                      {formData.extra_cost > 0 && (
+                        <div>
+                          <Label htmlFor="extra_cost_reason" className="text-sm">
+                            Reason for extra cost
+                          </Label>
+                          <Textarea
+                            id="extra_cost_reason"
+                            value={formData.extra_cost_reason}
+                            onChange={(e) => setFormData({...formData, extra_cost_reason: e.target.value})}
+                            placeholder="e.g., model fees, studio rental, special equipment"
+                            rows={2}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Total Cost Display */}
+                    <div className="pt-3 border-t bg-white p-3 rounded">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Total Cost:</span>
+                        <span className="font-bold text-lg">
+                          {formData.package_included ? 
+                            `Package + $${formData.extra_cost || 0}` : 
+                            `$${(formData.price || 0) + (formData.extra_cost || 0)}`
+                          }
+                        </span>
+                      </div>
+                      {formData.package_included && (
+                        <p className="text-xs text-gray-600 mt-1">
+                          Main service included in client package
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isLoading || usersLoading}>
+                      {isLoading ? 'Creating...' : 'Create Job'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       <div className="grid gap-4">
@@ -520,6 +562,7 @@ const JobManagement = () => {
                         Package Included
                       </Badge>
                     )}
+                    {getWorkflowBadge(job)}
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
@@ -575,7 +618,7 @@ const JobManagement = () => {
                       value={job.status}
                       onValueChange={(value) => updateJobStatus(job.id, value)}
                     >
-                      <SelectTrigger className="w-32">
+                      <SelectTrigger className="w-40">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -584,6 +627,9 @@ const JobManagement = () => {
                         <SelectItem value="review">Review</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="delivered">Delivered</SelectItem>
+                        {job.status === 'waiting_dependency' && (
+                          <SelectItem value="waiting_dependency">Waiting Dependency</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
