@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface WorkflowJob {
   title: string;
@@ -17,6 +17,7 @@ interface WorkflowJob {
 export const useJobWorkflow = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const { notifyWorkflowCreated, notifyJobStatusUpdate } = useNotifications();
   const [isLoading, setIsLoading] = useState(false);
 
   const createWorkflowJobs = async (
@@ -81,6 +82,15 @@ export const useJobWorkflow = () => {
         designJob,
         package_included
       });
+
+      // Get client name for notifications
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('name')
+        .eq('id', client_id)
+        .single();
+
+      const clientName = clientData?.name;
 
       // Create photo session job first
       const { data: photoJob, error: photoError } = await supabase
@@ -172,12 +182,12 @@ export const useJobWorkflow = () => {
 
       console.log('Design job created:', designJobData);
 
-      // Create notifications for all assigned team members
-      await createWorkflowNotifications(photoJob, videoJob, designJobData);
+      // Create comprehensive notifications for all team members
+      await notifyWorkflowCreated(photoJob, videoJob, designJobData, clientName);
 
       toast({
         title: "Success",
-        description: "Workflow jobs created successfully with all dependencies"
+        description: "Workflow jobs created successfully with all dependencies and notifications sent"
       });
 
       return { photoJob, videoJob, designJob: designJobData };
@@ -194,62 +204,18 @@ export const useJobWorkflow = () => {
     }
   };
 
-  const createWorkflowNotifications = async (photoJob: any, videoJob: any, designJob: any) => {
-    try {
-      const notifications = [];
-
-      // Notification for photographer
-      if (photoJob.assigned_to) {
-        notifications.push({
-          user_id: photoJob.assigned_to,
-          title: 'New Photo Session Assigned',
-          message: `You have been assigned to photo session: ${photoJob.title}. Due: ${new Date(photoJob.due_date).toLocaleDateString()}`,
-          type: 'info',
-          related_job_id: photoJob.id
-        });
-      }
-
-      // Notification for video editor (preparation notice)
-      if (videoJob.assigned_to) {
-        notifications.push({
-          user_id: videoJob.assigned_to,
-          title: 'Upcoming Video Editing Job',
-          message: `Video editing job "${videoJob.title}" will be ready after photo session completion. Expected start: ${new Date(videoJob.due_date).toLocaleDateString()}`,
-          type: 'info',
-          related_job_id: videoJob.id
-        });
-      }
-
-      // Notification for designer (preparation notice)
-      if (designJob.assigned_to) {
-        notifications.push({
-          user_id: designJob.assigned_to,
-          title: 'Upcoming Design Job',
-          message: `Design job "${designJob.title}" will be ready after video editing completion. Expected start: ${new Date(designJob.due_date).toLocaleDateString()}`,
-          type: 'info',
-          related_job_id: designJob.id
-        });
-      }
-
-      if (notifications.length > 0) {
-        const { error } = await supabase
-          .from('notifications')
-          .insert(notifications);
-
-        if (error) {
-          console.error('Error creating notifications:', error);
-        } else {
-          console.log('Notifications created successfully');
-        }
-      }
-    } catch (error) {
-      console.error('Error in createWorkflowNotifications:', error);
-    }
-  };
-
   const updateJobProgress = async (jobId: string, newStatus: string) => {
     try {
       console.log(`Updating job ${jobId} to status: ${newStatus}`);
+
+      // Get job details for notifications
+      const { data: jobData, error: fetchError } = await supabase
+        .from('jobs')
+        .select('*, clients(name)')
+        .eq('id', jobId)
+        .single();
+
+      if (fetchError) throw fetchError;
 
       // Update current job status
       const { error: updateError } = await supabase
@@ -270,31 +236,21 @@ export const useJobWorkflow = () => {
 
         console.log('Found dependent jobs:', dependentJobs);
 
-        // Activate dependent jobs and notify assignees
+        // Activate dependent jobs
         for (const dependentJob of dependentJobs || []) {
           await supabase
             .from('jobs')
             .update({ status: 'pending' })
             .eq('id', dependentJob.id);
-
-          // Notify the assignee that their job is now ready
-          if (dependentJob.assigned_to) {
-            await supabase
-              .from('notifications')
-              .insert([{
-                user_id: dependentJob.assigned_to,
-                title: 'Job Ready to Start',
-                message: `Your ${dependentJob.workflow_stage?.replace('_', ' ')} job "${dependentJob.title}" is now ready to start!`,
-                type: 'success',
-                related_job_id: dependentJob.id
-              }]);
-          }
         }
       }
 
+      // Send comprehensive notifications
+      await notifyJobStatusUpdate(jobData, newStatus, jobData.clients?.name);
+
       toast({
         title: "Success",
-        description: "Job status updated and dependent jobs notified"
+        description: "Job status updated and all relevant parties notified"
       });
     } catch (error) {
       console.error('Error updating job progress:', error);

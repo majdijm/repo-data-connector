@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,14 +8,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useUsers } from '@/hooks/useUsers';
 import { useJobWorkflow } from '@/hooks/useJobWorkflow';
+import { useNotifications } from '@/hooks/useNotifications';
 import WorkflowJobForm from './WorkflowJobForm';
-import { Calendar, Clock, User, FileText, Plus, Edit, Package, DollarSign, Workflow, Camera, Video, Palette } from 'lucide-react';
+import { Calendar, Clock, User, FileText, Plus, Package, DollarSign, Workflow, Camera, Video, Palette } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -66,6 +65,7 @@ const JobManagement = () => {
   const { toast } = useToast();
   const { users, isLoading: usersLoading } = useUsers();
   const { updateJobProgress } = useJobWorkflow();
+  const { notifyJobCreated } = useNotifications();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
@@ -197,19 +197,28 @@ const JobManagement = () => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      const { error } = await supabase
+
+      // Get client name for notifications
+      const selectedClient = clients.find(c => c.id === formData.client_id);
+      
+      const { data: newJob, error } = await supabase
         .from('jobs')
         .insert([{
           ...formData,
           status: 'pending',
           created_by: userProfile?.id
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Send notifications to all relevant parties
+      await notifyJobCreated(newJob, selectedClient?.name);
+
       toast({
         title: "Success",
-        description: "Job created successfully"
+        description: "Job created successfully and all relevant parties have been notified"
       });
 
       setFormData({
