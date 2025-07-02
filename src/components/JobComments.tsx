@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
-import { MessageSquare, Edit2, Trash2, Plus } from 'lucide-react';
+import { MessageSquare, Edit2, Trash2, Plus, AlertCircle } from 'lucide-react';
 
 interface JobComment {
   id: string;
@@ -39,11 +39,19 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   const fetchComments = async () => {
     try {
+      setIsLoading(true);
+      setHasError(false);
+      setErrorMessage('');
+      
+      console.log('Fetching comments for job:', jobId, 'User role:', userProfile?.role);
+      
       const { data, error } = await supabase
         .from('job_comments')
         .select(`
@@ -56,21 +64,30 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching comments:', error);
+        setHasError(true);
+        setErrorMessage(`Failed to fetch comments: ${error.message}`);
+        return;
+      }
+
+      console.log('Comments fetched successfully:', data);
       setComments(data || []);
     } catch (error) {
-      console.error('Error fetching comments:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch comments",
-        variant: "destructive"
-      });
+      console.error('Unexpected error fetching comments:', error);
+      setHasError(true);
+      setErrorMessage('An unexpected error occurred while fetching comments');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchComments();
-  }, [jobId]);
+    if (jobId && userProfile) {
+      console.log('JobComments component mounted for job:', jobId, 'User:', userProfile.name, 'Role:', userProfile.role);
+      fetchComments();
+    }
+  }, [jobId, userProfile]);
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !userProfile) return;
@@ -243,6 +260,57 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     return comment.user_id === userProfile?.id || canManageComments;
   };
 
+  // Show loading state
+  if (isLoading && comments.length === 0) {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageSquare className="h-5 w-5" />
+            Progress Comments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-2">Loading comments...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (hasError) {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageSquare className="h-5 w-5" />
+            Progress Comments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8 text-red-600">
+            <AlertCircle className="h-8 w-8 mr-2" />
+            <div>
+              <p className="font-medium">Error loading comments</p>
+              <p className="text-sm text-gray-600">{errorMessage}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchComments}
+                className="mt-2"
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="mt-4">
       <CardHeader>
@@ -358,7 +426,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             </div>
           ))}
           
-          {comments.length === 0 && (
+          {comments.length === 0 && !isLoading && !hasError && (
             <p className="text-gray-500 text-center py-4">
               No comments yet. Add the first comment to track progress.
             </p>
