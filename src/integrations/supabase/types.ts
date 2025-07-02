@@ -175,34 +175,40 @@ export type Database = {
       }
       job_files: {
         Row: {
+          cloud_link: string | null
           created_at: string | null
           file_name: string
           file_path: string
           file_size: number
           file_type: string
           id: string
+          is_cloud_link: boolean | null
           is_final: boolean | null
           job_id: string | null
           uploaded_by: string | null
         }
         Insert: {
+          cloud_link?: string | null
           created_at?: string | null
           file_name: string
           file_path: string
           file_size: number
           file_type: string
           id?: string
+          is_cloud_link?: boolean | null
           is_final?: boolean | null
           job_id?: string | null
           uploaded_by?: string | null
         }
         Update: {
+          cloud_link?: string | null
           created_at?: string | null
           file_name?: string
           file_path?: string
           file_size?: number
           file_type?: string
           id?: string
+          is_cloud_link?: boolean | null
           is_final?: boolean | null
           job_id?: string | null
           uploaded_by?: string | null
