@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useJobWorkflow } from '@/hooks/useJobWorkflow';
 import { supabase } from '@/integrations/supabase/client';
 import { useUsers } from '@/hooks/useUsers';
-import { Camera, Video, Palette, ArrowRight, Package, DollarSign } from 'lucide-react';
+import { Camera, Video, Palette, ArrowRight, Package, DollarSign, AlertTriangle } from 'lucide-react';
 
 interface Client {
   id: string;
@@ -45,6 +45,7 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
   const { users } = useUsers();
   const [clients, setClients] = useState<Client[]>([]);
   const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     client_id: '',
@@ -132,10 +133,34 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
   const editors = getTeamMembersByRole('editor');
   const designers = getTeamMembersByRole('designer');
 
+  const validateForm = () => {
+    const newErrors: string[] = [];
+
+    // Required field validations
+    if (!formData.client_id) newErrors.push('Please select a client');
+    if (!formData.photo_title.trim()) newErrors.push('Photo session title is required');
+    if (!formData.video_title.trim()) newErrors.push('Video editing title is required');
+    if (!formData.design_title.trim()) newErrors.push('Design title is required');
+    if (!formData.photo_assigned_to) newErrors.push('Please assign a photographer');
+    if (!formData.video_assigned_to) newErrors.push('Please assign a video editor');
+    if (!formData.design_assigned_to) newErrors.push('Please assign a designer');
+    if (!formData.photo_due_date) newErrors.push('Photo session due date is required');
+    if (!formData.video_due_date) newErrors.push('Video editing due date is required');
+    if (!formData.design_due_date) newErrors.push('Design due date is required');
+
+    // Team member availability validations
+    if (photographers.length === 0) newErrors.push('No active photographers available');
+    if (editors.length === 0) newErrors.push('No active video editors available');
+    if (designers.length === 0) newErrors.push('No active designers available');
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.client_id || !formData.photo_assigned_to || !formData.video_assigned_to || !formData.design_assigned_to) {
+    if (!validateForm()) {
       return;
     }
 
@@ -143,31 +168,31 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
       await createWorkflowJobs(
         formData.client_id,
         {
-          title: formData.photo_title,
+          title: formData.photo_title.trim(),
           type: 'photo_session',
           assigned_to: formData.photo_assigned_to,
           due_date: formData.photo_due_date,
-          description: formData.photo_description,
+          description: formData.photo_description.trim() || undefined,
           extra_cost: formData.photo_extra_cost,
-          extra_cost_reason: formData.photo_extra_reason
+          extra_cost_reason: formData.photo_extra_reason.trim() || undefined
         },
         {
-          title: formData.video_title,
+          title: formData.video_title.trim(),
           type: 'video_editing',
           assigned_to: formData.video_assigned_to,
           due_date: formData.video_due_date,
-          description: formData.video_description,
+          description: formData.video_description.trim() || undefined,
           extra_cost: formData.video_extra_cost,
-          extra_cost_reason: formData.video_extra_reason
+          extra_cost_reason: formData.video_extra_reason.trim() || undefined
         },
         {
-          title: formData.design_title,
+          title: formData.design_title.trim(),
           type: 'design',
           assigned_to: formData.design_assigned_to,
           due_date: formData.design_due_date,
-          description: formData.design_description,
+          description: formData.design_description.trim() || undefined,
           extra_cost: formData.design_extra_cost,
-          extra_cost_reason: formData.design_extra_reason
+          extra_cost_reason: formData.design_extra_reason.trim() || undefined
         },
         formData.package_included
       );
@@ -198,6 +223,20 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
         </p>
       </CardHeader>
       <CardContent>
+        {errors.length > 0 && (
+          <Alert className="mb-6 border-red-200 bg-red-50">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="text-red-800">
+              <div className="font-semibold mb-2">Please fix the following errors:</div>
+              <ul className="list-disc list-inside space-y-1">
+                {errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Client Selection */}
           <div className="space-y-4">
@@ -205,7 +244,7 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="client">Client</Label>
+                <Label htmlFor="client">Client *</Label>
                 <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select client" />
@@ -288,17 +327,16 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="photo_title">Job Title</Label>
+                    <Label htmlFor="photo_title">Job Title *</Label>
                     <Input
                       id="photo_title"
                       value={formData.photo_title}
                       onChange={(e) => setFormData({...formData, photo_title: e.target.value})}
                       placeholder="Photo session title"
-                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="photo_assigned_to">Assign to Photographer</Label>
+                    <Label htmlFor="photo_assigned_to">Assign to Photographer *</Label>
                     <Select 
                       value={formData.photo_assigned_to} 
                       onValueChange={(value) => setFormData({...formData, photo_assigned_to: value})}
@@ -319,13 +357,12 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="photo_due_date">Due Date</Label>
+                    <Label htmlFor="photo_due_date">Due Date *</Label>
                     <Input
                       id="photo_due_date"
                       type="datetime-local"
                       value={formData.photo_due_date}
                       onChange={(e) => setFormData({...formData, photo_due_date: e.target.value})}
-                      required
                     />
                   </div>
                   {!formData.package_included && (
@@ -397,17 +434,16 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="video_title">Job Title</Label>
+                    <Label htmlFor="video_title">Job Title *</Label>
                     <Input
                       id="video_title"
                       value={formData.video_title}
                       onChange={(e) => setFormData({...formData, video_title: e.target.value})}
                       placeholder="Video editing title"
-                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="video_assigned_to">Assign to Editor</Label>
+                    <Label htmlFor="video_assigned_to">Assign to Editor *</Label>
                     <Select 
                       value={formData.video_assigned_to} 
                       onValueChange={(value) => setFormData({...formData, video_assigned_to: value})}
@@ -428,13 +464,12 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="video_due_date">Due Date</Label>
+                    <Label htmlFor="video_due_date">Due Date *</Label>
                     <Input
                       id="video_due_date"
                       type="datetime-local"
                       value={formData.video_due_date}
                       onChange={(e) => setFormData({...formData, video_due_date: e.target.value})}
-                      required
                     />
                   </div>
                   {!formData.package_included && (
@@ -506,17 +541,16 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="design_title">Job Title</Label>
+                    <Label htmlFor="design_title">Job Title *</Label>
                     <Input
                       id="design_title"
                       value={formData.design_title}
                       onChange={(e) => setFormData({...formData, design_title: e.target.value})}
                       placeholder="Design and delivery title"
-                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="design_assigned_to">Assign to Designer</Label>
+                    <Label htmlFor="design_assigned_to">Assign to Designer *</Label>
                     <Select 
                       value={formData.design_assigned_to} 
                       onValueChange={(value) => setFormData({...formData, design_assigned_to: value})}
@@ -537,13 +571,12 @@ const WorkflowJobForm: React.FC<WorkflowJobFormProps> = ({ onJobsCreated, onCanc
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="design_due_date">Due Date</Label>
+                    <Label htmlFor="design_due_date">Due Date *</Label>
                     <Input
                       id="design_due_date"
                       type="datetime-local"
                       value={formData.design_due_date}
                       onChange={(e) => setFormData({...formData, design_due_date: e.target.value})}
-                      required
                     />
                   </div>
                   {!formData.package_included && (

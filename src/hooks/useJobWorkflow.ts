@@ -26,62 +26,151 @@ export const useJobWorkflow = () => {
     designJob: WorkflowJob,
     package_included: boolean = false
   ) => {
-    if (!userProfile) return null;
+    if (!userProfile) {
+      toast({
+        title: "Error",
+        description: "User profile not found. Please log in again.",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    // Validate required fields
+    if (!client_id) {
+      toast({
+        title: "Error",
+        description: "Please select a client",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    if (!photoSessionJob.assigned_to || !videoEditingJob.assigned_to || !designJob.assigned_to) {
+      toast({
+        title: "Error",
+        description: "Please assign team members to all workflow stages",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    if (!photoSessionJob.due_date || !videoEditingJob.due_date || !designJob.due_date) {
+      toast({
+        title: "Error",
+        description: "Please set due dates for all workflow stages",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    if (!photoSessionJob.title || !videoEditingJob.title || !designJob.title) {
+      toast({
+        title: "Error",
+        description: "Please provide titles for all workflow stages",
+        variant: "destructive"
+      });
+      return null;
+    }
 
     setIsLoading(true);
     try {
+      console.log('Creating workflow jobs with data:', {
+        client_id,
+        photoSessionJob,
+        videoEditingJob,
+        designJob,
+        package_included
+      });
+
       // Create photo session job first
       const { data: photoJob, error: photoError } = await supabase
         .from('jobs')
         .insert([{
-          ...photoSessionJob,
+          title: photoSessionJob.title,
+          type: photoSessionJob.type,
+          assigned_to: photoSessionJob.assigned_to,
+          due_date: photoSessionJob.due_date,
+          description: photoSessionJob.description || null,
+          extra_cost: photoSessionJob.extra_cost || 0,
+          extra_cost_reason: photoSessionJob.extra_cost_reason || null,
           client_id,
           status: 'pending',
           created_by: userProfile.id,
           package_included,
           workflow_stage: 'photo_session',
-          workflow_order: 1
+          workflow_order: 1,
+          depends_on_job_id: null,
+          price: package_included ? 0 : (photoSessionJob.extra_cost || 0)
         }])
         .select()
         .single();
 
-      if (photoError) throw photoError;
+      if (photoError) {
+        console.error('Photo job creation error:', photoError);
+        throw new Error(`Failed to create photo session job: ${photoError.message}`);
+      }
+
+      console.log('Photo job created:', photoJob);
 
       // Create video editing job (dependent on photo session)
       const { data: videoJob, error: videoError } = await supabase
         .from('jobs')
         .insert([{
-          ...videoEditingJob,
+          title: videoEditingJob.title,
+          type: videoEditingJob.type,
+          assigned_to: videoEditingJob.assigned_to,
+          due_date: videoEditingJob.due_date,
+          description: videoEditingJob.description || null,
+          extra_cost: videoEditingJob.extra_cost || 0,
+          extra_cost_reason: videoEditingJob.extra_cost_reason || null,
           client_id,
           status: 'waiting_dependency',
           created_by: userProfile.id,
           package_included,
           workflow_stage: 'video_editing',
           workflow_order: 2,
-          depends_on_job_id: photoJob.id
+          depends_on_job_id: photoJob.id,
+          price: package_included ? 0 : (videoEditingJob.extra_cost || 0)
         }])
         .select()
         .single();
 
-      if (videoError) throw videoError;
+      if (videoError) {
+        console.error('Video job creation error:', videoError);
+        throw new Error(`Failed to create video editing job: ${videoError.message}`);
+      }
+
+      console.log('Video job created:', videoJob);
 
       // Create design job (dependent on video editing)
       const { data: designJobData, error: designError } = await supabase
         .from('jobs')
         .insert([{
-          ...designJob,
+          title: designJob.title,
+          type: designJob.type,
+          assigned_to: designJob.assigned_to,
+          due_date: designJob.due_date,
+          description: designJob.description || null,
+          extra_cost: designJob.extra_cost || 0,
+          extra_cost_reason: designJob.extra_cost_reason || null,
           client_id,
           status: 'waiting_dependency',
           created_by: userProfile.id,
           package_included,
           workflow_stage: 'design',
           workflow_order: 3,
-          depends_on_job_id: videoJob.id
+          depends_on_job_id: videoJob.id,
+          price: package_included ? 0 : (designJob.extra_cost || 0)
         }])
         .select()
         .single();
 
-      if (designError) throw designError;
+      if (designError) {
+        console.error('Design job creation error:', designError);
+        throw new Error(`Failed to create design job: ${designError.message}`);
+      }
+
+      console.log('Design job created:', designJobData);
 
       // Create notifications for all assigned team members
       await createWorkflowNotifications(photoJob, videoJob, designJobData);
@@ -96,7 +185,7 @@ export const useJobWorkflow = () => {
       console.error('Error creating workflow jobs:', error);
       toast({
         title: "Error",
-        description: "Failed to create workflow jobs",
+        description: error instanceof Error ? error.message : "Failed to create workflow jobs",
         variant: "destructive"
       });
       throw error;
@@ -106,54 +195,62 @@ export const useJobWorkflow = () => {
   };
 
   const createWorkflowNotifications = async (photoJob: any, videoJob: any, designJob: any) => {
-    const notifications = [];
+    try {
+      const notifications = [];
 
-    // Notification for photographer
-    if (photoJob.assigned_to) {
-      notifications.push({
-        user_id: photoJob.assigned_to,
-        title: 'New Photo Session Assigned',
-        message: `You have been assigned to photo session: ${photoJob.title}. Due: ${new Date(photoJob.due_date).toLocaleDateString()}`,
-        type: 'info',
-        related_job_id: photoJob.id
-      });
-    }
-
-    // Notification for video editor (preparation notice)
-    if (videoJob.assigned_to) {
-      notifications.push({
-        user_id: videoJob.assigned_to,
-        title: 'Upcoming Video Editing Job',
-        message: `Video editing job "${videoJob.title}" will be ready after photo session completion. Expected start: ${new Date(videoJob.due_date).toLocaleDateString()}`,
-        type: 'info',
-        related_job_id: videoJob.id
-      });
-    }
-
-    // Notification for designer (preparation notice)
-    if (designJob.assigned_to) {
-      notifications.push({
-        user_id: designJob.assigned_to,
-        title: 'Upcoming Design Job',
-        message: `Design job "${designJob.title}" will be ready after video editing completion. Expected start: ${new Date(designJob.due_date).toLocaleDateString()}`,
-        type: 'info',
-        related_job_id: designJob.id
-      });
-    }
-
-    if (notifications.length > 0) {
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notifications);
-
-      if (error) {
-        console.error('Error creating notifications:', error);
+      // Notification for photographer
+      if (photoJob.assigned_to) {
+        notifications.push({
+          user_id: photoJob.assigned_to,
+          title: 'New Photo Session Assigned',
+          message: `You have been assigned to photo session: ${photoJob.title}. Due: ${new Date(photoJob.due_date).toLocaleDateString()}`,
+          type: 'info',
+          related_job_id: photoJob.id
+        });
       }
+
+      // Notification for video editor (preparation notice)
+      if (videoJob.assigned_to) {
+        notifications.push({
+          user_id: videoJob.assigned_to,
+          title: 'Upcoming Video Editing Job',
+          message: `Video editing job "${videoJob.title}" will be ready after photo session completion. Expected start: ${new Date(videoJob.due_date).toLocaleDateString()}`,
+          type: 'info',
+          related_job_id: videoJob.id
+        });
+      }
+
+      // Notification for designer (preparation notice)
+      if (designJob.assigned_to) {
+        notifications.push({
+          user_id: designJob.assigned_to,
+          title: 'Upcoming Design Job',
+          message: `Design job "${designJob.title}" will be ready after video editing completion. Expected start: ${new Date(designJob.due_date).toLocaleDateString()}`,
+          type: 'info',
+          related_job_id: designJob.id
+        });
+      }
+
+      if (notifications.length > 0) {
+        const { error } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (error) {
+          console.error('Error creating notifications:', error);
+        } else {
+          console.log('Notifications created successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error in createWorkflowNotifications:', error);
     }
   };
 
   const updateJobProgress = async (jobId: string, newStatus: string) => {
     try {
+      console.log(`Updating job ${jobId} to status: ${newStatus}`);
+
       // Update current job status
       const { error: updateError } = await supabase
         .from('jobs')
@@ -171,6 +268,8 @@ export const useJobWorkflow = () => {
 
         if (dependentError) throw dependentError;
 
+        console.log('Found dependent jobs:', dependentJobs);
+
         // Activate dependent jobs and notify assignees
         for (const dependentJob of dependentJobs || []) {
           await supabase
@@ -185,7 +284,7 @@ export const useJobWorkflow = () => {
               .insert([{
                 user_id: dependentJob.assigned_to,
                 title: 'Job Ready to Start',
-                message: `Your ${dependentJob.workflow_stage.replace('_', ' ')} job "${dependentJob.title}" is now ready to start!`,
+                message: `Your ${dependentJob.workflow_stage?.replace('_', ' ')} job "${dependentJob.title}" is now ready to start!`,
                 type: 'success',
                 related_job_id: dependentJob.id
               }]);
