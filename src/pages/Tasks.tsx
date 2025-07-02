@@ -1,54 +1,69 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { AlertCircle, RefreshCw, Calendar as CalendarIcon, Grid3X3 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useUsers } from '@/hooks/useUsers';
+import TasksCalendarView from '@/components/TasksCalendarView';
+import TasksMatrixView from '@/components/TasksMatrixView';
 
 const Tasks = () => {
   const { recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
+  const { users } = useUsers();
+  const { isAdmin, isReceptionist } = useRoleAccess();
+  const [viewMode, setViewMode] = useState<'matrix' | 'calendar'>('matrix');
+  const [statusFilters, setStatusFilters] = useState({
+    pending: true,
+    in_progress: true,
+    review: true,
+    completed: false,
+    delivered: false
+  });
 
-  const jobTypes = ['photo_session', 'video_editing', 'design'] as const;
-  const jobTypeLabels = {
-    photo_session: 'Photo Session',
-    video_editing: 'Video Editing',
-    design: 'Design'
+  const handleStatusFilterChange = (status: keyof typeof statusFilters, checked: boolean) => {
+    setStatusFilters(prev => ({
+      ...prev,
+      [status]: checked
+    }));
   };
 
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      in_progress: 'bg-blue-100 text-blue-800',
-      review: 'bg-purple-100 text-purple-800',
-      completed: 'bg-green-100 text-green-800',
-      delivered: 'bg-gray-100 text-gray-800',
+  // Filter jobs based on selected statuses
+  const filteredJobs = recentJobs.filter(job => 
+    statusFilters[job.status as keyof typeof statusFilters]
+  );
+
+  // Get assignment summary for admins and receptionists
+  const getAssignmentSummary = () => {
+    const summary = {
+      photo_session: {} as Record<string, number>,
+      video_editing: {} as Record<string, number>,
+      design: {} as Record<string, number>
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+
+    filteredJobs.forEach(job => {
+      if (job.assigned_to && job.type in summary) {
+        const user = users.find(u => u.id === job.assigned_to);
+        const userName = user ? user.name : 'Unknown User';
+        
+        if (!summary[job.type as keyof typeof summary][userName]) {
+          summary[job.type as keyof typeof summary][userName] = 0;
+        }
+        summary[job.type as keyof typeof summary][userName]++;
+      }
+    });
+
+    return summary;
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'delivered':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'pending':
-        return <AlertCircle className="h-4 w-4" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
-  };
-
-  const getJobsForClientAndType = (clientId: string, jobType: string) => {
-    return recentJobs.filter(job => job.client_id === clientId && job.type === jobType);
-  };
-
-  const isOverdue = (dueDateString: string | null) => {
-    if (!dueDateString) return false;
-    return new Date() > new Date(dueDateString);
-  };
+  const assignmentSummary = (isAdmin() || isReceptionist()) ? getAssignmentSummary() : null;
 
   if (isLoading) {
     return (
@@ -85,11 +100,121 @@ const Tasks = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tasks Overview</h1>
-          <p className="text-gray-600 mt-2">Client-Job Status Matrix</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Tasks Overview</h1>
+            <p className="text-gray-600 mt-2">Manage and view project tasks</p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant={viewMode === 'matrix' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('matrix')}
+                className="flex items-center gap-2"
+              >
+                <Grid3X3 className="h-4 w-4" />
+                Matrix
+              </Button>
+              <Button
+                variant={viewMode === 'calendar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('calendar')}
+                className="flex items-center gap-2"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                Calendar
+              </Button>
+            </div>
+          </div>
         </div>
 
+        {/* Status Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Status Filters</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-5 gap-4">
+              {Object.entries(statusFilters).map(([status, checked]) => (
+                <div key={status} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={status}
+                    checked={checked}
+                    onCheckedChange={(checked) => handleStatusFilterChange(status as keyof typeof statusFilters, !!checked)}
+                  />
+                  <Label htmlFor={status} className="text-sm font-medium capitalize">
+                    {status.replace('_', ' ')}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Assignment Summary for Admins/Receptionists */}
+        {assignmentSummary && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Assignment Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2">Photo Sessions</h4>
+                  {Object.keys(assignmentSummary.photo_session).length === 0 ? (
+                    <p className="text-gray-500 text-sm">No assignments</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {Object.entries(assignmentSummary.photo_session).map(([photographer, count]) => (
+                        <div key={photographer} className="flex justify-between text-sm">
+                          <span>{photographer}</span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2">Video Production</h4>
+                  {Object.keys(assignmentSummary.video_editing).length === 0 ? (
+                    <p className="text-gray-500 text-sm">No assignments</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {Object.entries(assignmentSummary.video_editing).map(([editor, count]) => (
+                        <div key={editor} className="flex justify-between text-sm">
+                          <span>{editor}</span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-2">Design Projects</h4>
+                  {Object.keys(assignmentSummary.design).length === 0 ? (
+                    <p className="text-gray-500 text-sm">No assignments</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {Object.entries(assignmentSummary.design).map(([designer, count]) => (
+                        <div key={designer} className="flex justify-between text-sm">
+                          <span>{designer}</span>
+                          <Badge variant="outline">{count}</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content */}
         {clients.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
@@ -97,92 +222,16 @@ const Tasks = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <div className="min-w-max">
-              {/* Header Row */}
-              <div className="grid grid-cols-[200px_repeat(var(--client-count),_300px)] gap-4 mb-4" style={{'--client-count': clients.length} as any}>
-                <div className="font-semibold text-gray-700 flex items-center">
-                  Job Types
-                </div>
-                {clients.map(client => (
-                  <div key={client.id} className="font-semibold text-gray-700 text-center">
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <div className="font-medium">{client.name}</div>
-                      <div className="text-sm text-gray-500">{client.email}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Job Type Rows */}
-              {jobTypes.map(jobType => (
-                <div key={jobType} className="grid grid-cols-[200px_repeat(var(--client-count),_300px)] gap-4 mb-4" style={{'--client-count': clients.length} as any}>
-                  {/* Job Type Label */}
-                  <div className="flex items-center justify-center bg-blue-50 rounded-lg p-4">
-                    <span className="font-medium text-blue-900">{jobTypeLabels[jobType]}</span>
-                  </div>
-
-                  {/* Client Cards for this Job Type */}
-                  {clients.map(client => {
-                    const jobs = getJobsForClientAndType(client.id, jobType);
-                    
-                    return (
-                      <Card key={`${client.id}-${jobType}`} className="h-full">
-                        <CardContent className="p-4">
-                          {jobs.length === 0 ? (
-                            <div className="text-center text-gray-400 py-8">
-                              <div className="text-sm">No jobs</div>
-                            </div>
-                          ) : (
-                            <div className="space-y-3">
-                              {jobs.map(job => (
-                                <div key={job.id} className="border rounded-lg p-3 bg-gray-50">
-                                  <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-medium text-sm text-gray-900 leading-tight">
-                                      {job.title}
-                                    </h4>
-                                    {getStatusIcon(job.status)}
-                                  </div>
-                                  
-                                  <div className="flex items-center justify-between mb-2">
-                                    <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-                                      {job.status.replace('_', ' ')}
-                                    </Badge>
-                                    {job.due_date && isOverdue(job.due_date) && job.status !== 'completed' && job.status !== 'delivered' && (
-                                      <Badge variant="destructive" className="text-xs">
-                                        Overdue
-                                      </Badge>
-                                    )}
-                                  </div>
-
-                                  <div className="space-y-1 text-xs text-gray-600">
-                                    {job.due_date && (
-                                      <div className="flex items-center gap-1">
-                                        <Calendar className="h-3 w-3" />
-                                        Due: {new Date(job.due_date).toLocaleDateString()}
-                                      </div>
-                                    )}
-                                    {job.assigned_to && (
-                                      <div className="text-xs text-blue-600">
-                                        Assigned: {job.assigned_to}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+          <>
+            {viewMode === 'matrix' ? (
+              <TasksMatrixView jobs={filteredJobs} clients={clients} users={users} />
+            ) : (
+              <TasksCalendarView jobs={filteredJobs} users={users} />
+            )}
+          </>
         )}
 
-        {/* Legend */}
+        {/* Status Legend */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Status Legend</CardTitle>
