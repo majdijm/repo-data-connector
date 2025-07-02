@@ -236,6 +236,7 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           created_by: string | null
+          depends_on_job_id: string | null
           description: string | null
           due_date: string | null
           extra_cost: number | null
@@ -247,12 +248,15 @@ export type Database = {
           title: string
           type: string
           updated_at: string | null
+          workflow_order: number | null
+          workflow_stage: string | null
         }
         Insert: {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          depends_on_job_id?: string | null
           description?: string | null
           due_date?: string | null
           extra_cost?: number | null
@@ -264,12 +268,15 @@ export type Database = {
           title: string
           type: string
           updated_at?: string | null
+          workflow_order?: number | null
+          workflow_stage?: string | null
         }
         Update: {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          depends_on_job_id?: string | null
           description?: string | null
           due_date?: string | null
           extra_cost?: number | null
@@ -281,6 +288,8 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string | null
+          workflow_order?: number | null
+          workflow_stage?: string | null
         }
         Relationships: [
           {
@@ -304,6 +313,13 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "jobs_depends_on_job_id_fkey"
+            columns: ["depends_on_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
         ]
       }
       notifications: {
@@ -312,6 +328,7 @@ export type Database = {
           id: string
           is_read: boolean | null
           message: string
+          related_job_id: string | null
           title: string
           user_id: string | null
         }
@@ -320,6 +337,7 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message: string
+          related_job_id?: string | null
           title: string
           user_id?: string | null
         }
@@ -328,10 +346,18 @@ export type Database = {
           id?: string
           is_read?: boolean | null
           message?: string
+          related_job_id?: string | null
           title?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_related_job_id_fkey"
+            columns: ["related_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
