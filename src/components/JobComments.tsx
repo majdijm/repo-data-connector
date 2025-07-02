@@ -45,7 +45,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const fetchComments = async () => {
     try {
       const { data, error } = await supabase
-        .from('job_comments')
+        .from('job_comments' as any)
         .select(`
           *,
           users (
@@ -78,7 +78,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('job_comments')
+        .from('job_comments' as any)
         .insert([{
           job_id: jobId,
           user_id: userProfile.id,
@@ -114,7 +114,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('job_comments')
+        .from('job_comments' as any)
         .update({
           content: editContent.trim(),
           updated_at: new Date().toISOString()
@@ -146,7 +146,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     setIsLoading(true);
     try {
       const { error } = await supabase
-        .from('job_comments')
+        .from('job_comments' as any)
         .delete()
         .eq('id', commentId);
 
