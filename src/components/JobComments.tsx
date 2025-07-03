@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,71 +42,29 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   const fetchComments = async () => {
+    // Prevent multiple simultaneous fetches
+    if (isLoading || hasFetched) return;
+    
     try {
       setIsLoading(true);
       setHasError(false);
       setErrorMessage('');
       
-      console.log('=== DEBUGGING JOB COMMENTS ===');
+      console.log('=== FETCHING JOB COMMENTS ===');
       console.log('Job ID:', jobId);
       console.log('User Profile:', userProfile);
-      console.log('User Role:', userProfile?.role);
-      console.log('User ID:', userProfile?.id);
       
-      // Test user authentication
-      const { data: authUser, error: authError } = await supabase.auth.getUser();
-      console.log('Auth User:', authUser);
-      console.log('Auth Error:', authError);
-      
-      if (authError) {
-        console.error('Authentication error:', authError);
-        setHasError(true);
-        setErrorMessage(`Authentication error: ${authError.message}`);
+      if (!jobId || !userProfile) {
+        console.log('Missing required data - jobId or userProfile');
         return;
       }
 
-      if (!authUser.user) {
-        console.error('User not authenticated');
-        setHasError(true);
-        setErrorMessage('User not authenticated');
-        return;
-      }
-      
-      // Test the get_current_user_role function
-      console.log('Testing get_current_user_role function...');
-      const { data: roleData, error: roleError } = await supabase.rpc('get_current_user_role');
-      console.log('Current user role from RPC:', roleData);
-      console.log('RPC Error:', roleError);
-
-      if (roleError) {
-        console.error('Role function error:', roleError);
-        setHasError(true);
-        setErrorMessage(`Role function error: ${roleError.message}`);
-        return;
-      }
-
-      // Test basic query without RLS first
-      console.log('Testing basic query access...');
-      const testQuery = await supabase
-        .from('job_comments')
-        .select('count', { count: 'exact' })
-        .eq('job_id', jobId);
-      
-      console.log('Test query result:', testQuery);
-
-      if (testQuery.error) {
-        console.error('Basic query failed:', testQuery.error);
-        setHasError(true);
-        setErrorMessage(`Query access error: ${testQuery.error.message}`);
-        return;
-      }
-
-      // Now try the full query
-      console.log('Attempting full query...');
+      // Simple query without complex debugging to prevent issues
       const { data, error } = await supabase
         .from('job_comments')
         .select(`
@@ -123,38 +82,24 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      console.log('Full query result:', { data, error });
+      console.log('Comments query result:', { data, error });
 
       if (error) {
-        console.error('Full query error:', error);
+        console.error('Error fetching comments:', error);
         setHasError(true);
-        setErrorMessage(`Failed to fetch comments: ${error.message} (Code: ${error.code}, Details: ${error.details})`);
-        
-        // Store debug info for display
+        setErrorMessage(`Failed to fetch comments: ${error.message}`);
         setDebugInfo({
           userRole: userProfile?.role,
           userId: userProfile?.id,
-          authUserId: authUser.user.id,
-          rpcRole: roleData,
-          error: error,
-          testQueryCount: testQuery.count
+          error: error.message
         });
         return;
       }
 
-      console.log('Comments fetched successfully:', data);
-      console.log('Number of comments:', data?.length || 0);
+      console.log('Comments fetched successfully:', data?.length || 0);
       setComments(data || []);
+      setHasFetched(true);
       
-      // Store successful debug info
-      setDebugInfo({
-        userRole: userProfile?.role,
-        userId: userProfile?.id,
-        authUserId: authUser.user.id,
-        rpcRole: roleData,
-        commentsCount: data?.length || 0
-      });
-
     } catch (error) {
       console.error('Unexpected error fetching comments:', error);
       setHasError(true);
@@ -164,14 +109,23 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     }
   };
 
+  // Use useEffect with proper dependencies and cleanup
   useEffect(() => {
-    if (jobId && userProfile) {
-      console.log('JobComments component mounted for job:', jobId, 'User:', userProfile.name, 'Role:', userProfile.role);
-      fetchComments();
-    } else {
-      console.log('Missing dependencies:', { jobId: !!jobId, userProfile: !!userProfile });
-    }
-  }, [jobId, userProfile]);
+    let isMounted = true;
+    
+    const loadComments = async () => {
+      if (jobId && userProfile && !hasFetched && isMounted) {
+        console.log('Loading comments for job:', jobId, 'User:', userProfile.name, 'Role:', userProfile.role);
+        await fetchComments();
+      }
+    };
+
+    loadComments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [jobId, userProfile?.id]); // Only depend on stable values
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !userProfile) return;
@@ -192,7 +146,10 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       await notifyCommentAdded();
 
       setNewComment('');
-      fetchComments();
+      // Refresh comments by resetting fetch state
+      setHasFetched(false);
+      await fetchComments();
+      
       toast({
         title: "Success",
         description: "Comment added successfully"
@@ -226,7 +183,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       setEditingComment(null);
       setEditContent('');
-      fetchComments();
+      setHasFetched(false);
+      await fetchComments();
+      
       toast({
         title: "Success",
         description: "Comment updated successfully"
@@ -253,7 +212,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       if (error) throw error;
 
-      fetchComments();
+      setHasFetched(false);
+      await fetchComments();
+      
       toast({
         title: "Success",
         description: "Comment deleted successfully"
@@ -344,8 +305,27 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     return comment.user_id === userProfile?.id || canManageComments;
   };
 
+  // Early return for missing data to prevent render issues
+  if (!jobId || !userProfile) {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageSquare className="h-5 w-5" />
+            Progress Comments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">
+            Loading user information...
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Show loading state
-  if (isLoading && comments.length === 0) {
+  if (isLoading && !hasFetched) {
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -390,24 +370,17 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
                 <ul className="space-y-1">
                   <li><strong>User Role:</strong> {debugInfo.userRole}</li>
                   <li><strong>User ID:</strong> {debugInfo.userId}</li>
-                  <li><strong>Auth User ID:</strong> {debugInfo.authUserId}</li>
-                  <li><strong>RPC Role Result:</strong> {debugInfo.rpcRole}</li>
-                  {debugInfo.testQueryCount !== undefined && (
-                    <li><strong>Test Query Count:</strong> {debugInfo.testQueryCount}</li>
-                  )}
-                  {debugInfo.commentsCount !== undefined && (
-                    <li><strong>Comments Found:</strong> {debugInfo.commentsCount}</li>
-                  )}
-                  {debugInfo.error && (
-                    <li><strong>Error Details:</strong> {JSON.stringify(debugInfo.error, null, 2)}</li>
-                  )}
+                  <li><strong>Error:</strong> {debugInfo.error}</li>
                 </ul>
               </div>
             )}
 
             <Button 
               variant="outline" 
-              onClick={fetchComments}
+              onClick={() => {
+                setHasFetched(false);
+                fetchComments();
+              }}
               className="w-full"
             >
               Try Again
@@ -425,11 +398,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           <MessageSquare className="h-5 w-5" />
           Progress Comments ({comments.length})
         </CardTitle>
-        {debugInfo && (
-          <div className="text-xs text-gray-500">
-            Role: {debugInfo.userRole} | RPC Role: {debugInfo.rpcRole}
-          </div>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add new comment */}
