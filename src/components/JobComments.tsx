@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,61 +39,24 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [hasPermissionError, setHasPermissionError] = useState(false);
 
+  // Check if user has permission to view comments
+  const hasCommentsPermission = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role);
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   const fetchComments = async () => {
-    console.log('=== FETCHCOMMENTS CALLED ===');
-    console.log('Job ID:', jobId);
-    console.log('User Profile:', userProfile);
-    
-    if (!jobId || !userProfile?.id) {
-      console.log('Missing jobId or userProfile.id, returning early');
+    if (!jobId || !userProfile?.id || !hasCommentsPermission) {
+      console.log('Skipping fetchComments - missing requirements or permissions');
       return;
     }
 
     try {
       setIsLoading(true);
-      setHasError(false);
-      setErrorMessage('');
+      setHasPermissionError(false);
       
-      // Test the get_current_user_role function first
-      console.log('Testing get_current_user_role function...');
-      const { data: roleTest, error: roleError } = await supabase.rpc('get_current_user_role');
-      console.log('get_current_user_role result:', roleTest, 'error:', roleError);
+      console.log('Fetching comments for job:', jobId, 'as user:', userProfile.role);
 
-      // Test auth user
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      console.log('Current auth user:', authUser?.id, 'error:', authError);
-
-      // Simple query first - just count
-      console.log('Testing simple count query...');
-      const { count, error: countError } = await supabase
-        .from('job_comments')
-        .select('*', { count: 'exact', head: true })
-        .eq('job_id', jobId);
-      
-      console.log('Count result:', count, 'error:', countError);
-
-      if (countError) {
-        console.error('Count query failed:', countError);
-        setHasError(true);
-        setErrorMessage(`Count query failed: ${countError.message}`);
-        setDebugInfo({
-          userRole: userProfile?.role,
-          userId: userProfile?.id,
-          authUserId: authUser?.id,
-          roleFromFunction: roleTest,
-          countError: countError
-        });
-        return;
-      }
-
-      // Now try the full query
-      console.log('Attempting full comments query...');
       const { data, error } = await supabase
         .from('job_comments')
         .select(`
@@ -110,24 +74,17 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      console.log('Full query result:');
-      console.log('- Data:', data);
-      console.log('- Error:', error);
-      console.log('- Data length:', data?.length || 0);
-
       if (error) {
-        console.error('Full query error:', error);
-        setHasError(true);
-        setErrorMessage(`Query failed: ${error.message}`);
-        setDebugInfo({
-          userRole: userProfile?.role,
-          userId: userProfile?.id,
-          authUserId: authUser?.id,
-          roleFromFunction: roleTest,
-          error: error,
-          errorDetails: error.details,
-          errorHint: error.hint
-        });
+        console.error('Error fetching comments:', error);
+        if (error.code === 'PGRST301' || error.message.includes('permission')) {
+          setHasPermissionError(true);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load comments",
+            variant: "destructive"
+          });
+        }
         return;
       }
 
@@ -135,31 +92,25 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       setComments(data || []);
       
     } catch (error) {
-      console.error('Unexpected error:', error);
-      setHasError(true);
-      setErrorMessage(`Unexpected error: ${error}`);
+      console.error('Unexpected error fetching comments:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Simplified useEffect - only trigger when we have both jobId and userProfile.id
   useEffect(() => {
-    console.log('=== USEEFFECT TRIGGERED ===');
-    console.log('jobId:', jobId);
-    console.log('userProfile?.id:', userProfile?.id);
-    console.log('userProfile?.role:', userProfile?.role);
-    
-    if (jobId && userProfile?.id) {
-      console.log('Calling fetchComments...');
+    if (hasCommentsPermission) {
       fetchComments();
-    } else {
-      console.log('Not calling fetchComments - missing dependencies');
     }
-  }, [jobId, userProfile?.id]); // Only depend on these two values
+  }, [jobId, userProfile?.id, hasCommentsPermission]);
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !userProfile) return;
+    if (!newComment.trim() || !userProfile || !hasCommentsPermission) return;
 
     setIsLoading(true);
     try {
@@ -326,9 +277,8 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     return comment.user_id === userProfile?.id || canManageComments;
   };
 
-  // Early return for missing data
-  if (!jobId || !userProfile?.id) {
-    console.log('Rendering loading state - missing jobId or userProfile.id');
+  // If user doesn't have permission, show restricted message
+  if (!hasCommentsPermission) {
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -339,15 +289,42 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         </CardHeader>
         <CardContent>
           <p className="text-gray-500 text-center py-4">
-            Loading user information...
+            Comments are only available to team members.
           </p>
         </CardContent>
       </Card>
     );
   }
 
+  // If there's a permission error from the database
+  if (hasPermissionError) {
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <MessageSquare className="h-5 w-5" />
+            Progress Comments
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-4 text-orange-600">
+            <AlertCircle className="h-5 w-5 mr-2" />
+            <div className="text-center">
+              <p className="font-medium">Access Restricted</p>
+              <p className="text-sm text-gray-600">
+                You don't have permission to view comments for this job.
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Role: {userProfile?.role} | Job: {jobId}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (isLoading) {
-    console.log('Rendering loading spinner');
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -366,63 +343,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     );
   }
 
-  if (hasError) {
-    console.log('Rendering error state');
-    return (
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <MessageSquare className="h-5 w-5" />
-            Progress Comments - ERROR DETECTED
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-center py-4 text-red-600">
-              <AlertCircle className="h-8 w-8 mr-2" />
-              <div>
-                <p className="font-medium">Error loading comments</p>
-                <p className="text-sm text-gray-600">{errorMessage}</p>
-              </div>
-            </div>
-            
-            {debugInfo && (
-              <div className="bg-gray-50 p-4 rounded-lg text-sm max-h-96 overflow-y-auto">
-                <h4 className="font-semibold mb-2">Debug Information:</h4>
-                <div className="space-y-2">
-                  <div><strong>User Role:</strong> {debugInfo.userRole}</div>
-                  <div><strong>User ID:</strong> {debugInfo.userId}</div>
-                  <div><strong>Auth User ID:</strong> {debugInfo.authUserId}</div>
-                  <div><strong>Role from Function:</strong> {debugInfo.roleFromFunction}</div>
-                  {debugInfo.error && (
-                    <>
-                      <div><strong>Error Code:</strong> {debugInfo.error?.code}</div>
-                      <div><strong>Error Message:</strong> {debugInfo.error?.message}</div>
-                      <div><strong>Error Details:</strong> {JSON.stringify(debugInfo.error?.details, null, 2)}</div>
-                      <div><strong>Error Hint:</strong> {debugInfo.error?.hint}</div>
-                    </>
-                  )}
-                  {debugInfo.countError && (
-                    <div><strong>Count Error:</strong> {JSON.stringify(debugInfo.countError, null, 2)}</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <Button 
-              variant="outline" 
-              onClick={fetchComments}
-              className="w-full"
-            >
-              Try Again
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  console.log('Rendering main component with', comments.length, 'comments');
   return (
     <Card className="mt-4">
       <CardHeader>
@@ -536,7 +456,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             </div>
           ))}
           
-          {comments.length === 0 && !isLoading && !hasError && (
+          {comments.length === 0 && !isLoading && (
             <p className="text-gray-500 text-center py-4">
               No comments yet. Add the first comment to track progress.
             </p>
