@@ -40,6 +40,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [isLoading, setIsLoading] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
 
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
@@ -49,20 +50,71 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       setHasError(false);
       setErrorMessage('');
       
-      console.log('Fetching comments for job:', jobId, 'User role:', userProfile?.role, 'User ID:', userProfile?.id);
+      console.log('=== DEBUGGING JOB COMMENTS ===');
+      console.log('Job ID:', jobId);
+      console.log('User Profile:', userProfile);
+      console.log('User Role:', userProfile?.role);
+      console.log('User ID:', userProfile?.id);
       
-      // Test user authentication and role
-      const { data: authUser } = await supabase.auth.getUser();
-      console.log('Auth user:', authUser);
+      // Test user authentication
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      console.log('Auth User:', authUser);
+      console.log('Auth Error:', authError);
+      
+      if (authError) {
+        console.error('Authentication error:', authError);
+        setHasError(true);
+        setErrorMessage(`Authentication error: ${authError.message}`);
+        return;
+      }
+
+      if (!authUser.user) {
+        console.error('User not authenticated');
+        setHasError(true);
+        setErrorMessage('User not authenticated');
+        return;
+      }
       
       // Test the get_current_user_role function
+      console.log('Testing get_current_user_role function...');
       const { data: roleData, error: roleError } = await supabase.rpc('get_current_user_role');
-      console.log('Current user role from RPC:', roleData, 'Error:', roleError);
+      console.log('Current user role from RPC:', roleData);
+      console.log('RPC Error:', roleError);
+
+      if (roleError) {
+        console.error('Role function error:', roleError);
+        setHasError(true);
+        setErrorMessage(`Role function error: ${roleError.message}`);
+        return;
+      }
+
+      // Test basic query without RLS first
+      console.log('Testing basic query access...');
+      const testQuery = await supabase
+        .from('job_comments')
+        .select('count', { count: 'exact' })
+        .eq('job_id', jobId);
       
+      console.log('Test query result:', testQuery);
+
+      if (testQuery.error) {
+        console.error('Basic query failed:', testQuery.error);
+        setHasError(true);
+        setErrorMessage(`Query access error: ${testQuery.error.message}`);
+        return;
+      }
+
+      // Now try the full query
+      console.log('Attempting full query...');
       const { data, error } = await supabase
         .from('job_comments')
         .select(`
-          *,
+          id,
+          job_id,
+          user_id,
+          content,
+          created_at,
+          updated_at,
           users (
             name,
             role
@@ -71,19 +123,42 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
+      console.log('Full query result:', { data, error });
+
       if (error) {
-        console.error('Error fetching comments:', error);
+        console.error('Full query error:', error);
         setHasError(true);
-        setErrorMessage(`Failed to fetch comments: ${error.message}`);
+        setErrorMessage(`Failed to fetch comments: ${error.message} (Code: ${error.code}, Details: ${error.details})`);
+        
+        // Store debug info for display
+        setDebugInfo({
+          userRole: userProfile?.role,
+          userId: userProfile?.id,
+          authUserId: authUser.user.id,
+          rpcRole: roleData,
+          error: error,
+          testQueryCount: testQuery.count
+        });
         return;
       }
 
       console.log('Comments fetched successfully:', data);
+      console.log('Number of comments:', data?.length || 0);
       setComments(data || []);
+      
+      // Store successful debug info
+      setDebugInfo({
+        userRole: userProfile?.role,
+        userId: userProfile?.id,
+        authUserId: authUser.user.id,
+        rpcRole: roleData,
+        commentsCount: data?.length || 0
+      });
+
     } catch (error) {
       console.error('Unexpected error fetching comments:', error);
       setHasError(true);
-      setErrorMessage('An unexpected error occurred while fetching comments');
+      setErrorMessage(`An unexpected error occurred: ${error}`);
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +168,8 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     if (jobId && userProfile) {
       console.log('JobComments component mounted for job:', jobId, 'User:', userProfile.name, 'Role:', userProfile.role);
       fetchComments();
+    } else {
+      console.log('Missing dependencies:', { jobId: !!jobId, userProfile: !!userProfile });
     }
   }, [jobId, userProfile]);
 
@@ -287,7 +364,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     );
   }
 
-  // Show error state
+  // Show error state with debug information
   if (hasError) {
     return (
       <Card className="mt-4">
@@ -298,20 +375,43 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8 text-red-600">
-            <AlertCircle className="h-8 w-8 mr-2" />
-            <div>
-              <p className="font-medium">Error loading comments</p>
-              <p className="text-sm text-gray-600">{errorMessage}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchComments}
-                className="mt-2"
-              >
-                Try Again
-              </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-center py-4 text-red-600">
+              <AlertCircle className="h-8 w-8 mr-2" />
+              <div>
+                <p className="font-medium">Error loading comments</p>
+                <p className="text-sm text-gray-600">{errorMessage}</p>
+              </div>
             </div>
+            
+            {debugInfo && (
+              <div className="bg-gray-50 p-4 rounded-lg text-sm">
+                <h4 className="font-semibold mb-2">Debug Information:</h4>
+                <ul className="space-y-1">
+                  <li><strong>User Role:</strong> {debugInfo.userRole}</li>
+                  <li><strong>User ID:</strong> {debugInfo.userId}</li>
+                  <li><strong>Auth User ID:</strong> {debugInfo.authUserId}</li>
+                  <li><strong>RPC Role Result:</strong> {debugInfo.rpcRole}</li>
+                  {debugInfo.testQueryCount !== undefined && (
+                    <li><strong>Test Query Count:</strong> {debugInfo.testQueryCount}</li>
+                  )}
+                  {debugInfo.commentsCount !== undefined && (
+                    <li><strong>Comments Found:</strong> {debugInfo.commentsCount}</li>
+                  )}
+                  {debugInfo.error && (
+                    <li><strong>Error Details:</strong> {JSON.stringify(debugInfo.error, null, 2)}</li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            <Button 
+              variant="outline" 
+              onClick={fetchComments}
+              className="w-full"
+            >
+              Try Again
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -325,6 +425,11 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           <MessageSquare className="h-5 w-5" />
           Progress Comments ({comments.length})
         </CardTitle>
+        {debugInfo && (
+          <div className="text-xs text-gray-500">
+            Role: {debugInfo.userRole} | RPC Role: {debugInfo.rpcRole}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Add new comment */}
