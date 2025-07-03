@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,25 +46,34 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   const fetchComments = async () => {
-    // Prevent multiple simultaneous fetches
-    if (isLoading || hasFetched) return;
-    
     try {
       setIsLoading(true);
       setHasError(false);
       setErrorMessage('');
       
-      console.log('=== FETCHING JOB COMMENTS ===');
+      console.log('=== DETAILED DEBUGGING ===');
       console.log('Job ID:', jobId);
       console.log('User Profile:', userProfile);
+      console.log('User Role:', userProfile?.role);
+      console.log('User ID:', userProfile?.id);
       
       if (!jobId || !userProfile) {
         console.log('Missing required data - jobId or userProfile');
         return;
       }
 
-      // Simple query without complex debugging to prevent issues
-      const { data, error } = await supabase
+      // First, let's test the get_current_user_role function directly
+      console.log('Testing get_current_user_role function...');
+      const { data: roleTest, error: roleError } = await supabase.rpc('get_current_user_role');
+      console.log('get_current_user_role result:', roleTest, 'error:', roleError);
+
+      // Let's also check the current user from auth
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+      console.log('Auth user:', authUser, 'error:', authError);
+
+      // Try to fetch comments with detailed error logging
+      console.log('Attempting to fetch comments...');
+      const { data, error, count } = await supabase
         .from('job_comments')
         .select(`
           id,
@@ -78,27 +86,40 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             name,
             role
           )
-        `)
+        `, { count: 'exact' })
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      console.log('Comments query result:', { data, error });
+      console.log('Comments query result:');
+      console.log('- Data:', data);
+      console.log('- Error:', error);
+      console.log('- Count:', count);
+      console.log('- Data length:', data?.length || 0);
 
       if (error) {
-        console.error('Error fetching comments:', error);
+        console.error('=== ERROR DETAILS ===');
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        
         setHasError(true);
-        setErrorMessage(`Failed to fetch comments: ${error.message}`);
+        setErrorMessage(`Database error: ${error.message}`);
         setDebugInfo({
           userRole: userProfile?.role,
           userId: userProfile?.id,
-          error: error.message
+          authUserId: authUser?.id,
+          roleFromFunction: roleTest,
+          error: error,
+          errorCode: error.code,
+          errorDetails: error.details,
+          errorHint: error.hint
         });
         return;
       }
 
       console.log('Comments fetched successfully:', data?.length || 0);
       setComments(data || []);
-      setHasFetched(true);
       
     } catch (error) {
       console.error('Unexpected error fetching comments:', error);
@@ -109,23 +130,15 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     }
   };
 
-  // Use useEffect with proper dependencies and cleanup
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadComments = async () => {
-      if (jobId && userProfile && !hasFetched && isMounted) {
-        console.log('Loading comments for job:', jobId, 'User:', userProfile.name, 'Role:', userProfile.role);
-        await fetchComments();
-      }
-    };
-
-    loadComments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [jobId, userProfile?.id]); // Only depend on stable values
+    if (jobId && userProfile?.id) {
+      console.log('=== USEEFFECT TRIGGERED ===');
+      console.log('Job ID:', jobId);
+      console.log('User Profile ID:', userProfile.id);
+      console.log('User Role:', userProfile.role);
+      fetchComments();
+    }
+  }, [jobId, userProfile?.id]);
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !userProfile) return;
@@ -142,12 +155,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       if (error) throw error;
 
-      // Notify all parties related to the job
       await notifyCommentAdded();
 
       setNewComment('');
-      // Refresh comments by resetting fetch state
-      setHasFetched(false);
       await fetchComments();
       
       toast({
@@ -183,7 +193,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       setEditingComment(null);
       setEditContent('');
-      setHasFetched(false);
       await fetchComments();
       
       toast({
@@ -212,7 +221,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       if (error) throw error;
 
-      setHasFetched(false);
       await fetchComments();
       
       toast({
@@ -233,7 +241,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
   const notifyCommentAdded = async () => {
     try {
-      // Get job details to find all related parties
       const { data: jobData } = await supabase
         .from('jobs')
         .select('assigned_to, created_by')
@@ -244,7 +251,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
 
       const notifications = [];
 
-      // Notify assigned user if different from commenter
       if (jobData.assigned_to && jobData.assigned_to !== userProfile?.id) {
         notifications.push({
           user_id: jobData.assigned_to,
@@ -255,7 +261,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         });
       }
 
-      // Notify job creator if different from commenter
       if (jobData.created_by && jobData.created_by !== userProfile?.id && jobData.created_by !== jobData.assigned_to) {
         notifications.push({
           user_id: jobData.created_by,
@@ -266,7 +271,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         });
       }
 
-      // Notify admins and receptionists (except commenter)
       const { data: adminUsers } = await supabase
         .from('users')
         .select('id')
@@ -288,7 +292,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         });
       }
 
-      // Send all notifications
       for (const notification of notifications) {
         await createNotification(notification);
       }
@@ -305,7 +308,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     return comment.user_id === userProfile?.id || canManageComments;
   };
 
-  // Early return for missing data to prevent render issues
   if (!jobId || !userProfile) {
     return (
       <Card className="mt-4">
@@ -324,8 +326,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     );
   }
 
-  // Show loading state
-  if (isLoading && !hasFetched) {
+  if (isLoading) {
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -344,7 +345,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     );
   }
 
-  // Show error state with debug information
   if (hasError) {
     return (
       <Card className="mt-4">
@@ -365,22 +365,24 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             </div>
             
             {debugInfo && (
-              <div className="bg-gray-50 p-4 rounded-lg text-sm">
+              <div className="bg-gray-50 p-4 rounded-lg text-sm max-h-96 overflow-y-auto">
                 <h4 className="font-semibold mb-2">Debug Information:</h4>
-                <ul className="space-y-1">
-                  <li><strong>User Role:</strong> {debugInfo.userRole}</li>
-                  <li><strong>User ID:</strong> {debugInfo.userId}</li>
-                  <li><strong>Error:</strong> {debugInfo.error}</li>
-                </ul>
+                <div className="space-y-2">
+                  <div><strong>User Role:</strong> {debugInfo.userRole}</div>
+                  <div><strong>User ID:</strong> {debugInfo.userId}</div>
+                  <div><strong>Auth User ID:</strong> {debugInfo.authUserId}</div>
+                  <div><strong>Role from Function:</strong> {debugInfo.roleFromFunction}</div>
+                  <div><strong>Error Code:</strong> {debugInfo.errorCode}</div>
+                  <div><strong>Error Message:</strong> {debugInfo.error?.message}</div>
+                  <div><strong>Error Details:</strong> {JSON.stringify(debugInfo.errorDetails, null, 2)}</div>
+                  <div><strong>Error Hint:</strong> {debugInfo.errorHint}</div>
+                </div>
               </div>
             )}
 
             <Button 
               variant="outline" 
-              onClick={() => {
-                setHasFetched(false);
-                fetchComments();
-              }}
+              onClick={fetchComments}
               className="w-full"
             >
               Try Again
@@ -400,7 +402,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add new comment */}
         <div className="space-y-2">
           <Textarea
             placeholder="Add a comment about the job progress, issues, or updates..."
@@ -418,7 +419,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           </Button>
         </div>
 
-        {/* Comments list */}
         <div className="space-y-3">
           {comments.map((comment) => (
             <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
