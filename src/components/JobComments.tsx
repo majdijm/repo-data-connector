@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,7 +49,15 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       setHasError(false);
       setErrorMessage('');
       
-      console.log('Fetching comments for job:', jobId, 'User role:', userProfile?.role);
+      console.log('Fetching comments for job:', jobId, 'User role:', userProfile?.role, 'User ID:', userProfile?.id);
+      
+      // Test user authentication and role
+      const { data: authUser } = await supabase.auth.getUser();
+      console.log('Auth user:', authUser);
+      
+      // Test the get_current_user_role function
+      const { data: roleData, error: roleError } = await supabase.rpc('get_current_user_role');
+      console.log('Current user role from RPC:', roleData, 'Error:', roleError);
       
       const { data, error } = await supabase
         .from('job_comments')
