@@ -41,39 +41,59 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [hasFetched, setHasFetched] = useState(false);
 
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   const fetchComments = async () => {
+    console.log('=== FETCHCOMMENTS CALLED ===');
+    console.log('Job ID:', jobId);
+    console.log('User Profile:', userProfile);
+    
+    if (!jobId || !userProfile?.id) {
+      console.log('Missing jobId or userProfile.id, returning early');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setHasError(false);
       setErrorMessage('');
       
-      console.log('=== DETAILED DEBUGGING ===');
-      console.log('Job ID:', jobId);
-      console.log('User Profile:', userProfile);
-      console.log('User Role:', userProfile?.role);
-      console.log('User ID:', userProfile?.id);
-      
-      if (!jobId || !userProfile) {
-        console.log('Missing required data - jobId or userProfile');
-        return;
-      }
-
-      // First, let's test the get_current_user_role function directly
+      // Test the get_current_user_role function first
       console.log('Testing get_current_user_role function...');
       const { data: roleTest, error: roleError } = await supabase.rpc('get_current_user_role');
       console.log('get_current_user_role result:', roleTest, 'error:', roleError);
 
-      // Let's also check the current user from auth
+      // Test auth user
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-      console.log('Auth user:', authUser, 'error:', authError);
+      console.log('Current auth user:', authUser?.id, 'error:', authError);
 
-      // Try to fetch comments with detailed error logging
-      console.log('Attempting to fetch comments...');
-      const { data, error, count } = await supabase
+      // Simple query first - just count
+      console.log('Testing simple count query...');
+      const { count, error: countError } = await supabase
+        .from('job_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('job_id', jobId);
+      
+      console.log('Count result:', count, 'error:', countError);
+
+      if (countError) {
+        console.error('Count query failed:', countError);
+        setHasError(true);
+        setErrorMessage(`Count query failed: ${countError.message}`);
+        setDebugInfo({
+          userRole: userProfile?.role,
+          userId: userProfile?.id,
+          authUserId: authUser?.id,
+          roleFromFunction: roleTest,
+          countError: countError
+        });
+        return;
+      }
+
+      // Now try the full query
+      console.log('Attempting full comments query...');
+      const { data, error } = await supabase
         .from('job_comments')
         .select(`
           id,
@@ -86,32 +106,25 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             name,
             role
           )
-        `, { count: 'exact' })
+        `)
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      console.log('Comments query result:');
+      console.log('Full query result:');
       console.log('- Data:', data);
       console.log('- Error:', error);
-      console.log('- Count:', count);
       console.log('- Data length:', data?.length || 0);
 
       if (error) {
-        console.error('=== ERROR DETAILS ===');
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        
+        console.error('Full query error:', error);
         setHasError(true);
-        setErrorMessage(`Database error: ${error.message}`);
+        setErrorMessage(`Query failed: ${error.message}`);
         setDebugInfo({
           userRole: userProfile?.role,
           userId: userProfile?.id,
           authUserId: authUser?.id,
           roleFromFunction: roleTest,
           error: error,
-          errorCode: error.code,
           errorDetails: error.details,
           errorHint: error.hint
         });
@@ -122,23 +135,28 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       setComments(data || []);
       
     } catch (error) {
-      console.error('Unexpected error fetching comments:', error);
+      console.error('Unexpected error:', error);
       setHasError(true);
-      setErrorMessage(`An unexpected error occurred: ${error}`);
+      setErrorMessage(`Unexpected error: ${error}`);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Simplified useEffect - only trigger when we have both jobId and userProfile.id
   useEffect(() => {
+    console.log('=== USEEFFECT TRIGGERED ===');
+    console.log('jobId:', jobId);
+    console.log('userProfile?.id:', userProfile?.id);
+    console.log('userProfile?.role:', userProfile?.role);
+    
     if (jobId && userProfile?.id) {
-      console.log('=== USEEFFECT TRIGGERED ===');
-      console.log('Job ID:', jobId);
-      console.log('User Profile ID:', userProfile.id);
-      console.log('User Role:', userProfile.role);
+      console.log('Calling fetchComments...');
       fetchComments();
+    } else {
+      console.log('Not calling fetchComments - missing dependencies');
     }
-  }, [jobId, userProfile?.id]);
+  }, [jobId, userProfile?.id]); // Only depend on these two values
 
   const handleAddComment = async () => {
     if (!newComment.trim() || !userProfile) return;
@@ -308,7 +326,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     return comment.user_id === userProfile?.id || canManageComments;
   };
 
-  if (!jobId || !userProfile) {
+  // Early return for missing data
+  if (!jobId || !userProfile?.id) {
+    console.log('Rendering loading state - missing jobId or userProfile.id');
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -327,6 +347,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   }
 
   if (isLoading) {
+    console.log('Rendering loading spinner');
     return (
       <Card className="mt-4">
         <CardHeader>
@@ -346,12 +367,13 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   }
 
   if (hasError) {
+    console.log('Rendering error state');
     return (
       <Card className="mt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5" />
-            Progress Comments
+            Progress Comments - ERROR DETECTED
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -372,10 +394,17 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
                   <div><strong>User ID:</strong> {debugInfo.userId}</div>
                   <div><strong>Auth User ID:</strong> {debugInfo.authUserId}</div>
                   <div><strong>Role from Function:</strong> {debugInfo.roleFromFunction}</div>
-                  <div><strong>Error Code:</strong> {debugInfo.errorCode}</div>
-                  <div><strong>Error Message:</strong> {debugInfo.error?.message}</div>
-                  <div><strong>Error Details:</strong> {JSON.stringify(debugInfo.errorDetails, null, 2)}</div>
-                  <div><strong>Error Hint:</strong> {debugInfo.errorHint}</div>
+                  {debugInfo.error && (
+                    <>
+                      <div><strong>Error Code:</strong> {debugInfo.error?.code}</div>
+                      <div><strong>Error Message:</strong> {debugInfo.error?.message}</div>
+                      <div><strong>Error Details:</strong> {JSON.stringify(debugInfo.error?.details, null, 2)}</div>
+                      <div><strong>Error Hint:</strong> {debugInfo.error?.hint}</div>
+                    </>
+                  )}
+                  {debugInfo.countError && (
+                    <div><strong>Count Error:</strong> {JSON.stringify(debugInfo.countError, null, 2)}</div>
+                  )}
                 </div>
               </div>
             )}
@@ -393,6 +422,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
     );
   }
 
+  console.log('Rendering main component with', comments.length, 'comments');
   return (
     <Card className="mt-4">
       <CardHeader>
