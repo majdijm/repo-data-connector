@@ -13,17 +13,24 @@ const LoginForm = () => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
+
+    console.log('Form submitted for login');
 
     const { error } = await login(email, password);
     
     if (error) {
-      setError(error.message);
+      console.error('Login failed:', error);
+      setError(error.message || 'Login failed');
+    } else {
+      console.log('Login successful');
     }
     
     setIsLoading(false);
@@ -33,13 +40,18 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setSuccess('');
+
+    console.log('Form submitted for signup');
 
     const { error } = await signup(email, password, name);
     
     if (error) {
-      setError(error.message);
+      console.error('Signup failed:', error);
+      setError(error.message || 'Signup failed');
     } else {
-      setError('Check your email for the confirmation link!');
+      console.log('Signup successful');
+      setSuccess('Account created successfully! Please check your email for confirmation.');
     }
     
     setIsLoading(false);
@@ -124,8 +136,14 @@ const LoginForm = () => {
           </Tabs>
           
           {error && (
-            <Alert className="mt-4">
+            <Alert className="mt-4" variant="destructive">
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert className="mt-4">
+              <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
         </CardContent>

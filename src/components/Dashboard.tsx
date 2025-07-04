@@ -16,7 +16,7 @@ import EditorDashboard from '@/components/dashboards/EditorDashboard';
 import ClientDashboard from '@/components/dashboards/ClientDashboard';
 
 const Dashboard = () => {
-  const { userProfile, isLoading: authLoading, error: authError, refreshUserProfile } = useAuth();
+  const { user, userProfile, isLoading: authLoading, error: authError, refreshUserProfile } = useAuth();
 
   const handleRefresh = async () => {
     await refreshUserProfile();
@@ -52,32 +52,51 @@ const Dashboard = () => {
     );
   }
 
-  // Show profile setup message if no profile
-  if (!userProfile) {
+  // If user exists but no profile, show a default dashboard
+  if (user && !userProfile) {
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Welcome!</h1>
-          <p className="text-gray-600 mt-1">Setting up your profile...</p>
+          <p className="text-gray-600 mt-1">Your profile is being set up...</p>
         </div>
 
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Your user profile is being created. This may take a moment.
+            Your user profile is being created. You can start using the system, but some features may be limited until your profile is complete.
           </AlertDescription>
         </Alert>
 
-        <Button onClick={handleRefresh} className="flex items-center gap-2">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="font-semibold text-lg mb-2">Getting Started</h3>
+            <p className="text-gray-600">Welcome to the Media Task Manager. Your profile will be available shortly.</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="font-semibold text-lg mb-2">Contact Support</h3>
+            <p className="text-gray-600">If you need help setting up your account, please contact your administrator.</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h3 className="font-semibold text-lg mb-2">Refresh Profile</h3>
+            <Button onClick={handleRefresh} className="flex items-center gap-2 mt-2">
+              <RefreshCw className="h-4 w-4" />
+              Check Again
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   // Route to role-specific dashboard based on user profile role
   const renderRoleBasedDashboard = () => {
+    if (!userProfile) {
+      return <AdminDashboard />; // Default fallback
+    }
+
     console.log('Rendering dashboard for role:', userProfile.role);
     
     switch (userProfile.role) {

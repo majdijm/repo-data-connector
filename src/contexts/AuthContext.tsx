@@ -56,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching user profile for:', userId);
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -64,10 +65,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // If user doesn't exist in users table, create a basic profile
+        if (error.code === 'PGRST116') {
+          console.log('User profile not found, this is expected for new users');
+          setUserProfile(null);
+          setError(null);
+          return;
+        }
         setError(error.message);
         return;
       }
 
+      console.log('User profile fetched successfully:', data);
       setUserProfile(data);
       setError(null);
     } catch (err) {
@@ -84,23 +93,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
+        console.error('Login error:', error);
         return { error };
       }
 
+      console.log('Login successful');
       return { error: null };
     } catch (err) {
+      console.error('Login exception:', err);
       return { error: err };
     }
   };
 
   const signup = async (email: string, password: string, name: string) => {
     try {
+      console.log('Attempting signup for:', email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -113,11 +127,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error('Signup error:', error);
         return { error };
       }
 
+      console.log('Signup successful');
       return { error: null };
     } catch (err) {
+      console.error('Signup exception:', err);
       return { error: err };
     }
   };
@@ -147,6 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log('Setting up auth state listener...');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
