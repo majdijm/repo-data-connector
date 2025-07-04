@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, DollarSign, Clock, Check, X, Calendar, User } from 'lucide-react';
+import { Plus, DollarSign, Clock, Check, X, Calendar, User, Briefcase } from 'lucide-react';
 
 interface PaymentRequest {
   id: string;
@@ -33,11 +33,38 @@ interface Client {
   email: string;
 }
 
+interface Job {
+  id: string;
+  title: string;
+  client_id: string;
+  price: number;
+  extra_cost: number;
+  status: string;
+  clients: {
+    name: string;
+  };
+}
+
+interface Package {
+  id: string;
+  name: string;
+  price: number;
+  client_packages: {
+    client_id: string;
+    is_active: boolean;
+    clients: {
+      name: string;
+    };
+  }[];
+}
+
 const PaymentRequestManagement = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [pendingJobs, setPendingJobs] = useState<Job[]>([]);
+  const [activePackages, setActivePackages] = useState<Package[]>([]);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,6 +78,8 @@ const PaymentRequestManagement = () => {
   useEffect(() => {
     fetchClients();
     fetchPaymentRequests();
+    fetchPendingJobs();
+    fetchActivePackages();
   }, []);
 
   const fetchClients = async () => {
@@ -92,6 +121,50 @@ const PaymentRequestManagement = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchPendingJobs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          clients (
+            name
+          )
+        `)
+        .in('status', ['pending', 'in_progress'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPendingJobs(data || []);
+    } catch (error) {
+      console.error('Error fetching pending jobs:', error);
+    }
+  };
+
+  const fetchActivePackages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('packages')
+        .select(`
+          *,
+          client_packages!inner (
+            client_id,
+            is_active,
+            clients (
+              name
+            )
+          )
+        `)
+        .eq('client_packages.is_active', true)
+        .order('name');
+
+      if (error) throw error;
+      setActivePackages(data || []);
+    } catch (error) {
+      console.error('Error fetching active packages:', error);
     }
   };
 
@@ -185,6 +258,31 @@ const PaymentRequestManagement = () => {
     }
   };
 
+  // Calculate pending payments from jobs and packages
+  const calculatePendingPayments = () => {
+    const jobPayments = pendingJobs.map(job => ({
+      client_name: job.clients?.name || 'Unknown Client',
+      amount: (job.price || 0) + (job.extra_cost || 0),
+      description: `Job: ${job.title}`,
+      type: 'job',
+      id: job.id
+    }));
+
+    const packagePayments = activePackages.flatMap(pkg => 
+      pkg.client_packages.map(cp => ({
+        client_name: cp.clients?.name || 'Unknown Client',
+        amount: pkg.price,
+        description: `Package: ${pkg.name}`,
+        type: 'package',
+        id: pkg.id
+      }))
+    );
+
+    return [...jobPayments, ...packagePayments];
+  };
+
+  const pendingPayments = calculatePendingPayments();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -194,6 +292,36 @@ const PaymentRequestManagement = () => {
           New Request
         </Button>
       </div>
+
+      {/* Pending Payments Section */}
+      {pendingPayments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-600" />
+              Pending Payments ({pendingPayments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              {pendingPayments.map((payment, index) => (
+                <div key={`${payment.type}-${payment.id}-${index}`} className="flex items-center justify-between p-4 border rounded-lg bg-orange-50">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {payment.type === 'job' ? <Briefcase className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                      <span className="font-medium">{payment.client_name}</span>
+                    </div>
+                    <span className="text-sm text-gray-600">{payment.description}</span>
+                  </div>
+                  <div className="font-semibold text-lg text-orange-600">
+                    ${payment.amount}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {showRequestForm && (
         <Card>
