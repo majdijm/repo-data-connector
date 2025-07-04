@@ -71,7 +71,7 @@ const Sidebar = () => {
       href: '/payments',
       icon: CreditCard,
       show: canManagePayments()
-    },
+    }
   ];
 
   const settingsItems = [
@@ -88,8 +88,8 @@ const Sidebar = () => {
       name: 'Financial', 
       href: '/financial', 
       icon: Calculator,
-      show: canManagePayments() // Admin and receptionist only
-    },
+      show: canManagePayments()
+    }
   ];
 
   return (
@@ -120,7 +120,7 @@ const Sidebar = () => {
           ))}
         </ul>
 
-        {adminMenuItems.length > 0 && (
+        {adminMenuItems.some(item => item.show) && (
           <>
             <span className="font-medium text-gray-700 dark:text-gray-400 px-3">Management</span>
             <ul className="space-y-2 mb-8">
