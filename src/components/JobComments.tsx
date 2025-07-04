@@ -21,7 +21,7 @@ interface JobComment {
   users: {
     name: string;
     role: string;
-  };
+  } | null;
 }
 
 interface JobCommentsProps {
@@ -374,9 +374,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
             <div key={comment.id} className="border rounded-lg p-3 bg-gray-50">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="font-medium">{comment.users.name}</span>
+                  <span className="font-medium">{comment.users?.name || 'Unknown User'}</span>
                   <Badge variant="outline" className="text-xs">
-                    {comment.users.role}
+                    {comment.users?.role || 'Unknown'}
                   </Badge>
                   <span className="text-xs text-gray-500">
                     {new Date(comment.created_at).toLocaleString()}
