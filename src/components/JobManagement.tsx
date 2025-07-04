@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,8 @@ interface Job {
   description: string | null;
   created_at: string;
   updated_at: string;
+  next_step: string | null;
+  photographer_notes: string | null;
   clients?: {
     name: string;
     email: string;
@@ -113,6 +116,8 @@ const JobManagement = () => {
       // Transform the data to match our Job interface
       const transformedJobs = (data || []).map(job => ({
         ...job,
+        next_step: job.next_step || null,
+        photographer_notes: job.photographer_notes || null,
         users: job.assigned_user || null
       }));
       
