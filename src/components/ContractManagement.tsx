@@ -31,7 +31,7 @@ interface Client {
 }
 
 const ContractManagement = () => {
-  const { userProfile } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -41,16 +41,22 @@ const ContractManagement = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Check if user can manage contracts
   const canManageContracts = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   useEffect(() => {
-    if (canManageContracts) {
+    if (user && canManageContracts) {
       fetchClients();
       fetchContracts();
     }
-  }, [canManageContracts]);
+  }, [user, canManageContracts]);
 
   const fetchClients = async () => {
+    if (!user) {
+      console.log('No user found, skipping client fetch');
+      return;
+    }
+
     try {
       console.log('Fetching clients...');
       const { data, error } = await supabase
@@ -69,40 +75,53 @@ const ContractManagement = () => {
       console.error('Error fetching clients:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch clients",
+        description: `Failed to fetch clients: ${error.message}`,
         variant: "destructive"
       });
     }
   };
 
   const fetchContracts = async () => {
+    if (!user) {
+      console.log('No user found, skipping contracts fetch');
+      return;
+    }
+
     try {
       setIsLoading(true);
       console.log('Fetching contracts...');
       
-      const { data, error } = await supabase
+      // First, try to fetch contracts with client information
+      const { data: contractsData, error: contractsError } = await supabase
         .from('client_contracts')
-        .select(`
-          id,
-          client_id,
-          contract_name,
-          file_path,
-          file_size,
-          uploaded_by,
-          created_at,
-          clients!inner (
-            name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching contracts:', error);
-        throw error;
+      if (contractsError) {
+        console.error('Error fetching contracts:', contractsError);
+        throw contractsError;
       }
+
+      // Then fetch client information separately to avoid permission issues
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name');
+
+      if (clientsError) {
+        console.error('Error fetching client names:', clientsError);
+        // Continue without client names if there's an error
+      }
+
+      // Combine the data
+      const contractsWithClients = contractsData?.map(contract => ({
+        ...contract,
+        clients: {
+          name: clientsData?.find(client => client.id === contract.client_id)?.name || 'Unknown Client'
+        }
+      })) || [];
       
-      console.log('Contracts fetched successfully:', data?.length || 0);
-      setContracts(data || []);
+      console.log('Contracts fetched successfully:', contractsWithClients.length);
+      setContracts(contractsWithClients);
     } catch (error: any) {
       console.error('Error fetching contracts:', error);
       toast({
@@ -127,10 +146,10 @@ const ContractManagement = () => {
   };
 
   const uploadContract = async () => {
-    if (!selectedFile || !selectedClientId || !contractName || !userProfile?.id) {
+    if (!selectedFile || !selectedClientId || !contractName || !user?.id) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields and ensure you're logged in",
         variant: "destructive"
       });
       return;
@@ -142,7 +161,8 @@ const ContractManagement = () => {
         fileName: selectedFile.name,
         fileSize: selectedFile.size,
         clientId: selectedClientId,
-        contractName: contractName
+        contractName: contractName,
+        userId: user.id
       });
 
       // Upload file to storage
@@ -170,7 +190,7 @@ const ContractManagement = () => {
           contract_name: contractName,
           file_path: filePath,
           file_size: selectedFile.size,
-          uploaded_by: userProfile.id
+          uploaded_by: user.id
         });
 
       if (dbError) {
@@ -240,6 +260,17 @@ const ContractManagement = () => {
       });
     }
   };
+
+  // Show loading if we're still checking authentication
+  if (!user) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-500">Please sign in to access contract management.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!canManageContracts) {
     return (
