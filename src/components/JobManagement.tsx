@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,13 +45,15 @@ interface Job {
   description: string | null;
   created_at: string;
   updated_at: string;
+  next_step: string | null;
+  photographer_notes: string | null;
   clients?: {
     name: string;
     email: string;
   };
   users?: {
     name: string;
-  };
+  } | null;
 }
 
 interface Client {
@@ -110,7 +111,16 @@ const JobManagement = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setJobs(data || []);
+      
+      // Transform the data to match our Job interface
+      const transformedJobs = (data || []).map(job => ({
+        ...job,
+        next_step: job.next_step || null,
+        photographer_notes: job.photographer_notes || null,
+        users: job.users || null
+      }));
+      
+      setJobs(transformedJobs);
     } catch (error) {
       console.error('Error fetching jobs:', error);
       toast({
@@ -280,11 +290,7 @@ const JobManagement = () => {
               <DialogHeader>
                 <DialogTitle>Create New Job</DialogTitle>
               </DialogHeader>
-              <JobForm
-                clients={clients}
-                users={users}
-                onJobCreated={handleJobCreated}
-              />
+              <JobForm onJobAdded={handleJobCreated} />
             </DialogContent>
           </Dialog>
         )}
@@ -444,12 +450,7 @@ const JobManagement = () => {
             <DialogTitle>Edit Job</DialogTitle>
           </DialogHeader>
           {selectedJob && (
-            <JobForm
-              job={selectedJob}
-              clients={clients}
-              users={users}
-              onJobCreated={handleJobUpdated}
-            />
+            <JobForm onJobAdded={handleJobUpdated} />
           )}
         </DialogContent>
       </Dialog>
