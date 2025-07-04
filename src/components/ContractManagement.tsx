@@ -52,6 +52,7 @@ const ContractManagement = () => {
 
   const fetchClients = async () => {
     try {
+      console.log('Fetching clients...');
       const { data, error } = await supabase
         .from('clients')
         .select('id, name, email')
@@ -61,8 +62,10 @@ const ContractManagement = () => {
         console.error('Error fetching clients:', error);
         throw error;
       }
+      
+      console.log('Clients fetched successfully:', data?.length || 0);
       setClients(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching clients:', error);
       toast({
         title: "Error",
@@ -75,11 +78,19 @@ const ContractManagement = () => {
   const fetchContracts = async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching contracts...');
+      
       const { data, error } = await supabase
         .from('client_contracts')
         .select(`
-          *,
-          clients (
+          id,
+          client_id,
+          contract_name,
+          file_path,
+          file_size,
+          uploaded_by,
+          created_at,
+          clients!inner (
             name
           )
         `)
@@ -89,12 +100,14 @@ const ContractManagement = () => {
         console.error('Error fetching contracts:', error);
         throw error;
       }
+      
+      console.log('Contracts fetched successfully:', data?.length || 0);
       setContracts(data || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching contracts:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch contracts",
+        description: `Failed to fetch contracts: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -105,6 +118,7 @@ const ContractManagement = () => {
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      console.log('File selected:', file.name, file.size);
       setSelectedFile(file);
       if (!contractName) {
         setContractName(file.name);
@@ -183,9 +197,9 @@ const ContractManagement = () => {
       }
       
       // Refresh contracts list
-      fetchContracts();
+      await fetchContracts();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading contract:', error);
       toast({
         title: "Error",
@@ -217,7 +231,7 @@ const ContractManagement = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error downloading contract:', error);
       toast({
         title: "Error",
