@@ -65,23 +65,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        // If user doesn't exist in users table, create a basic profile
         if (error.code === 'PGRST116') {
           console.log('User profile not found, this is expected for new users');
           setUserProfile(null);
           setError(null);
           return;
         }
-        setError(error.message);
+        setError(`Profile error: ${error.message}`);
         return;
       }
 
       console.log('User profile fetched successfully:', data);
       setUserProfile(data);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in fetchUserProfile:', err);
-      setError('Failed to fetch user profile');
+      setError(`Failed to fetch user profile: ${err.message}`);
     }
   };
 
@@ -94,6 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       console.log('Attempting login for:', email);
+      setError(null);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -101,20 +102,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Login error:', error);
+        setError(error.message);
         return { error };
       }
 
-      console.log('Login successful');
+      console.log('Login successful:', data);
       return { error: null };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login exception:', err);
-      return { error: err };
+      const errorMessage = err.message || 'Unknown login error';
+      setError(errorMessage);
+      return { error: { message: errorMessage } };
     }
   };
 
   const signup = async (email: string, password: string, name: string) => {
     try {
       console.log('Attempting signup for:', email);
+      setError(null);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -128,14 +134,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Signup error:', error);
+        setError(error.message);
         return { error };
       }
 
-      console.log('Signup successful');
+      console.log('Signup successful:', data);
       return { error: null };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Signup exception:', err);
-      return { error: err };
+      const errorMessage = err.message || 'Unknown signup error';
+      setError(errorMessage);
+      return { error: { message: errorMessage } };
     }
   };
 
@@ -153,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Success",
         description: "Signed out successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
         title: "Error",
@@ -177,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Defer profile fetching to avoid blocking auth state changes
           setTimeout(() => {
             fetchUserProfile(session.user.id);
-          }, 0);
+          }, 100);
         } else {
           setUserProfile(null);
           setError(null);
@@ -189,7 +198,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session:', session?.user?.email);
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       

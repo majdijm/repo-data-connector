@@ -8,7 +8,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 const Index = () => {
-  const { user, isLoading, error } = useAuth();
+  const { user, isLoading } = useAuth();
+
+  console.log('Index page - User:', user?.email, 'Loading:', isLoading);
 
   if (isLoading) {
     return (
@@ -21,23 +23,12 @@ const Index = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {error}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   if (!user) {
+    console.log('No user found, showing login form');
     return <LoginForm />;
   }
 
+  console.log('User found, showing dashboard');
   return (
     <DashboardLayout>
       <Dashboard />

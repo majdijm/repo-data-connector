@@ -1,20 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 const LoginForm = () => {
-  const { login, signup } = useAuth();
+  const { login, signup, user, error: authError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      console.log('User is logged in, redirecting to dashboard...');
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +32,7 @@ const LoginForm = () => {
     setError('');
     setSuccess('');
 
-    console.log('Form submitted for login');
+    console.log('Login form submitted');
 
     const { error } = await login(email, password);
     
@@ -30,7 +40,8 @@ const LoginForm = () => {
       console.error('Login failed:', error);
       setError(error.message || 'Login failed');
     } else {
-      console.log('Login successful');
+      console.log('Login successful, should redirect soon...');
+      setSuccess('Login successful! Redirecting...');
     }
     
     setIsLoading(false);
@@ -42,7 +53,7 @@ const LoginForm = () => {
     setError('');
     setSuccess('');
 
-    console.log('Form submitted for signup');
+    console.log('Signup form submitted');
 
     const { error } = await signup(email, password, name);
     
@@ -135,9 +146,9 @@ const LoginForm = () => {
             </TabsContent>
           </Tabs>
           
-          {error && (
+          {(error || authError) && (
             <Alert className="mt-4" variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription>{error || authError}</AlertDescription>
             </Alert>
           )}
           
