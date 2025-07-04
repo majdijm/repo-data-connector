@@ -57,10 +57,18 @@ const ContractManagement = () => {
         .select('id, name, email')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching clients:', error);
+        throw error;
+      }
       setClients(data || []);
     } catch (error) {
       console.error('Error fetching clients:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch clients",
+        variant: "destructive"
+      });
     }
   };
 
@@ -77,7 +85,10 @@ const ContractManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching contracts:', error);
+        throw error;
+      }
       setContracts(data || []);
     } catch (error) {
       console.error('Error fetching contracts:', error);
@@ -102,21 +113,40 @@ const ContractManagement = () => {
   };
 
   const uploadContract = async () => {
-    if (!selectedFile || !selectedClientId || !contractName || !userProfile?.id) return;
+    if (!selectedFile || !selectedClientId || !contractName || !userProfile?.id) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       setIsUploading(true);
+      console.log('Starting contract upload...', {
+        fileName: selectedFile.name,
+        fileSize: selectedFile.size,
+        clientId: selectedClientId,
+        contractName: contractName
+      });
 
       // Upload file to storage
       const fileExt = selectedFile.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `contracts/${fileName}`;
 
+      console.log('Uploading file to storage...', filePath);
       const { error: uploadError } = await supabase.storage
         .from('contracts')
         .upload(filePath, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('File uploaded successfully, saving to database...');
 
       // Save contract record to database
       const { error: dbError } = await supabase
@@ -129,7 +159,12 @@ const ContractManagement = () => {
           uploaded_by: userProfile.id
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database insert error:', dbError);
+        throw dbError;
+      }
+
+      console.log('Contract saved successfully');
 
       toast({
         title: "Success",
@@ -141,6 +176,12 @@ const ContractManagement = () => {
       setSelectedClientId('');
       setContractName('');
       
+      // Reset file input
+      const fileInput = document.getElementById('file') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
       // Refresh contracts list
       fetchContracts();
 
@@ -148,7 +189,7 @@ const ContractManagement = () => {
       console.error('Error uploading contract:', error);
       toast({
         title: "Error",
-        description: "Failed to upload contract",
+        description: `Failed to upload contract: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -158,11 +199,15 @@ const ContractManagement = () => {
 
   const downloadContract = async (contract: Contract) => {
     try {
+      console.log('Downloading contract:', contract.file_path);
       const { data, error } = await supabase.storage
         .from('contracts')
         .download(contract.file_path);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Download error:', error);
+        throw error;
+      }
 
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
@@ -203,7 +248,7 @@ const ContractManagement = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="client">Client</Label>
+            <Label htmlFor="client">Client *</Label>
             <Select value={selectedClientId} onValueChange={setSelectedClientId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select client" />
@@ -219,7 +264,7 @@ const ContractManagement = () => {
           </div>
 
           <div>
-            <Label htmlFor="contractName">Contract Name</Label>
+            <Label htmlFor="contractName">Contract Name *</Label>
             <Input
               id="contractName"
               value={contractName}
@@ -229,7 +274,7 @@ const ContractManagement = () => {
           </div>
 
           <div>
-            <Label htmlFor="file">Contract File</Label>
+            <Label htmlFor="file">Contract File *</Label>
             <Input
               id="file"
               type="file"
@@ -274,7 +319,7 @@ const ContractManagement = () => {
                       <div className="grid grid-cols-2 gap-4 mt-2 text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          Client: {contract.clients?.name}
+                          Client: {contract.clients?.name || 'Unknown'}
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
@@ -283,10 +328,6 @@ const ContractManagement = () => {
                         <div className="flex items-center gap-2">
                           <Upload className="h-4 w-4" />
                           Size: {(contract.file_size / 1024 / 1024).toFixed(2)} MB
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          Uploaded by: {contract.uploaded_by}
                         </div>
                       </div>
                     </div>
