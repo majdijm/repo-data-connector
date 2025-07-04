@@ -91,7 +91,7 @@ const ContractManagement = () => {
       setIsLoading(true);
       console.log('Fetching contracts...');
       
-      // First, try to fetch contracts with client information
+      // Fetch contracts without joining users table to avoid permission issues
       const { data: contractsData, error: contractsError } = await supabase
         .from('client_contracts')
         .select('*')
@@ -102,7 +102,7 @@ const ContractManagement = () => {
         throw contractsError;
       }
 
-      // Then fetch client information separately to avoid permission issues
+      // Fetch client information separately
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name');
