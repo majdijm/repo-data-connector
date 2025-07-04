@@ -1,51 +1,64 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import Tasks from "./pages/Tasks";
-import Users from "./pages/Users";
-import JobsPage from "./pages/JobsPage";
-import ClientsPage from "./pages/ClientsPage";
-import PaymentsPage from "./pages/PaymentsPage";
-import PhotoSessionsPage from "./pages/PhotoSessionsPage";
-import VideoTasksPage from "./pages/VideoTasksPage";
-import DesignTasksPage from "./pages/DesignTasksPage";
-import FilesPage from "./pages/FilesPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import Settings from "./pages/Settings";
-import PackagesPage from "./pages/PackagesPage";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import Dashboard from './pages/Dashboard';
+import JobsPage from './pages/JobsPage';
+import ClientsPage from './pages/ClientsPage';
+import UsersPage from './pages/UsersPage';
+import SettingsPage from './pages/SettingsPage';
+import LoginPage from './pages/LoginPage';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+import FilesPage from './pages/FilesPage';
+import PaymentsPage from './pages/PaymentsPage';
+import ContractsPage from './pages/ContractsPage';
+import FinancialPage from './pages/FinancialPage';
 
-const queryClient = new QueryClient();
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/jobs" element={<JobsPage />} />
-            <Route path="/clients" element={<ClientsPage />} />
-            <Route path="/packages" element={<PackagesPage />} />
-            <Route path="/payments" element={<PaymentsPage />} />
-            <Route path="/photo-sessions" element={<PhotoSessionsPage />} />
-            <Route path="/video-tasks" element={<VideoTasksPage />} />
-            <Route path="/design-tasks" element={<DesignTasksPage />} />
-            <Route path="/files" element={<FilesPage />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
-            <Route path="/settings" element={<Settings />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/jobs" element={
+          <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
+            <JobsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/clients" element={
+          <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
+            <ClientsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/users" element={
+          <ProtectedRoute requiredRoles={['admin']}>
+            <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/files" element={
+          <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
+            <FilesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/payments" element={
+          <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
+            <PaymentsPage />}
+          </ProtectedRoute>
+        } />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/contracts" element={<ContractsPage />} />
+        <Route path="/financial" element={<FinancialPage />} />
+      </Routes>
+      <Toaster />
+    </Router>
+  );
+}
 
 export default App;

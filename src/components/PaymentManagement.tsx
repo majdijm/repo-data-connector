@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, DollarSign, Calendar, FileText, User, Briefcase } from 'lucide-react';
+import PaymentRequestManagement from './PaymentRequestManagement';
 
 interface Payment {
   id: string;
@@ -36,11 +38,14 @@ interface Client {
   email: string;
 }
 
-interface Job {
+interface PaymentRequest {
   id: string;
-  title: string;
-  client_id: string | null;
-  clients?: {
+  client_id: string;
+  amount: number;
+  description: string | null;
+  status: string;
+  paid_amount: number;
+  clients: {
     name: string;
   };
 }
@@ -50,7 +55,7 @@ const PaymentManagement = () => {
   const { toast } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -59,8 +64,8 @@ const PaymentManagement = () => {
     payment_method: 'cash',
     payment_date: '',
     client_id: '',
-    job_id: '',
-    notes: ''
+    notes: '',
+    from_request_id: ''
   });
 
   const fetchPayments = async () => {
@@ -107,31 +112,35 @@ const PaymentManagement = () => {
     }
   };
 
-  const fetchJobs = async () => {
+  const fetchPaymentRequests = async () => {
     try {
       const { data, error } = await supabase
-        .from('jobs')
+        .from('payment_requests')
         .select(`
           id,
-          title,
           client_id,
+          amount,
+          description,
+          status,
+          paid_amount,
           clients (
             name
           )
         `)
+        .in('status', ['pending', 'partial'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setJobs(data || []);
+      setPaymentRequests(data || []);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error('Error fetching payment requests:', error);
     }
   };
 
   React.useEffect(() => {
     fetchPayments();
     fetchClients();
-    fetchJobs();
+    fetchPaymentRequests();
   }, []);
 
   const handleCreatePayment = async (e: React.FormEvent) => {
@@ -143,10 +152,28 @@ const PaymentManagement = () => {
         .insert([{
           ...formData,
           received_by: userProfile?.id,
-          payment_date: formData.payment_date || new Date().toISOString()
+          payment_date: formData.payment_date || new Date().toISOString(),
+          from_request_id: formData.from_request_id || null
         }]);
 
       if (error) throw error;
+
+      // If this payment is from a request, update the request
+      if (formData.from_request_id) {
+        const request = paymentRequests.find(r => r.id === formData.from_request_id);
+        if (request) {
+          const newPaidAmount = request.paid_amount + formData.amount;
+          const newStatus = newPaidAmount >= request.amount ? 'paid' : 'partial';
+
+          await supabase
+            .from('payment_requests')
+            .update({ 
+              paid_amount: newPaidAmount,
+              status: newStatus
+            })
+            .eq('id', formData.from_request_id);
+        }
+      }
 
       toast({
         title: "Success",
@@ -158,11 +185,12 @@ const PaymentManagement = () => {
         payment_method: 'cash',
         payment_date: '',
         client_id: '',
-        job_id: '',
-        notes: ''
+        notes: '',
+        from_request_id: ''
       });
       setShowCreateForm(false);
       fetchPayments();
+      fetchPaymentRequests();
     } catch (error) {
       console.error('Error creating payment:', error);
       toast({
@@ -187,9 +215,7 @@ const PaymentManagement = () => {
 
   const canManagePayments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
-  const filteredJobs = jobs.filter(job => 
-    !formData.client_id || job.client_id === formData.client_id
-  );
+  const selectedRequest = paymentRequests.find(r => r.id === formData.from_request_id);
 
   return (
     <div className="space-y-6">
@@ -203,172 +229,198 @@ const PaymentManagement = () => {
         )}
       </div>
 
-      {showCreateForm && canManagePayments && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Record New Payment</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleCreatePayment} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="amount">Amount</Label>
-                  <Input
-                    id="amount"
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payment_method">Payment Method</Label>
-                  <Select value={formData.payment_method} onValueChange={(value) => setFormData({...formData, payment_method: value})}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="check">Check</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+      <Tabs defaultValue="payments" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="payments">Payment Records</TabsTrigger>
+          <TabsTrigger value="requests">Payment Requests</TabsTrigger>
+        </TabsList>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="client">Client</Label>
-                  <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value, job_id: ''})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="job">Job (Optional)</Label>
-                  <Select value={formData.job_id} onValueChange={(value) => setFormData({...formData, job_id: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select job" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredJobs.map(job => (
-                        <SelectItem key={job.id} value={job.id}>
-                          {job.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="payment_date">Payment Date</Label>
-                <Input
-                  id="payment_date"
-                  type="date"
-                  value={formData.payment_date}
-                  onChange={(e) => setFormData({...formData, payment_date: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Recording...' : 'Record Payment'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4">
-        {payments.map(payment => (
-          <Card key={payment.id}>
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5 text-green-600" />
-                      <span className="font-semibold text-lg">${payment.amount}</span>
-                    </div>
-                    <Badge className={getPaymentMethodColor(payment.payment_method)}>
-                      {payment.payment_method.replace('_', ' ')}
-                    </Badge>
+        <TabsContent value="payments" className="space-y-4">
+          {showCreateForm && canManagePayments && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Record New Payment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreatePayment} className="space-y-4">
+                  <div>
+                    <Label htmlFor="from_request">From Payment Request (Optional)</Label>
+                    <Select value={formData.from_request_id} onValueChange={(value) => {
+                      const request = paymentRequests.find(r => r.id === value);
+                      setFormData({
+                        ...formData, 
+                        from_request_id: value,
+                        client_id: request?.client_id || formData.client_id,
+                        amount: request ? (request.amount - request.paid_amount) : formData.amount
+                      });
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment request (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None - Regular Payment</SelectItem>
+                        {paymentRequests.map(request => (
+                          <SelectItem key={request.id} value={request.id}>
+                            {request.clients.name} - ${request.amount - request.paid_amount} remaining
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
-                    {payment.clients && (
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Client: {payment.clients.name}
-                      </div>
-                    )}
-                    {payment.jobs && (
-                      <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4" />
-                        Job: {payment.jobs.title}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Paid: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'Not specified'}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="amount">Amount</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        value={formData.amount}
+                        onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
+                        required
+                      />
+                      {selectedRequest && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Remaining: ${selectedRequest.amount - selectedRequest.paid_amount}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Recorded: {new Date(payment.created_at).toLocaleDateString()}
+                    <div>
+                      <Label htmlFor="payment_method">Payment Method</Label>
+                      <Select value={formData.payment_method} onValueChange={(value) => setFormData({...formData, payment_method: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="check">Check</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  {payment.notes && (
-                    <div className="flex items-start gap-2 text-sm">
-                      <FileText className="h-4 w-4 mt-0.5 text-gray-400" />
-                      <p className="text-gray-700">{payment.notes}</p>
+                  <div>
+                    <Label htmlFor="client">Client</Label>
+                    <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})} disabled={!!selectedRequest}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={client.id}>
+                            {client.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="payment_date">Payment Date</Label>
+                    <Input
+                      id="payment_date"
+                      type="date"
+                      value={formData.payment_date}
+                      onChange={(e) => setFormData({...formData, payment_date: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={formData.notes}
+                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? 'Recording...' : 'Record Payment'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-4">
+            {payments.map(payment => (
+              <Card key={payment.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5 text-green-600" />
+                          <span className="font-semibold text-lg">${payment.amount}</span>
+                        </div>
+                        <Badge className={getPaymentMethodColor(payment.payment_method)}>
+                          {payment.payment_method.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                        {payment.clients && (
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Client: {payment.clients.name}
+                          </div>
+                        )}
+                        {payment.jobs && (
+                          <div className="flex items-center gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            Job: {payment.jobs.title}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Paid: {payment.payment_date ? new Date(payment.payment_date).toLocaleDateString() : 'Not specified'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Recorded: {new Date(payment.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+
+                      {payment.notes && (
+                        <div className="flex items-start gap-2 text-sm">
+                          <FileText className="h-4 w-4 mt-0.5 text-gray-400" />
+                          <p className="text-gray-700">{payment.notes}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      {payments.length === 0 && !isLoading && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-500">No payments recorded yet. Record your first payment to get started.</p>
-          </CardContent>
-        </Card>
-      )}
+          {payments.length === 0 && !isLoading && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="text-gray-500">No payments recorded yet. Record your first payment to get started.</p>
+              </CardContent>
+            </Card>
+          )}
 
-      {isLoading && (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      )}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <PaymentRequestManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

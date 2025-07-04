@@ -1,167 +1,173 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
-import {
-  LayoutDashboard,
-  Users,
-  Briefcase,
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { 
+  LayoutDashboard, 
+  Users, 
+  Briefcase, 
   Calendar,
-  CreditCard,
-  Package,
   Settings,
-  CheckSquare,
+  LogOut,
   Camera,
-  Video,
   Palette,
-  UserCircle,
+  Video,
+  UserCheck,
+  CreditCard,
+  Files,
   Bell,
-  Files
+  Package,
+  FileText,
+  Calculator
 } from 'lucide-react';
 
 const Sidebar = () => {
+  const { user, userProfile, signOut } = useAuth();
+  const { canManageUsers, canManageClients, canManageJobs, canViewJobs, canManagePayments, canViewFiles } = useRoleAccess();
   const location = useLocation();
-  const { userProfile } = useAuth();
-  const { 
-    isAdmin, 
-    isReceptionist, 
-    isTeamMember, 
-    isClient,
-    canManageUsers,
-    canManageClients,
-    canManageJobs,
-    canManagePayments,
-    canViewFiles
-  } = useRoleAccess();
 
   const navigationItems = [
     {
-      title: 'Dashboard',
-      href: '/',
+      name: 'Dashboard',
+      href: '/dashboard',
       icon: LayoutDashboard,
       show: true
     },
     {
-      title: 'Users',
+      name: 'Users',
       href: '/users',
       icon: Users,
       show: canManageUsers()
     },
     {
-      title: 'Clients',
+      name: 'Clients',
       href: '/clients',
-      icon: UserCircle,
+      icon: UserCheck,
       show: canManageClients()
     },
     {
-      title: 'Jobs',
+      name: 'Jobs',
       href: '/jobs',
       icon: Briefcase,
-      show: canManageJobs() || isTeamMember()
+      show: canViewJobs()
     },
     {
-      title: 'Tasks',
-      href: '/tasks',
-      icon: CheckSquare,
-      show: true
-    },
-    {
-      title: 'Photo Sessions',
-      href: '/photo-sessions',
-      icon: Camera,
-      show: userProfile?.role === 'photographer'
-    },
-    {
-      title: 'Video Tasks',
-      href: '/video-tasks',
-      icon: Video,
-      show: userProfile?.role === 'editor'
-    },
-    {
-      title: 'Design Tasks',
-      href: '/design-tasks',
-      icon: Palette,
-      show: userProfile?.role === 'designer'
-    },
-    {
-      title: 'Calendar',
-      href: '/calendar',
-      icon: Calendar,
-      show: true
-    },
-    {
-      title: 'Files',
+      name: 'Files',
       href: '/files',
       icon: Files,
       show: canViewFiles()
     },
     {
-      title: 'Payments',
+      name: 'Calendar',
+      href: '/calendar',
+      icon: Calendar,
+      show: true
+    },
+    {
+      name: 'Payments',
       href: '/payments',
       icon: CreditCard,
       show: canManagePayments()
     },
+  ];
+
+  const settingsItems = [
     {
-      title: 'Packages',
-      href: '/packages',
-      icon: Package,
-      show: isAdmin() || isReceptionist()
-    },
-    {
-      title: 'Notifications',
-      href: '/notifications',
-      icon: Bell,
-      show: true
-    },
-    {
-      title: 'Settings',
+      name: 'Settings',
       href: '/settings',
       icon: Settings,
       show: true
     }
   ];
 
-  const filteredItems = navigationItems.filter(item => item.show);
+  const adminMenuItems = [
+    { 
+      name: 'Contracts', 
+      href: '/contracts', 
+      icon: FileText,
+      show: canManagePayments() // Admin and receptionist only
+    },
+    { 
+      name: 'Financial', 
+      href: '/financial', 
+      icon: Calculator,
+      show: canManagePayments() // Admin and receptionist only
+    },
+  ];
 
   return (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200">
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-gray-900">PhotoStudio</h1>
-      </div>
-      
-      <nav className="flex-1 px-4 pb-4 space-y-2">
-        {filteredItems.map((item) => (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={cn(
-              "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-              location.pathname === item.href
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            )}
-          >
-            <item.icon className="mr-3 h-5 w-5" />
-            {item.title}
-          </Link>
-        ))}
-      </nav>
-
-      {userProfile && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <UserCircle className="h-8 w-8 text-gray-400" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-700">{userProfile.name}</p>
-              <p className="text-xs text-gray-500 capitalize">{userProfile.role}</p>
-            </div>
+    <div className="w-64 flex-shrink-0 border-r bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
+      <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center space-x-2 mb-6">
+          <Avatar className="h-9 w-9">
+            <AvatarFallback>{userProfile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{userProfile?.name}</h2>
+            <Badge variant="secondary">{userProfile?.role}</Badge>
           </div>
         </div>
-      )}
+        <ul className="space-y-2 mb-8">
+          {navigationItems.map((item) => (
+            item.show && (
+              <li key={item.name}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                >
+                  <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <span className="ml-3">{item.name}</span>
+                </Link>
+              </li>
+            )
+          ))}
+        </ul>
+
+        {adminMenuItems.length > 0 && (
+          <>
+            <span className="font-medium text-gray-700 dark:text-gray-400 px-3">Management</span>
+            <ul className="space-y-2 mb-8">
+              {adminMenuItems.map((item) => (
+                item.show && (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                    >
+                      <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      <span className="ml-3">{item.name}</span>
+                    </Link>
+                  </li>
+                )
+              ))}
+            </ul>
+          </>
+        )}
+
+        <span className="font-medium text-gray-700 dark:text-gray-400 px-3">Settings</span>
+        <ul className="space-y-2">
+          {settingsItems.map((item) => (
+            item.show && (
+              <li key={item.name}>
+                <Link
+                  to={item.href}
+                  className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                >
+                  <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                  <span className="ml-3">{item.name}</span>
+                </Link>
+              </li>
+            )
+          ))}
+        </ul>
+        <Button variant="ghost" className="w-full justify-start mt-4" onClick={() => signOut()}>
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
+      </div>
     </div>
   );
 };
