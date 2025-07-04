@@ -10,13 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, Upload, Link as LinkIcon, MessageSquare, Check } from 'lucide-react';
+import { ArrowRight, Upload, Link as LinkIcon, MessageSquare, Check, X } from 'lucide-react';
 
 interface Job {
   id: string;
   title: string;
   status: string;
-  next_step: string | null;
+  next_step: string | null; 
   photographer_notes: string | null;
   assigned_to: string | null;
   type: string;
@@ -39,46 +39,95 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const isPhotographer = userProfile?.role === 'photographer' && job.assigned_to === userProfile.id;
   const canUpdateWorkflow = isPhotographer && job.status === 'in_progress';
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+  };
+
   const handleWorkflowUpdate = async () => {
-    if (!nextStep || !canUpdateWorkflow) return;
+    if (!nextStep || !canUpdateWorkflow) {
+      toast({
+        title: "Error",
+        description: "Please select a next step",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
+      console.log('Starting workflow update for job:', job.id, 'Next step:', nextStep);
+      
       let newStatus = 'review';
       let newAssignedTo = job.assigned_to;
 
       // Determine new status and assignment based on next step
       if (nextStep === 'handover') {
         newStatus = 'completed';
+        console.log('Setting job to completed for client handover');
       } else if (nextStep === 'editing') {
         newStatus = 'in_progress';
         // Find an editor to assign to
-        const { data: editors } = await supabase
+        console.log('Looking for available editors...');
+        const { data: editors, error: editorsError } = await supabase
           .from('users')
-          .select('id')
+          .select('id, name')
           .eq('role', 'editor')
           .eq('is_active', true)
           .limit(1);
         
+        if (editorsError) {
+          console.error('Error fetching editors:', editorsError);
+          throw editorsError;
+        }
+
+        console.log('Found editors:', editors);
         if (editors && editors.length > 0) {
           newAssignedTo = editors[0].id;
+          console.log('Assigning to editor:', editors[0].name);
+        } else {
+          toast({
+            title: "Warning",
+            description: "No available editors found. Job will remain unassigned.",
+            variant: "destructive"
+          });
         }
       } else if (nextStep === 'design') {
         newStatus = 'in_progress';
         // Find a designer to assign to
-        const { data: designers } = await supabase
+        console.log('Looking for available designers...');
+        const { data: designers, error: designersError } = await supabase
           .from('users')
-          .select('id')
+          .select('id, name')
           .eq('role', 'designer')
           .eq('is_active', true)
           .limit(1);
         
+        if (designersError) {
+          console.error('Error fetching designers:', designersError);
+          throw designersError;
+        }
+
+        console.log('Found designers:', designers);
         if (designers && designers.length > 0) {
           newAssignedTo = designers[0].id;
+          console.log('Assigning to designer:', designers[0].name);
+        } else {
+          toast({
+            title: "Warning", 
+            description: "No available designers found. Job will remain unassigned.",
+            variant: "destructive"
+          });
         }
       }
 
       // Update job status and assignment
+      console.log('Updating job with:', { status: newStatus, assigned_to: newAssignedTo });
       const { error: jobError } = await supabase
         .from('jobs')
         .update({
@@ -88,10 +137,14 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         })
         .eq('id', job.id);
 
-      if (jobError) throw jobError;
+      if (jobError) {
+        console.error('Error updating job:', jobError);
+        throw jobError;
+      }
 
       // Add workflow comment if provided
       if (workflowComment.trim()) {
+        console.log('Adding workflow comment...');
         const { error: commentError } = await supabase
           .from('job_comments')
           .insert({
@@ -100,11 +153,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             content: `Workflow Update: ${workflowComment.trim()}`
           });
 
-        if (commentError) throw commentError;
+        if (commentError) {
+          console.error('Error adding comment:', commentError);
+          throw commentError;
+        }
       }
 
       // Upload file if provided
       if (selectedFile) {
+        console.log('Uploading file:', selectedFile.name);
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `job-files/${fileName}`;
@@ -113,7 +170,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           .from('job-files')
           .upload(filePath, selectedFile);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw uploadError;
+        }
 
         // Save file record
         const { error: fileError } = await supabase
@@ -128,11 +188,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             is_final: nextStep === 'handover'
           });
 
-        if (fileError) throw fileError;
+        if (fileError) {
+          console.error('Error saving file record:', fileError);
+          throw fileError;
+        }
       }
 
       // Add cloud link if provided
       if (fileLink.trim()) {
+        console.log('Adding cloud link...');
         const { error: linkError } = await supabase
           .from('job_files')
           .insert({
@@ -147,11 +211,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             is_final: nextStep === 'handover'
           });
 
-        if (linkError) throw linkError;
+        if (linkError) {
+          console.error('Error adding cloud link:', linkError);
+          throw linkError;
+        }
       }
 
       // Create notifications for assignment change
       if (newAssignedTo !== job.assigned_to && newAssignedTo) {
+        console.log('Creating notification for new assignee...');
         await supabase
           .from('notifications')
           .insert({
@@ -174,11 +242,12 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       setWorkflowComment('');
       setSelectedFile(null);
       setFileLink('');
+      
     } catch (error) {
       console.error('Error updating job workflow:', error);
       toast({
         title: "Error",
-        description: "Failed to update job workflow",
+        description: "Failed to update job workflow. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -209,6 +278,14 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       }
     };
     return stepInfo[step as keyof typeof stepInfo];
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -263,13 +340,19 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             <Input
               id="file"
               type="file"
-              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              onChange={handleFileChange}
               accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar"
             />
             {selectedFile && (
-              <p className="text-sm text-gray-600 mt-1">
-                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
-              </p>
+              <div className="mt-2 flex items-center justify-between p-2 bg-gray-50 rounded">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{selectedFile.name}</p>
+                  <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={removeFile}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
 
