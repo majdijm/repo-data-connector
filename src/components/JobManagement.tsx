@@ -101,36 +101,66 @@ const JobManagement = () => {
   const fetchJobs = async () => {
     try {
       setIsLoading(true);
-      let query = supabase
+      console.log('Starting to fetch jobs...');
+      
+      // First, get the basic jobs data
+      let jobsQuery = supabase
         .from('jobs')
-        .select(`
-          *,
-          clients (name, email),
-          assigned_user:users!jobs_assigned_to_fkey (name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      // If user is a team member, only show jobs assigned to them
+      // Apply role-based filtering
       if (isTeamMember() && userProfile?.id) {
-        query = query.eq('assigned_to', userProfile.id);
+        jobsQuery = jobsQuery.eq('assigned_to', userProfile.id);
       }
 
-      const { data, error } = await query;
+      const { data: jobsData, error: jobsError } = await jobsQuery;
 
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      if (jobsError) {
+        console.error('Jobs query error:', jobsError);
+        throw jobsError;
       }
       
-      console.log('Raw job data from Supabase:', data);
-      
-      // Transform the data to match our Job interface
-      const transformedJobs = (data || []).map(job => ({
-        ...job,
-        next_step: null,
-        photographer_notes: null,
-        users: job.assigned_user || null
-      })) as Job[];
+      console.log('Raw jobs data:', jobsData);
+
+      if (!jobsData || jobsData.length === 0) {
+        console.log('No jobs found');
+        setJobs([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Get clients data separately
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('id, name, email');
+
+      if (clientsError) {
+        console.error('Clients query error:', clientsError);
+      }
+
+      // Get users data separately  
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, name');
+
+      if (usersError) {
+        console.error('Users query error:', usersError);
+      }
+
+      // Transform and combine the data
+      const transformedJobs = jobsData.map(job => {
+        const client = clientsData?.find(c => c.id === job.client_id);
+        const assignedUser = usersData?.find(u => u.id === job.assigned_to);
+        
+        return {
+          ...job,
+          next_step: null,
+          photographer_notes: null,
+          clients: client ? { name: client.name, email: client.email } : undefined,
+          users: assignedUser ? { name: assignedUser.name } : null
+        };
+      }) as Job[];
       
       console.log('Transformed jobs:', transformedJobs);
       setJobs(transformedJobs);
