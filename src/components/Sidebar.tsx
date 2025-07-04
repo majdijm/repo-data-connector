@@ -32,7 +32,7 @@ const Sidebar = () => {
   const navigationItems = [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/',
       icon: LayoutDashboard,
       show: true
     },
@@ -155,7 +155,7 @@ const Sidebar = () => {
                 </Link>
               </li>
             )
-          )}
+          ))}
         </ul>
         <Button variant="ghost" className="w-full justify-start mt-4" onClick={() => signOut()}>
           <LogOut className="w-4 h-4 mr-2" />
