@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,24 +38,11 @@ interface Client {
   email: string;
 }
 
-interface PaymentRequest {
-  id: string;
-  client_id: string;
-  amount: number;
-  description: string | null;
-  status: string;
-  paid_amount: number;
-  clients: {
-    name: string;
-  };
-}
-
 const PaymentManagement = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
@@ -64,8 +51,7 @@ const PaymentManagement = () => {
     payment_method: 'cash',
     payment_date: '',
     client_id: '',
-    notes: '',
-    from_request_id: ''
+    notes: ''
   });
 
   const fetchPayments = async () => {
@@ -112,35 +98,9 @@ const PaymentManagement = () => {
     }
   };
 
-  const fetchPaymentRequests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('payment_requests')
-        .select(`
-          id,
-          client_id,
-          amount,
-          description,
-          status,
-          paid_amount,
-          clients (
-            name
-          )
-        `)
-        .in('status', ['pending', 'partial'])
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPaymentRequests(data || []);
-    } catch (error) {
-      console.error('Error fetching payment requests:', error);
-    }
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     fetchPayments();
     fetchClients();
-    fetchPaymentRequests();
   }, []);
 
   const handleCreatePayment = async (e: React.FormEvent) => {
@@ -152,28 +112,10 @@ const PaymentManagement = () => {
         .insert([{
           ...formData,
           received_by: userProfile?.id,
-          payment_date: formData.payment_date || new Date().toISOString(),
-          from_request_id: formData.from_request_id || null
+          payment_date: formData.payment_date || new Date().toISOString()
         }]);
 
       if (error) throw error;
-
-      // If this payment is from a request, update the request
-      if (formData.from_request_id) {
-        const request = paymentRequests.find(r => r.id === formData.from_request_id);
-        if (request) {
-          const newPaidAmount = request.paid_amount + formData.amount;
-          const newStatus = newPaidAmount >= request.amount ? 'paid' : 'partial';
-
-          await supabase
-            .from('payment_requests')
-            .update({ 
-              paid_amount: newPaidAmount,
-              status: newStatus
-            })
-            .eq('id', formData.from_request_id);
-        }
-      }
 
       toast({
         title: "Success",
@@ -185,12 +127,10 @@ const PaymentManagement = () => {
         payment_method: 'cash',
         payment_date: '',
         client_id: '',
-        notes: '',
-        from_request_id: ''
+        notes: ''
       });
       setShowCreateForm(false);
       fetchPayments();
-      fetchPaymentRequests();
     } catch (error) {
       console.error('Error creating payment:', error);
       toast({
@@ -214,8 +154,6 @@ const PaymentManagement = () => {
   };
 
   const canManagePayments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
-
-  const selectedRequest = paymentRequests.find(r => r.id === formData.from_request_id);
 
   return (
     <div className="space-y-6">
@@ -243,31 +181,6 @@ const PaymentManagement = () => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreatePayment} className="space-y-4">
-                  <div>
-                    <Label htmlFor="from_request">From Payment Request (Optional)</Label>
-                    <Select value={formData.from_request_id} onValueChange={(value) => {
-                      const request = paymentRequests.find(r => r.id === value);
-                      setFormData({
-                        ...formData, 
-                        from_request_id: value,
-                        client_id: request?.client_id || formData.client_id,
-                        amount: request ? (request.amount - request.paid_amount) : formData.amount
-                      });
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment request (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">None - Regular Payment</SelectItem>
-                        {paymentRequests.map(request => (
-                          <SelectItem key={request.id} value={request.id}>
-                            {request.clients.name} - ${request.amount - request.paid_amount} remaining
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="amount">Amount</Label>
@@ -279,11 +192,6 @@ const PaymentManagement = () => {
                         onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
                         required
                       />
-                      {selectedRequest && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          Remaining: ${selectedRequest.amount - selectedRequest.paid_amount}
-                        </p>
-                      )}
                     </div>
                     <div>
                       <Label htmlFor="payment_method">Payment Method</Label>
@@ -303,7 +211,7 @@ const PaymentManagement = () => {
 
                   <div>
                     <Label htmlFor="client">Client</Label>
-                    <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})} disabled={!!selectedRequest}>
+                    <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select client" />
                       </SelectTrigger>

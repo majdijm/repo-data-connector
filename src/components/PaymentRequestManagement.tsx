@@ -49,37 +49,9 @@ const PaymentRequestManagement = () => {
   });
 
   useEffect(() => {
-    fetchPaymentRequests();
     fetchClients();
+    // Skip fetching payment requests until table is created
   }, []);
-
-  const fetchPaymentRequests = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('payment_requests' as any)
-        .select(`
-          *,
-          clients (
-            name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setPaymentRequests(data || []);
-    } catch (error) {
-      console.error('Error fetching payment requests:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch payment requests",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const fetchClients = async () => {
     try {
@@ -97,85 +69,11 @@ const PaymentRequestManagement = () => {
 
   const createPaymentRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userProfile) return;
-
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from('payment_requests' as any)
-        .insert({
-          ...requestForm,
-          requested_by: userProfile.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Payment request created successfully"
-      });
-
-      setRequestForm({
-        client_id: '',
-        amount: 0,
-        description: '',
-        due_date: ''
-      });
-      setShowRequestForm(false);
-      fetchPaymentRequests();
-    } catch (error) {
-      console.error('Error creating payment request:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create payment request",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateRequestStatus = async (requestId: string, status: string, paidAmount?: number) => {
-    try {
-      const updateData: any = { status };
-      if (paidAmount !== undefined) {
-        updateData.paid_amount = paidAmount;
-      }
-
-      const { error } = await supabase
-        .from('payment_requests' as any)
-        .update(updateData)
-        .eq('id', requestId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Payment request updated successfully"
-      });
-
-      fetchPaymentRequests();
-    } catch (error) {
-      console.error('Error updating payment request:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update payment request",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800';
-    }
+    toast({
+      title: "Feature Coming Soon",
+      description: "Payment requests will be available once the database tables are set up.",
+      variant: "default"
+    });
   };
 
   return (
@@ -258,60 +156,11 @@ const PaymentRequestManagement = () => {
         </Card>
       )}
 
-      <div className="grid gap-4">
-        {paymentRequests.map(request => (
-          <Card key={request.id}>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <DollarSign className="h-5 w-5 text-blue-600" />
-                    <span className="font-semibold">{request.clients.name}</span>
-                    <Badge className={getStatusColor(request.status)}>
-                      {request.status}
-                    </Badge>
-                  </div>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p><strong>Amount:</strong> ${request.amount}</p>
-                    {request.paid_amount > 0 && (
-                      <p><strong>Paid:</strong> ${request.paid_amount}</p>
-                    )}
-                    {request.description && (
-                      <p><strong>Description:</strong> {request.description}</p>
-                    )}
-                    {request.due_date && (
-                      <p><strong>Due Date:</strong> {new Date(request.due_date).toLocaleDateString()}</p>
-                    )}
-                    <p><strong>Created:</strong> {new Date(request.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {request.status === 'pending' && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateRequestStatus(request.id, 'paid', request.amount)}
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateRequestStatus(request.id, 'cancelled')}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-gray-500">Payment requests will be available once the database is set up.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

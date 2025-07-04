@@ -13,19 +13,23 @@ const Dashboard = () => {
   const { userProfile } = useAuth();
 
   const renderDashboard = () => {
-    switch (userProfile?.role) {
+    if (!userProfile) {
+      return <div>Loading...</div>;
+    }
+
+    switch (userProfile.role) {
       case 'admin':
         return <AdminDashboard />;
       case 'receptionist':
         return <ReceptionistDashboard />;
       case 'photographer':
-        return <PhotographerDashboard />;
+        return <PhotographerDashboard userProfile={userProfile} />;
       case 'designer':
-        return <DesignerDashboard />;
+        return <DesignerDashboard userProfile={userProfile} />;
       case 'editor':
-        return <EditorDashboard />;
+        return <EditorDashboard userProfile={userProfile} />;
       case 'client':
-        return <ClientDashboard />;
+        return <ClientDashboard userProfile={userProfile} />;
       default:
         return <AdminDashboard />;
     }

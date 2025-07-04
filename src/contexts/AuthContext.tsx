@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface UserProfile {
@@ -10,7 +11,6 @@ interface UserProfile {
   role: string;
   avatar?: string;
   is_active: boolean;
-  created_at: string;
 }
 
 interface AuthContextType {
@@ -19,17 +19,23 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<{ error: any }>;
-  signup: (email: string, password: string, name: string) => Promise<{ error: any }>;
-  logout: () => Promise<void>;
+  signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  userProfile: null,
+  isLoading: true,
+  error: null,
+  signOut: async () => {},
+  refreshUserProfile: async () => {},
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -53,23 +59,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
-        return null;
+        setError(error.message);
+        return;
       }
 
-      return data;
+      setUserProfile(data);
+      setError(null);
     } catch (err) {
       console.error('Error in fetchUserProfile:', err);
-      return null;
+      setError('Failed to fetch user profile');
     }
   };
 
   const refreshUserProfile = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    const profile = await fetchUserProfile(user.id);
-    setUserProfile(profile);
-    setIsLoading(false);
+    if (user?.id) {
+      await fetchUserProfile(user.id);
+    }
+  };
+
+  const signOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      setUser(null);
+      setSession(null);
+      setUserProfile(null);
+      setError(null);
+      
+      toast({
+        title: "Success",
+        description: "Signed out successfully"
+      });
+    } catch (error) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive"
+      });
+    }
   };
 
   useEffect(() => {
@@ -77,153 +106,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer profile fetching to avoid blocking
-          setTimeout(async () => {
-            const profile = await fetchUserProfile(session.user.id);
-            setUserProfile(profile);
-            setIsLoading(false);
+          // Defer profile fetching to avoid blocking auth state changes
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
           }, 0);
         } else {
           setUserProfile(null);
-          setIsLoading(false);
+          setError(null);
         }
-
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setSession(null);
-          setUserProfile(null);
-          // Redirect to home page on logout
-          window.location.href = '/';
-        }
+        
+        setIsLoading(false);
       }
     );
 
-    // Get initial session
+    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id).then(profile => {
-          setUserProfile(profile);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
+        fetchUserProfile(session.user.id);
       }
+      
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      setError(null);
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-        toast({
-          title: "Login Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      }
-
-      return { error };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(errorMessage);
-      return { error: { message: errorMessage } };
-    }
-  };
-
-  const signup = async (email: string, password: string, name: string) => {
-    try {
-      setError(null);
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            name: name,
-            role: 'client' // Default role for new signups
-          }
-        }
-      });
-
-      if (error) {
-        setError(error.message);
-        toast({
-          title: "Signup Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Please check your email to confirm your account"
-        });
-      }
-
-      return { error };
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(errorMessage);
-      return { error: { message: errorMessage } };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      setError(null);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Logout error:', error);
-        toast({
-          title: "Logout Error",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Logged out successfully"
-        });
-      }
-    } catch (err) {
-      console.error('Logout error:', err);
-      toast({
-        title: "Error",
-        description: "An error occurred during logout",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const value: AuthContextType = {
+  const value = {
     user,
     session,
     userProfile,
     isLoading,
     error,
-    login,
-    signup,
-    logout,
+    signOut,
     refreshUserProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

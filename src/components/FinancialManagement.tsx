@@ -11,14 +11,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, DollarSign, Users, Receipt, Calendar } from 'lucide-react';
+import { Plus, DollarSign, Users, Receipt, TrendingUp } from 'lucide-react';
 
 interface Salary {
   id: string;
   user_id: string;
   base_salary: number;
+  bonus: number;
   effective_date: string;
-  is_active: boolean;
+  notes: string;
   created_at: string;
   users: {
     name: string;
@@ -31,7 +32,7 @@ interface Expense {
   category: string;
   description: string;
   amount: number;
-  expense_date: string;
+  date: string;
   created_at: string;
 }
 
@@ -39,7 +40,6 @@ interface User {
   id: string;
   name: string;
   role: string;
-  email: string;
 }
 
 const FinancialManagement = () => {
@@ -55,93 +55,32 @@ const FinancialManagement = () => {
   const [salaryForm, setSalaryForm] = useState({
     user_id: '',
     base_salary: 0,
-    effective_date: new Date().toISOString().split('T')[0]
+    bonus: 0,
+    effective_date: '',
+    notes: ''
   });
 
   const [expenseForm, setExpenseForm] = useState({
-    category: '',
+    category: 'office_supplies',
     description: '',
     amount: 0,
-    expense_date: new Date().toISOString().split('T')[0]
+    date: ''
   });
 
   const canManageFinancials = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
-  const expenseCategories = [
-    'electricity',
-    'water',
-    'rent',
-    'equipment',
-    'supplies',
-    'maintenance',
-    'insurance',
-    'internet',
-    'phone',
-    'marketing',
-    'other'
-  ];
-
   useEffect(() => {
     if (canManageFinancials) {
-      fetchSalaries();
-      fetchExpenses();
       fetchUsers();
+      // Skip fetching salaries and expenses until tables are created
     }
   }, [canManageFinancials]);
-
-  const fetchSalaries = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('salaries' as any)
-        .select(`
-          *,
-          users (
-            name,
-            role
-          )
-        `)
-        .order('effective_date', { ascending: false });
-
-      if (error) throw error;
-      setSalaries(data || []);
-    } catch (error) {
-      console.error('Error fetching salaries:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch salaries",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchExpenses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('expenses' as any)
-        .select('*')
-        .order('expense_date', { ascending: false });
-
-      if (error) throw error;
-      setExpenses(data || []);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch expenses",
-        variant: "destructive"
-      });
-    }
-  };
 
   const fetchUsers = async () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, role, email')
-        .in('role', ['photographer', 'designer', 'editor'])
+        .select('id, name, role')
         .eq('is_active', true)
         .order('name');
 
@@ -152,91 +91,22 @@ const FinancialManagement = () => {
     }
   };
 
-  const createSalary = async (e: React.FormEvent) => {
+  const handleCreateSalary = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userProfile) return;
-
-    try {
-      setIsLoading(true);
-      
-      // Deactivate previous salary for this user
-      await supabase
-        .from('salaries' as any)
-        .update({ is_active: false })
-        .eq('user_id', salaryForm.user_id);
-
-      // Create new salary record
-      const { error } = await supabase
-        .from('salaries' as any)
-        .insert({
-          ...salaryForm,
-          created_by: userProfile.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Salary record created successfully"
-      });
-
-      setSalaryForm({
-        user_id: '',
-        base_salary: 0,
-        effective_date: new Date().toISOString().split('T')[0]
-      });
-      setShowSalaryForm(false);
-      fetchSalaries();
-    } catch (error) {
-      console.error('Error creating salary:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create salary record",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    toast({
+      title: "Feature Coming Soon",
+      description: "Salary management will be available once the database tables are set up.",
+      variant: "default"
+    });
   };
 
-  const createExpense = async (e: React.FormEvent) => {
+  const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userProfile) return;
-
-    try {
-      setIsLoading(true);
-      const { error } = await supabase
-        .from('expenses' as any)
-        .insert({
-          ...expenseForm,
-          recorded_by: userProfile.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Expense recorded successfully"
-      });
-
-      setExpenseForm({
-        category: '',
-        description: '',
-        amount: 0,
-        expense_date: new Date().toISOString().split('T')[0]
-      });
-      setShowExpenseForm(false);
-      fetchExpenses();
-    } catch (error) {
-      console.error('Error creating expense:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record expense",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    toast({
+      title: "Feature Coming Soon",
+      description: "Expense management will be available once the database tables are set up.",
+      variant: "default"
+    });
   };
 
   if (!canManageFinancials) {
@@ -251,12 +121,15 @@ const FinancialManagement = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Financial Management</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Financial Management</h2>
+      </div>
 
       <Tabs defaultValue="salaries" className="space-y-4">
         <TabsList>
           <TabsTrigger value="salaries">Employee Salaries</TabsTrigger>
           <TabsTrigger value="expenses">Business Expenses</TabsTrigger>
+          <TabsTrigger value="overview">Financial Overview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="salaries" className="space-y-4">
@@ -264,98 +137,15 @@ const FinancialManagement = () => {
             <h3 className="text-lg font-semibold">Employee Salaries</h3>
             <Button onClick={() => setShowSalaryForm(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Add Salary
+              Add Salary Record
             </Button>
           </div>
 
-          {showSalaryForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Add Employee Salary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={createSalary} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="user">Employee</Label>
-                      <Select value={salaryForm.user_id} onValueChange={(value) => setSalaryForm({...salaryForm, user_id: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name} ({user.role})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="base_salary">Base Salary</Label>
-                      <Input
-                        id="base_salary"
-                        type="number"
-                        step="0.01"
-                        value={salaryForm.base_salary}
-                        onChange={(e) => setSalaryForm({...salaryForm, base_salary: Number(e.target.value)})}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="effective_date">Effective Date</Label>
-                    <Input
-                      id="effective_date"
-                      type="date"
-                      value={salaryForm.effective_date}
-                      onChange={(e) => setSalaryForm({...salaryForm, effective_date: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? 'Adding...' : 'Add Salary'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowSalaryForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid gap-4">
-            {salaries.map(salary => (
-              <Card key={salary.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Users className="h-5 w-5 text-blue-600" />
-                        <span className="font-semibold">{salary.users.name}</span>
-                        <Badge variant="outline">{salary.users.role}</Badge>
-                        {salary.is_active && <Badge className="bg-green-100 text-green-800">Active</Badge>}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4" />
-                          <span>${salary.base_salary}/month</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>Effective: {new Date(salary.effective_date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">Salary management will be available once the database is set up.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
@@ -363,107 +153,54 @@ const FinancialManagement = () => {
             <h3 className="text-lg font-semibold">Business Expenses</h3>
             <Button onClick={() => setShowExpenseForm(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Add Expense
+              Record Expense
             </Button>
           </div>
 
-          {showExpenseForm && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">Expense management will be available once the database is set up.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="overview">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Record Business Expense</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={createExpense} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="category">Category</Label>
-                      <Select value={expenseForm.category} onValueChange={(value) => setExpenseForm({...expenseForm, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {expenseCategories.map(category => (
-                            <SelectItem key={category} value={category}>
-                              {category.charAt(0).toUpperCase() + category.slice(1)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="amount">Amount</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        step="0.01"
-                        value={expenseForm.amount}
-                        onChange={(e) => setExpenseForm({...expenseForm, amount: Number(e.target.value)})}
-                        required
-                      />
-                    </div>
-                  </div>
-
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <Users className="h-8 w-8 text-blue-600" />
                   <div>
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={expenseForm.description}
-                      onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
-                      rows={3}
-                      required
-                    />
+                    <p className="text-sm text-gray-600">Total Employees</p>
+                    <p className="text-2xl font-bold">{users.length}</p>
                   </div>
-
-                  <div>
-                    <Label htmlFor="expense_date">Expense Date</Label>
-                    <Input
-                      id="expense_date"
-                      type="date"
-                      value={expenseForm.expense_date}
-                      onChange={(e) => setExpenseForm({...expenseForm, expense_date: e.target.value})}
-                      required
-                    />
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? 'Recording...' : 'Record Expense'}
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowExpenseForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
+                </div>
               </CardContent>
             </Card>
-          )}
 
-          <div className="grid gap-4">
-            {expenses.map(expense => (
-              <Card key={expense.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <Receipt className="h-5 w-5 text-orange-600" />
-                        <span className="font-semibold">{expense.description}</span>
-                        <Badge variant="outline">{expense.category}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4" />
-                          <span>${expense.amount}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(expense.expense_date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Monthly Payroll</p>
+                    <p className="text-2xl font-bold">Coming Soon</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3">
+                  <Receipt className="h-8 w-8 text-orange-600" />
+                  <div>
+                    <p className="text-sm text-gray-600">Monthly Expenses</p>
+                    <p className="text-2xl font-bold">Coming Soon</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
       </Tabs>
