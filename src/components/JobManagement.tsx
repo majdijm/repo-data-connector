@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +45,13 @@ interface Job {
   description: string | null;
   created_at: string;
   updated_at: string;
+  package_included: boolean | null;
+  extra_cost: number | null;
+  extra_cost_reason: string | null;
+  workflow_stage: string | null;
+  workflow_order: number | null;
+  depends_on_job_id: string | null;
+  created_by: string | null;
   next_step: string | null;
   photographer_notes: string | null;
   clients?: {
@@ -111,7 +117,12 @@ const JobManagement = () => {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Raw job data from Supabase:', data);
       
       // Transform the data to match our Job interface
       const transformedJobs = (data || []).map(job => ({
@@ -119,8 +130,9 @@ const JobManagement = () => {
         next_step: null,
         photographer_notes: null,
         users: job.assigned_user || null
-      }));
+      })) as Job[];
       
+      console.log('Transformed jobs:', transformedJobs);
       setJobs(transformedJobs);
     } catch (error) {
       console.error('Error fetching jobs:', error);
