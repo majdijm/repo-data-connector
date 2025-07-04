@@ -21,10 +21,6 @@ interface Salary {
   effective_date: string;
   notes: string;
   created_at: string;
-  users: {
-    name: string;
-    role: string;
-  };
 }
 
 interface Expense {
@@ -96,13 +92,7 @@ const FinancialManagement = () => {
     try {
       const { data, error } = await supabase
         .from('salaries')
-        .select(`
-          *,
-          users (
-            name,
-            role
-          )
-        `)
+        .select('*')
         .order('effective_date', { ascending: false });
 
       if (error) throw error;
@@ -209,6 +199,12 @@ const FinancialManagement = () => {
 
   const totalPayroll = salaries.reduce((sum, salary) => sum + (salary.base_salary + (salary.bonus || 0)), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  // Get user name by ID
+  const getUserName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user ? `${user.name} (${user.role})` : userId;
+  };
 
   if (!canManageFinancials) {
     return (
@@ -331,8 +327,7 @@ const FinancialManagement = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg">{salary.users?.name}</h3>
-                      <p className="text-sm text-gray-600 capitalize">{salary.users?.role}</p>
+                      <h3 className="font-semibold text-lg">{getUserName(salary.user_id)}</h3>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-lg">${salary.base_salary}</p>

@@ -22,9 +22,6 @@ interface Contract {
   clients: {
     name: string;
   };
-  users: {
-    name: string;
-  };
 }
 
 interface Client {
@@ -75,9 +72,6 @@ const ContractManagement = () => {
         .select(`
           *,
           clients (
-            name
-          ),
-          users (
             name
           )
         `)
@@ -292,7 +286,7 @@ const ContractManagement = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4" />
-                          Uploaded by: {contract.users?.name}
+                          Uploaded by: {contract.uploaded_by}
                         </div>
                       </div>
                     </div>
