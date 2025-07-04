@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, FileText, Eye, Download } from 'lucide-react';
+import { Upload, FileText, Eye, Download, Calendar, User } from 'lucide-react';
 
 interface Contract {
   id: string;
@@ -20,6 +20,9 @@ interface Contract {
   uploaded_by: string;
   created_at: string;
   clients: {
+    name: string;
+  };
+  users: {
     name: string;
   };
 }
@@ -46,7 +49,7 @@ const ContractManagement = () => {
   useEffect(() => {
     if (canManageContracts) {
       fetchClients();
-      // Skip fetching contracts until table is created
+      fetchContracts();
     }
   }, [canManageContracts]);
 
@@ -64,6 +67,36 @@ const ContractManagement = () => {
     }
   };
 
+  const fetchContracts = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('client_contracts')
+        .select(`
+          *,
+          clients (
+            name
+          ),
+          users (
+            name
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setContracts(data || []);
+    } catch (error) {
+      console.error('Error fetching contracts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch contracts",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -75,11 +108,84 @@ const ContractManagement = () => {
   };
 
   const uploadContract = async () => {
-    toast({
-      title: "Feature Coming Soon",
-      description: "Contract management will be available once the database tables are set up.",
-      variant: "default"
-    });
+    if (!selectedFile || !selectedClientId || !contractName || !userProfile?.id) return;
+
+    try {
+      setIsUploading(true);
+
+      // Upload file to storage
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `contracts/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('contracts')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      // Save contract record to database
+      const { error: dbError } = await supabase
+        .from('client_contracts')
+        .insert({
+          client_id: selectedClientId,
+          contract_name: contractName,
+          file_path: filePath,
+          file_size: selectedFile.size,
+          uploaded_by: userProfile.id
+        });
+
+      if (dbError) throw dbError;
+
+      toast({
+        title: "Success",
+        description: "Contract uploaded successfully"
+      });
+
+      // Reset form
+      setSelectedFile(null);
+      setSelectedClientId('');
+      setContractName('');
+      
+      // Refresh contracts list
+      fetchContracts();
+
+    } catch (error) {
+      console.error('Error uploading contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload contract",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadContract = async (contract: Contract) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('contracts')
+        .download(contract.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = contract.contract_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download contract",
+        variant: "destructive"
+      });
+    }
   };
 
   if (!canManageContracts) {
@@ -152,13 +258,58 @@ const ContractManagement = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Client Contracts (0)
+            Client Contracts ({contracts.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
-            <p className="text-gray-500">Contract management will be available once the database is set up.</p>
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : contracts.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No contracts uploaded yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {contracts.map(contract => (
+                <div key={contract.id} className="border rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{contract.contract_name}</h3>
+                      <div className="grid grid-cols-2 gap-4 mt-2 text-sm text-gray-600">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Client: {contract.clients?.name}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Uploaded: {new Date(contract.created_at).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Upload className="h-4 w-4" />
+                          Size: {(contract.file_size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Uploaded by: {contract.users?.name}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => downloadContract(contract)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

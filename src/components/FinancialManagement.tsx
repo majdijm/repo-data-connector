@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, DollarSign, Users, Receipt, TrendingUp } from 'lucide-react';
+import { Plus, DollarSign, Users, Receipt, TrendingUp, Calendar, User } from 'lucide-react';
 
 interface Salary {
   id: string;
@@ -56,7 +56,7 @@ const FinancialManagement = () => {
     user_id: '',
     base_salary: 0,
     bonus: 0,
-    effective_date: '',
+    effective_date: new Date().toISOString().split('T')[0],
     notes: ''
   });
 
@@ -64,7 +64,7 @@ const FinancialManagement = () => {
     category: 'office_supplies',
     description: '',
     amount: 0,
-    date: ''
+    date: new Date().toISOString().split('T')[0]
   });
 
   const canManageFinancials = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
@@ -72,7 +72,8 @@ const FinancialManagement = () => {
   useEffect(() => {
     if (canManageFinancials) {
       fetchUsers();
-      // Skip fetching salaries and expenses until tables are created
+      fetchSalaries();
+      fetchExpenses();
     }
   }, [canManageFinancials]);
 
@@ -91,23 +92,123 @@ const FinancialManagement = () => {
     }
   };
 
+  const fetchSalaries = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('salaries')
+        .select(`
+          *,
+          users (
+            name,
+            role
+          )
+        `)
+        .order('effective_date', { ascending: false });
+
+      if (error) throw error;
+      setSalaries(data || []);
+    } catch (error) {
+      console.error('Error fetching salaries:', error);
+    }
+  };
+
+  const fetchExpenses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      setExpenses(data || []);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+    }
+  };
+
   const handleCreateSalary = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Feature Coming Soon",
-      description: "Salary management will be available once the database tables are set up.",
-      variant: "default"
-    });
+    if (!userProfile?.id) return;
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('salaries')
+        .insert([{
+          ...salaryForm,
+          created_by: userProfile.id
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Salary record created successfully"
+      });
+
+      setSalaryForm({
+        user_id: '',
+        base_salary: 0,
+        bonus: 0,
+        effective_date: new Date().toISOString().split('T')[0],
+        notes: ''
+      });
+      setShowSalaryForm(false);
+      fetchSalaries();
+    } catch (error) {
+      console.error('Error creating salary record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create salary record",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCreateExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Feature Coming Soon",
-      description: "Expense management will be available once the database tables are set up.",
-      variant: "default"
-    });
+    if (!userProfile?.id) return;
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('expenses')
+        .insert([{
+          ...expenseForm,
+          recorded_by: userProfile.id
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Expense recorded successfully"
+      });
+
+      setExpenseForm({
+        category: 'office_supplies',
+        description: '',
+        amount: 0,
+        date: new Date().toISOString().split('T')[0]
+      });
+      setShowExpenseForm(false);
+      fetchExpenses();
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      toast({
+        title: "Error",
+        description: "Failed to record expense",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const totalPayroll = salaries.reduce((sum, salary) => sum + (salary.base_salary + (salary.bonus || 0)), 0);
+  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   if (!canManageFinancials) {
     return (
@@ -141,11 +242,113 @@ const FinancialManagement = () => {
             </Button>
           </div>
 
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">Salary management will be available once the database is set up.</p>
-            </CardContent>
-          </Card>
+          {showSalaryForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Salary Record</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateSalary} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="user">Employee</Label>
+                      <Select value={salaryForm.user_id} onValueChange={(value) => setSalaryForm({...salaryForm, user_id: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name} ({user.role})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="base_salary">Base Salary</Label>
+                      <Input
+                        id="base_salary"
+                        type="number"
+                        step="0.01"
+                        value={salaryForm.base_salary}
+                        onChange={(e) => setSalaryForm({...salaryForm, base_salary: Number(e.target.value)})}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="bonus">Bonus</Label>
+                      <Input
+                        id="bonus"
+                        type="number"
+                        step="0.01"
+                        value={salaryForm.bonus}
+                        onChange={(e) => setSalaryForm({...salaryForm, bonus: Number(e.target.value)})}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="effective_date">Effective Date</Label>
+                      <Input
+                        id="effective_date"
+                        type="date"
+                        value={salaryForm.effective_date}
+                        onChange={(e) => setSalaryForm({...salaryForm, effective_date: e.target.value})}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="notes">Notes</Label>
+                    <Textarea
+                      id="notes"
+                      value={salaryForm.notes}
+                      onChange={(e) => setSalaryForm({...salaryForm, notes: e.target.value})}
+                      rows={3}
+                      placeholder="Additional notes..."
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? 'Creating...' : 'Create Record'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowSalaryForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-4">
+            {salaries.map(salary => (
+              <Card key={salary.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-lg">{salary.users?.name}</h3>
+                      <p className="text-sm text-gray-600 capitalize">{salary.users?.role}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-lg">${salary.base_salary}</p>
+                      {salary.bonus > 0 && (
+                        <p className="text-sm text-green-600">+${salary.bonus} bonus</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 text-sm text-gray-600">
+                    <p>Effective from: {new Date(salary.effective_date).toLocaleDateString()}</p>
+                    {salary.notes && <p className="mt-1">{salary.notes}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
         <TabsContent value="expenses" className="space-y-4">
@@ -157,11 +360,102 @@ const FinancialManagement = () => {
             </Button>
           </div>
 
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">Expense management will be available once the database is set up.</p>
-            </CardContent>
-          </Card>
+          {showExpenseForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Record Expense</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreateExpense} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="category">Category</Label>
+                      <Select value={expenseForm.category} onValueChange={(value) => setExpenseForm({...expenseForm, category: value})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="office_supplies">Office Supplies</SelectItem>
+                          <SelectItem value="equipment">Equipment</SelectItem>
+                          <SelectItem value="utilities">Utilities</SelectItem>
+                          <SelectItem value="rent">Rent</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="travel">Travel</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="amount">Amount</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        value={expenseForm.amount}
+                        onChange={(e) => setExpenseForm({...expenseForm, amount: Number(e.target.value)})}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={expenseForm.description}
+                      onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})}
+                      rows={3}
+                      placeholder="Expense description..."
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={expenseForm.date}
+                      onChange={(e) => setExpenseForm({...expenseForm, date: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? 'Recording...' : 'Record Expense'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setShowExpenseForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-4">
+            {expenses.map(expense => (
+              <Card key={expense.id}>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="capitalize">
+                          {expense.category.replace('_', ' ')}
+                        </Badge>
+                        <span className="font-semibold">${expense.amount}</span>
+                      </div>
+                      <p className="text-gray-700">{expense.description}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Date: {new Date(expense.date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
         <TabsContent value="overview">
@@ -183,8 +477,8 @@ const FinancialManagement = () => {
                 <div className="flex items-center gap-3">
                   <DollarSign className="h-8 w-8 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Monthly Payroll</p>
-                    <p className="text-2xl font-bold">Coming Soon</p>
+                    <p className="text-sm text-gray-600">Total Payroll</p>
+                    <p className="text-2xl font-bold">${totalPayroll.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -195,8 +489,8 @@ const FinancialManagement = () => {
                 <div className="flex items-center gap-3">
                   <Receipt className="h-8 w-8 text-orange-600" />
                   <div>
-                    <p className="text-sm text-gray-600">Monthly Expenses</p>
-                    <p className="text-2xl font-bold">Coming Soon</p>
+                    <p className="text-sm text-gray-600">Total Expenses</p>
+                    <p className="text-2xl font-bold">${totalExpenses.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>

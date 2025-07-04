@@ -47,6 +47,47 @@ export type Database = {
           },
         ]
       }
+      client_contracts: {
+        Row: {
+          client_id: string
+          contract_name: string
+          created_at: string
+          file_path: string
+          file_size: number
+          id: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          client_id: string
+          contract_name: string
+          created_at?: string
+          file_path: string
+          file_size: number
+          id?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          client_id?: string
+          contract_name?: string
+          created_at?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_packages: {
         Row: {
           client_id: string
@@ -128,6 +169,42 @@ export type Database = {
           total_due?: number | null
           total_paid?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          receipt_file_path: string | null
+          recorded_by: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          date: string
+          description: string
+          id?: string
+          receipt_file_path?: string | null
+          recorded_by: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          receipt_file_path?: string | null
+          recorded_by?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -442,6 +519,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_requests: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          paid_amount: number | null
+          requested_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_amount?: number | null
+          requested_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          paid_amount?: number | null
+          requested_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -499,6 +623,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      salaries: {
+        Row: {
+          base_salary: number
+          bonus: number | null
+          created_at: string
+          created_by: string
+          effective_date: string
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_salary: number
+          bonus?: number | null
+          created_at?: string
+          created_by: string
+          effective_date?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          bonus?: number | null
+          created_at?: string
+          created_by?: string
+          effective_date?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {

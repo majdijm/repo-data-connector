@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, DollarSign, Clock, Check, X } from 'lucide-react';
+import { Plus, DollarSign, Clock, Check, X, Calendar, User } from 'lucide-react';
 
 interface PaymentRequest {
   id: string;
@@ -50,7 +50,7 @@ const PaymentRequestManagement = () => {
 
   useEffect(() => {
     fetchClients();
-    // Skip fetching payment requests until table is created
+    fetchPaymentRequests();
   }, []);
 
   const fetchClients = async () => {
@@ -67,13 +67,122 @@ const PaymentRequestManagement = () => {
     }
   };
 
+  const fetchPaymentRequests = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('payment_requests')
+        .select(`
+          *,
+          clients (
+            name,
+            email
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setPaymentRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching payment requests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch payment requests",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const createPaymentRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Feature Coming Soon",
-      description: "Payment requests will be available once the database tables are set up.",
-      variant: "default"
-    });
+    if (!userProfile?.id) return;
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('payment_requests')
+        .insert([{
+          ...requestForm,
+          requested_by: userProfile.id
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment request created successfully"
+      });
+
+      setRequestForm({
+        client_id: '',
+        amount: 0,
+        description: '',
+        due_date: ''
+      });
+      setShowRequestForm(false);
+      fetchPaymentRequests();
+    } catch (error) {
+      console.error('Error creating payment request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create payment request",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateRequestStatus = async (requestId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('payment_requests')
+        .update({ status: newStatus })
+        .eq('id', requestId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment request status updated"
+      });
+
+      fetchPaymentRequests();
+    } catch (error) {
+      console.error('Error updating payment request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update payment request",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      paid: 'bg-green-100 text-green-800',
+      overdue: 'bg-red-100 text-red-800',
+      cancelled: 'bg-gray-100 text-gray-800',
+    };
+    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-4 w-4" />;
+      case 'paid':
+        return <Check className="h-4 w-4" />;
+      case 'overdue':
+        return <X className="h-4 w-4" />;
+      case 'cancelled':
+        return <X className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -156,11 +265,82 @@ const PaymentRequestManagement = () => {
         </Card>
       )}
 
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-gray-500">Payment requests will be available once the database is set up.</p>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : paymentRequests.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-gray-500">No payment requests created yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          paymentRequests.map(request => (
+            <Card key={request.id}>
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2">
+                        <DollarSign className="h-5 w-5 text-green-600" />
+                        <span className="font-semibold text-lg">${request.amount}</span>
+                      </div>
+                      <Badge className={getStatusColor(request.status)}>
+                        <span className="flex items-center gap-1">
+                          {getStatusIcon(request.status)}
+                          {request.status}
+                        </span>
+                      </Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        Client: {request.clients.name}
+                      </div>
+                      {request.due_date && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          Due: {new Date(request.due_date).toLocaleDateString()}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Created: {new Date(request.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    {request.description && (
+                      <p className="text-gray-700 text-sm">{request.description}</p>
+                    )}
+                  </div>
+
+                  {request.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateRequestStatus(request.id, 'paid')}
+                      >
+                        Mark as Paid
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateRequestStatus(request.id, 'cancelled')}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 };
