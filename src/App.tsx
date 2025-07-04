@@ -8,7 +8,7 @@ import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import FilesPage from './pages/FilesPage';
 import PaymentsPage from './pages/PaymentsPage';
 import ContractsPage from './pages/ContractsPage';

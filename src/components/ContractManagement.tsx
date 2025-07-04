@@ -54,7 +54,7 @@ const ContractManagement = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('client_contracts')
+        .from('client_contracts' as any)
         .select(`
           *,
           clients (
@@ -120,7 +120,7 @@ const ContractManagement = () => {
 
       // Save contract record to database
       const { error: dbError } = await supabase
-        .from('client_contracts')
+        .from('client_contracts' as any)
         .insert({
           client_id: selectedClientId,
           contract_name: contractName,

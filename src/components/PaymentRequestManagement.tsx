@@ -7,23 +7,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, DollarSign, Calendar, User, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, DollarSign, Clock, Check, X } from 'lucide-react';
 
 interface PaymentRequest {
   id: string;
   client_id: string;
   amount: number;
-  description: string | null;
-  due_date: string | null;
+  description: string;
+  due_date: string;
   status: string;
   paid_amount: number;
   created_at: string;
   clients: {
     name: string;
+    email: string;
   };
 }
 
@@ -38,34 +38,31 @@ const PaymentRequestManagement = () => {
   const { toast } = useToast();
   const [paymentRequests, setPaymentRequests] = useState<PaymentRequest[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [requestForm, setRequestForm] = useState({
     client_id: '',
     amount: 0,
     description: '',
     due_date: ''
   });
 
-  const canManagePaymentRequests = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
-
   useEffect(() => {
-    if (canManagePaymentRequests) {
-      fetchPaymentRequests();
-      fetchClients();
-    }
-  }, [canManagePaymentRequests]);
+    fetchPaymentRequests();
+    fetchClients();
+  }, []);
 
   const fetchPaymentRequests = async () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('payment_requests')
+        .from('payment_requests' as any)
         .select(`
           *,
           clients (
-            name
+            name,
+            email
           )
         `)
         .order('created_at', { ascending: false });
@@ -105,11 +102,10 @@ const PaymentRequestManagement = () => {
     try {
       setIsLoading(true);
       const { error } = await supabase
-        .from('payment_requests')
+        .from('payment_requests' as any)
         .insert({
-          ...formData,
-          requested_by: userProfile.id,
-          due_date: formData.due_date || null
+          ...requestForm,
+          requested_by: userProfile.id
         });
 
       if (error) throw error;
@@ -119,13 +115,13 @@ const PaymentRequestManagement = () => {
         description: "Payment request created successfully"
       });
 
-      setFormData({
+      setRequestForm({
         client_id: '',
         amount: 0,
         description: '',
         due_date: ''
       });
-      setShowCreateForm(false);
+      setShowRequestForm(false);
       fetchPaymentRequests();
     } catch (error) {
       console.error('Error creating payment request:', error);
@@ -139,18 +135,23 @@ const PaymentRequestManagement = () => {
     }
   };
 
-  const updatePaymentRequestStatus = async (id: string, status: string) => {
+  const updateRequestStatus = async (requestId: string, status: string, paidAmount?: number) => {
     try {
+      const updateData: any = { status };
+      if (paidAmount !== undefined) {
+        updateData.paid_amount = paidAmount;
+      }
+
       const { error } = await supabase
-        .from('payment_requests')
-        .update({ status })
-        .eq('id', id);
+        .from('payment_requests' as any)
+        .update(updateData)
+        .eq('id', requestId);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Payment request ${status}`
+        description: "Payment request updated successfully"
       });
 
       fetchPaymentRequests();
@@ -164,86 +165,30 @@ const PaymentRequestManagement = () => {
     }
   };
 
-  const recordPaymentForRequest = async (requestId: string, amount: number) => {
-    try {
-      const request = paymentRequests.find(r => r.id === requestId);
-      if (!request) return;
-
-      // Create payment record
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          client_id: request.client_id,
-          amount: amount,
-          payment_method: 'cash',
-          received_by: userProfile?.id,
-          notes: `Payment for request: ${request.description || 'Payment request'}`
-        });
-
-      if (paymentError) throw paymentError;
-
-      // Update payment request
-      const newPaidAmount = request.paid_amount + amount;
-      const newStatus = newPaidAmount >= request.amount ? 'paid' : 'partial';
-
-      const { error: updateError } = await supabase
-        .from('payment_requests')
-        .update({ 
-          paid_amount: newPaidAmount,
-          status: newStatus
-        })
-        .eq('id', requestId);
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Success",
-        description: "Payment recorded successfully"
-      });
-
-      fetchPaymentRequests();
-    } catch (error) {
-      console.error('Error recording payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to record payment",
-        variant: "destructive"
-      });
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
     }
   };
-
-  const getStatusColor = (status: string) => {
-    const colors = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      paid: 'bg-green-100 text-green-800',
-      partial: 'bg-blue-100 text-blue-800',
-      overdue: 'bg-red-100 text-red-800',
-      cancelled: 'bg-gray-100 text-gray-800',
-    };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
-  };
-
-  if (!canManagePaymentRequests) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-gray-500">Access denied. Only admins and receptionists can manage payment requests.</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Payment Requests</h2>
-        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+        <Button onClick={() => setShowRequestForm(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Request Payment
+          New Request
         </Button>
       </div>
 
-      {showCreateForm && (
+      {showRequestForm && (
         <Card>
           <CardHeader>
             <CardTitle>Create Payment Request</CardTitle>
@@ -253,7 +198,7 @@ const PaymentRequestManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="client">Client</Label>
-                  <Select value={formData.client_id} onValueChange={(value) => setFormData({...formData, client_id: value})}>
+                  <Select value={requestForm.client_id} onValueChange={(value) => setRequestForm({...requestForm, client_id: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select client" />
                     </SelectTrigger>
@@ -272,31 +217,31 @@ const PaymentRequestManagement = () => {
                     id="amount"
                     type="number"
                     step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: Number(e.target.value)})}
+                    value={requestForm.amount}
+                    onChange={(e) => setRequestForm({...requestForm, amount: Number(e.target.value)})}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="due_date">Due Date (Optional)</Label>
-                <Input
-                  id="due_date"
-                  type="date"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({...formData, due_date: e.target.value})}
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={requestForm.description}
+                  onChange={(e) => setRequestForm({...requestForm, description: e.target.value})}
+                  rows={3}
+                  placeholder="Payment description..."
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                  placeholder="Payment description or reason"
+                <Label htmlFor="due_date">Due Date</Label>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={requestForm.due_date}
+                  onChange={(e) => setRequestForm({...requestForm, due_date: e.target.value})}
                 />
               </div>
 
@@ -304,7 +249,7 @@ const PaymentRequestManagement = () => {
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? 'Creating...' : 'Create Request'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                <Button type="button" variant="outline" onClick={() => setShowRequestForm(false)}>
                   Cancel
                 </Button>
               </div>
@@ -314,100 +259,58 @@ const PaymentRequestManagement = () => {
       )}
 
       <div className="grid gap-4">
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : paymentRequests.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-gray-500">No payment requests created yet.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          paymentRequests.map(request => (
-            <Card key={request.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-green-600" />
-                        <span className="font-semibold text-lg">${request.amount}</span>
-                      </div>
-                      <Badge className={getStatusColor(request.status)}>
-                        {request.status}
-                      </Badge>
-                      {request.paid_amount > 0 && (
-                        <Badge variant="outline">
-                          Paid: ${request.paid_amount}
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4" />
-                        Client: {request.clients.name}
-                      </div>
-                      {request.due_date && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          Due: {new Date(request.due_date).toLocaleDateString()}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Created: {new Date(request.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-
-                    {request.description && (
-                      <p className="text-sm text-gray-700 mb-3">{request.description}</p>
+        {paymentRequests.map(request => (
+          <Card key={request.id}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                    <span className="font-semibold">{request.clients.name}</span>
+                    <Badge className={getStatusColor(request.status)}>
+                      {request.status}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p><strong>Amount:</strong> ${request.amount}</p>
+                    {request.paid_amount > 0 && (
+                      <p><strong>Paid:</strong> ${request.paid_amount}</p>
                     )}
-
-                    <div className="flex gap-2">
-                      {request.status === 'pending' && (
-                        <>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Record Payment
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Record Payment</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Record full payment of ${request.amount} for this request?
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => recordPaymentForRequest(request.id, request.amount)}>
-                                  Record Payment
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => updatePaymentRequestStatus(request.id, 'cancelled')}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                            Cancel
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    {request.description && (
+                      <p><strong>Description:</strong> {request.description}</p>
+                    )}
+                    {request.due_date && (
+                      <p><strong>Due Date:</strong> {new Date(request.due_date).toLocaleDateString()}</p>
+                    )}
+                    <p><strong>Created:</strong> {new Date(request.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+                <div className="flex gap-2">
+                  {request.status === 'pending' && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateRequestStatus(request.id, 'paid', request.amount)}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateRequestStatus(request.id, 'cancelled')}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );

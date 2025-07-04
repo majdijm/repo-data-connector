@@ -93,7 +93,7 @@ const FinancialManagement = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
-        .from('salaries')
+        .from('salaries' as any)
         .select(`
           *,
           users (
@@ -120,7 +120,7 @@ const FinancialManagement = () => {
   const fetchExpenses = async () => {
     try {
       const { data, error } = await supabase
-        .from('expenses')
+        .from('expenses' as any)
         .select('*')
         .order('expense_date', { ascending: false });
 
@@ -161,13 +161,13 @@ const FinancialManagement = () => {
       
       // Deactivate previous salary for this user
       await supabase
-        .from('salaries')
+        .from('salaries' as any)
         .update({ is_active: false })
         .eq('user_id', salaryForm.user_id);
 
       // Create new salary record
       const { error } = await supabase
-        .from('salaries')
+        .from('salaries' as any)
         .insert({
           ...salaryForm,
           created_by: userProfile.id
@@ -206,7 +206,7 @@ const FinancialManagement = () => {
     try {
       setIsLoading(true);
       const { error } = await supabase
-        .from('expenses')
+        .from('expenses' as any)
         .insert({
           ...expenseForm,
           recorded_by: userProfile.id
