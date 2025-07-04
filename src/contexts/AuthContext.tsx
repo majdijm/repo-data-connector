@@ -11,6 +11,7 @@ interface UserProfile {
   role: string;
   avatar?: string;
   is_active: boolean;
+  created_at: string;
 }
 
 interface AuthContextType {
@@ -21,6 +22,8 @@ interface AuthContextType {
   error: string | null;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ error: any }>;
+  signup: (email: string, password: string, name: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,6 +34,8 @@ const AuthContext = createContext<AuthContextType>({
   error: null,
   signOut: async () => {},
   refreshUserProfile: async () => {},
+  login: async () => ({ error: null }),
+  signup: async () => ({ error: null }),
 });
 
 export const useAuth = () => {
@@ -74,6 +79,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUserProfile = async () => {
     if (user?.id) {
       await fetchUserProfile(user.id);
+    }
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err };
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      return { error: err };
     }
   };
 
@@ -147,6 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     error,
     signOut,
     refreshUserProfile,
+    login,
+    signup,
   };
 
   return (
