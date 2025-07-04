@@ -11,7 +11,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import FilesPage from './pages/FilesPage';
 import PaymentsPage from './pages/PaymentsPage';
-import ContractsPage from './pages/ContractsPage';
 import FinancialPage from './pages/FinancialPage';
 
 function App() {
@@ -53,11 +52,6 @@ function App() {
           <Route path="/settings" element={
             <ProtectedRoute>
               <SettingsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/contracts" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
-              <ContractsPage />
             </ProtectedRoute>
           } />
           <Route path="/financial" element={

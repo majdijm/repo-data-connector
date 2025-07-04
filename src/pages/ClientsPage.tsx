@@ -3,7 +3,7 @@ import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ClientManagement from '@/components/ClientManagement';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { Users, UserPlus, Building, Phone } from 'lucide-react';
+import { Users, UserPlus, Building, Phone, FileText } from 'lucide-react';
 
 const ClientsPage = () => {
   return (
@@ -17,11 +17,11 @@ const ClientsPage = () => {
               </div>
               <div>
                 <h1 className="text-3xl font-bold">Client Management</h1>
-                <p className="text-green-100 mt-1">Manage client information and relationships</p>
+                <p className="text-green-100 mt-1">Manage client information, relationships, and contracts</p>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
               <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
                   <UserPlus size={20} className="text-white" />
@@ -46,6 +46,15 @@ const ClientsPage = () => {
                   <div>
                     <p className="text-sm text-green-100">Contact Management</p>
                     <p className="font-semibold">Stay Connected</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm">
+                <div className="flex items-center space-x-3">
+                  <FileText size={20} className="text-white" />
+                  <div>
+                    <p className="text-sm text-green-100">Contract Management</p>
+                    <p className="font-semibold">Upload & View</p>
                   </div>
                 </div>
               </div>

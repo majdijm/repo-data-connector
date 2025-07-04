@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,7 +21,6 @@ import {
   Files,
   Bell,
   Package,
-  FileText,
   Calculator
 } from 'lucide-react';
 
@@ -84,12 +84,6 @@ const Sidebar = () => {
   ];
 
   const adminMenuItems = [
-    { 
-      name: 'Contracts', 
-      href: '/contracts', 
-      icon: FileText,
-      show: canManagePayments() // Admin and receptionist only
-    },
     { 
       name: 'Financial', 
       href: '/financial', 
@@ -161,7 +155,7 @@ const Sidebar = () => {
                 </Link>
               </li>
             )
-          ))}
+          )}
         </ul>
         <Button variant="ghost" className="w-full justify-start mt-4" onClick={() => signOut()}>
           <LogOut className="w-4 h-4 mr-2" />
