@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -155,14 +156,18 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newAssignedTo 
       });
 
-      // Update job status and assignment
+      // Update job status and assignment with more detailed error handling
+      const updateData = {
+        status: newStatus,
+        assigned_to: newAssignedTo,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('🔄 Executing database update with data:', updateData);
+      
       const { data: updatedJob, error: jobError } = await supabase
         .from('jobs')
-        .update({
-          status: newStatus,
-          assigned_to: newAssignedTo,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', job.id)
         .select()
         .single();
@@ -171,10 +176,38 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
       if (jobError) {
         console.error('❌ Error updating job:', jobError);
+        console.error('❌ Full error details:', JSON.stringify(jobError, null, 2));
         throw jobError;
       }
 
+      if (!updatedJob) {
+        console.error('❌ No job returned from update query');
+        throw new Error('No job returned from update query');
+      }
+
       console.log('✅ Job updated successfully:', updatedJob);
+      console.log('✅ Verification - Updated job status:', updatedJob.status, 'assigned_to:', updatedJob.assigned_to);
+
+      // Verify the update worked by fetching the job again
+      console.log('🔍 Verifying update by fetching job again...');
+      const { data: verificationJob, error: verifyError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', job.id)
+        .single();
+        
+      console.log('📊 Verification query result:', { verificationJob, verifyError });
+      
+      if (verifyError) {
+        console.error('❌ Error verifying job update:', verifyError);
+      } else {
+        console.log('✅ Verification successful:', {
+          id: verificationJob.id,
+          status: verificationJob.status,
+          assigned_to: verificationJob.assigned_to,
+          updated_at: verificationJob.updated_at
+        });
+      }
 
       // Add workflow comment if provided
       if (workflowComment.trim()) {
@@ -280,6 +313,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         description: `Job updated successfully - ${nextStep === 'handover' ? 'Ready for client' : `Assigned for ${nextStep}`}`
       });
 
+      // Call onJobUpdated to refresh the job list
+      console.log('🔄 Calling onJobUpdated to refresh job list...');
       onJobUpdated();
       
       // Reset form
@@ -290,9 +325,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       
     } catch (error) {
       console.error('💥 Error updating job workflow:', error);
+      console.error('💥 Full error object:', JSON.stringify(error, null, 2));
       toast({
         title: "Error",
-        description: "Failed to update job workflow. Please try again.",
+        description: `Failed to update job workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
