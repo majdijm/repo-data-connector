@@ -503,11 +503,11 @@ const JobManagement = () => {
                   {/* Job Files Display */}
                   <JobFilesDisplay jobId={job.id} />
 
-                  {/* Job Workflow Actions - Show for photographers with detailed logging */}
+                  {/* Job Workflow Actions - Show for photographers with expanded conditions */}
                   {(() => {
                     const showWorkflowActions = userProfile?.role === 'photographer' && 
                                              job.assigned_to === userProfile.id && 
-                                             job.status === 'in_progress';
+                                             ['pending', 'in_progress', 'review'].includes(job.status);
                     
                     console.log('Workflow Actions Check:', {
                       jobId: job.id,
@@ -516,6 +516,7 @@ const JobManagement = () => {
                       userId: userProfile?.id,
                       jobAssignedTo: job.assigned_to,
                       jobStatus: job.status,
+                      allowedStatuses: ['pending', 'in_progress', 'review'],
                       showWorkflowActions
                     });
 

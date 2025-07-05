@@ -36,16 +36,18 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if user can update workflow - must be the assigned photographer
+  // Allow for pending, in_progress, and review statuses
   const canUpdateWorkflow = userProfile?.role === 'photographer' && 
                            job.assigned_to === userProfile.id && 
-                           job.status === 'in_progress';
+                           ['pending', 'in_progress', 'review'].includes(job.status);
 
   console.log('JobWorkflowActions Debug:', {
     userRole: userProfile?.role,
     userId: userProfile?.id,
     jobAssignedTo: job.assigned_to,
     jobStatus: job.status,
-    canUpdateWorkflow
+    canUpdateWorkflow,
+    allowedStatuses: ['pending', 'in_progress', 'review']
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
