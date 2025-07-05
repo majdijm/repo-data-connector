@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
     setIsLoading(true);
     try {
-      console.log('Starting workflow update for job:', job.id, 'Next step:', nextStep);
+      console.log('🔄 Starting workflow update for job:', job.id, 'Next step:', nextStep);
+      console.log('📋 Current job status:', job.status, 'Current assigned to:', job.assigned_to);
       
       let newStatus = 'review';
       let newAssignedTo = job.assigned_to;
@@ -80,82 +80,105 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       // Determine new status and assignment based on next step
       if (nextStep === 'handover') {
         newStatus = 'completed';
-        console.log('Setting job to completed for client handover');
+        console.log('✅ Setting job to completed for client handover');
       } else if (nextStep === 'editing') {
         newStatus = 'in_progress';
         // Find an editor to assign to
-        console.log('Looking for available editors...');
+        console.log('🔍 Looking for available editors...');
+        
         const { data: editors, error: editorsError } = await supabase
           .from('users')
-          .select('id, name')
+          .select('id, name, role, is_active')
           .eq('role', 'editor')
-          .eq('is_active', true)
-          .limit(1);
+          .eq('is_active', true);
+        
+        console.log('📊 Editor query result:', { editors, editorsError });
         
         if (editorsError) {
-          console.error('Error fetching editors:', editorsError);
+          console.error('❌ Error fetching editors:', editorsError);
           throw editorsError;
         }
 
-        console.log('Found editors:', editors);
+        console.log('👥 Found editors:', editors?.length || 0, editors);
+        
         if (editors && editors.length > 0) {
           newAssignedTo = editors[0].id;
-          console.log('Assigning to editor:', editors[0].name);
+          console.log('✅ Assigning to editor:', editors[0].name, 'ID:', editors[0].id);
         } else {
+          console.log('⚠️ No available editors found');
           toast({
             title: "Warning",
             description: "No available editors found. Job will remain unassigned.",
             variant: "destructive"
           });
+          // Still proceed with status change but keep current assignment
         }
       } else if (nextStep === 'design') {
         newStatus = 'in_progress';
         // Find a designer to assign to
-        console.log('Looking for available designers...');
+        console.log('🔍 Looking for available designers...');
+        
         const { data: designers, error: designersError } = await supabase
           .from('users')
-          .select('id, name')
+          .select('id, name, role, is_active')
           .eq('role', 'designer')
-          .eq('is_active', true)
-          .limit(1);
+          .eq('is_active', true);
+        
+        console.log('📊 Designer query result:', { designers, designersError });
         
         if (designersError) {
-          console.error('Error fetching designers:', designersError);
+          console.error('❌ Error fetching designers:', designersError);
           throw designersError;
         }
 
-        console.log('Found designers:', designers);
+        console.log('👥 Found designers:', designers?.length || 0, designers);
+        
         if (designers && designers.length > 0) {
           newAssignedTo = designers[0].id;
-          console.log('Assigning to designer:', designers[0].name);
+          console.log('✅ Assigning to designer:', designers[0].name, 'ID:', designers[0].id);
         } else {
+          console.log('⚠️ No available designers found');
           toast({
             title: "Warning", 
             description: "No available designers found. Job will remain unassigned.",
             variant: "destructive"
           });
+          // Still proceed with status change but keep current assignment
         }
       }
 
+      console.log('📝 About to update job with:', { 
+        jobId: job.id,
+        oldStatus: job.status, 
+        newStatus, 
+        oldAssignedTo: job.assigned_to, 
+        newAssignedTo 
+      });
+
       // Update job status and assignment
-      console.log('Updating job with:', { status: newStatus, assigned_to: newAssignedTo });
-      const { error: jobError } = await supabase
+      const { data: updatedJob, error: jobError } = await supabase
         .from('jobs')
         .update({
           status: newStatus,
           assigned_to: newAssignedTo,
           updated_at: new Date().toISOString()
         })
-        .eq('id', job.id);
+        .eq('id', job.id)
+        .select()
+        .single();
+
+      console.log('📊 Job update result:', { updatedJob, jobError });
 
       if (jobError) {
-        console.error('Error updating job:', jobError);
+        console.error('❌ Error updating job:', jobError);
         throw jobError;
       }
 
+      console.log('✅ Job updated successfully:', updatedJob);
+
       // Add workflow comment if provided
       if (workflowComment.trim()) {
-        console.log('Adding workflow comment...');
+        console.log('💬 Adding workflow comment...');
         const { error: commentError } = await supabase
           .from('job_comments')
           .insert({
@@ -165,14 +188,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           });
 
         if (commentError) {
-          console.error('Error adding comment:', commentError);
+          console.error('❌ Error adding comment:', commentError);
           throw commentError;
         }
+        console.log('✅ Comment added successfully');
       }
 
       // Upload file if provided
       if (selectedFile) {
-        console.log('Uploading file:', selectedFile.name);
+        console.log('📁 Uploading file:', selectedFile.name);
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `job-files/${fileName}`;
@@ -182,7 +206,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           .upload(filePath, selectedFile);
 
         if (uploadError) {
-          console.error('Error uploading file:', uploadError);
+          console.error('❌ Error uploading file:', uploadError);
           throw uploadError;
         }
 
@@ -200,14 +224,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           });
 
         if (fileError) {
-          console.error('Error saving file record:', fileError);
+          console.error('❌ Error saving file record:', fileError);
           throw fileError;
         }
+        console.log('✅ File uploaded and recorded successfully');
       }
 
       // Add cloud link if provided
       if (fileLink.trim()) {
-        console.log('Adding cloud link...');
+        console.log('🔗 Adding cloud link...');
         const { error: linkError } = await supabase
           .from('job_files')
           .insert({
@@ -223,15 +248,16 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           });
 
         if (linkError) {
-          console.error('Error adding cloud link:', linkError);
+          console.error('❌ Error adding cloud link:', linkError);
           throw linkError;
         }
+        console.log('✅ Cloud link added successfully');
       }
 
       // Create notifications for assignment change
       if (newAssignedTo !== job.assigned_to && newAssignedTo) {
-        console.log('Creating notification for new assignee...');
-        await supabase
+        console.log('📬 Creating notification for new assignee:', newAssignedTo);
+        const { error: notificationError } = await supabase
           .from('notifications')
           .insert({
             user_id: newAssignedTo,
@@ -239,7 +265,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             message: `You have been assigned to "${job.title}" for ${nextStep} work`,
             related_job_id: job.id
           });
+
+        if (notificationError) {
+          console.error('❌ Error creating notification:', notificationError);
+        } else {
+          console.log('✅ Notification created successfully');
+        }
       }
+
+      console.log('🎉 Workflow update completed successfully');
 
       toast({
         title: "Success",
@@ -255,7 +289,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       setFileLink('');
       
     } catch (error) {
-      console.error('Error updating job workflow:', error);
+      console.error('💥 Error updating job workflow:', error);
       toast({
         title: "Error",
         description: "Failed to update job workflow. Please try again.",
@@ -268,11 +302,11 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
   // Show debug info and don't render if user can't update workflow
   if (!canUpdateWorkflow) {
-    console.log('JobWorkflowActions: Not rendering - user cannot update workflow');
+    console.log('🚫 JobWorkflowActions: Not rendering - user cannot update workflow');
     return null;
   }
 
-  console.log('JobWorkflowActions: Rendering workflow actions for photographer');
+  console.log('✅ JobWorkflowActions: Rendering workflow actions for photographer');
 
   return (
     <Card className="mt-4 border-2 border-blue-200">
