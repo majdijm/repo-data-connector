@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,75 +113,94 @@ const JobManagement = () => {
       fetchingRef.current = true;
       setIsLoading(true);
       console.log('Starting to fetch jobs...');
+      console.log('User profile:', userProfile);
+      console.log('User role access:', { canViewJobs: canViewJobs(), isTeamMember: isTeamMember() });
       
-      // First, get the basic jobs data
-      let jobsQuery = supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Build the jobs query based on role
+      let jobsQuery = supabase.from('jobs').select('*');
 
-      // Apply role-based filtering
+      // Apply role-based filtering for team members
       if (isTeamMember() && userProfile?.id) {
+        console.log('Filtering jobs for team member:', userProfile.id);
         jobsQuery = jobsQuery.eq('assigned_to', userProfile.id);
       }
 
+      jobsQuery = jobsQuery.order('created_at', { ascending: false });
+
+      console.log('Executing jobs query...');
       const { data: jobsData, error: jobsError } = await jobsQuery;
 
       if (jobsError) {
         console.error('Jobs query error:', jobsError);
+        toast({
+          title: "Error",
+          description: `Failed to fetch jobs: ${jobsError.message}`,
+          variant: "destructive"
+        });
         throw jobsError;
       }
       
       console.log('Raw jobs data:', jobsData);
 
       if (!jobsData || jobsData.length === 0) {
-        console.log('No jobs found');
+        console.log('No jobs found for user');
         setJobs([]);
         return;
       }
 
       // Get clients data separately
+      console.log('Fetching clients...');
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name, email');
 
       if (clientsError) {
         console.error('Clients query error:', clientsError);
+        console.warn('Continuing without client data');
       }
 
       // Get users data separately  
+      console.log('Fetching users...');
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('id, name');
 
       if (usersError) {
         console.error('Users query error:', usersError);
+        console.warn('Continuing without user data');
       }
 
       // Transform and combine the data
+      console.log('Transforming job data...');
       const transformedJobs = jobsData.map(job => {
         const client = clientsData?.find(c => c.id === job.client_id);
         const assignedUser = usersData?.find(u => u.id === job.assigned_to);
         
         return {
           ...job,
-          next_step: null,
-          photographer_notes: null,
           clients: client ? { name: client.name, email: client.email } : undefined,
           users: assignedUser ? { name: assignedUser.name } : null
         };
       }) as Job[];
       
-      console.log('Transformed jobs:', transformedJobs);
+      console.log('Final transformed jobs:', transformedJobs);
       setJobs(transformedJobs);
+      
+      toast({
+        title: "Success",
+        description: `Loaded ${transformedJobs.length} jobs`
+      });
+      
     } catch (error) {
       console.error('Error fetching jobs:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch jobs",
+        description: `Failed to fetch jobs: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
+      setJobs([]); // Set empty array on error
     } finally {
+      console.log('Fetch jobs completed, setting loading to false');
       setIsLoading(false);
       fetchingRef.current = false;
     }
