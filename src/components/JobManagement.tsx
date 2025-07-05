@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -78,7 +77,7 @@ interface User {
 
 const JobManagement = () => {
   const { userProfile } = useAuth();
-  const { canManageJobs, canViewJobs, isTeamMember } = useRoleAccess();
+  const roleAccess = useRoleAccess();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -91,16 +90,24 @@ const JobManagement = () => {
   
   // Use ref to prevent multiple simultaneous fetch calls
   const fetchingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
+
+  // Memoize role access to prevent unnecessary re-renders
+  const canViewJobsValue = useMemo(() => roleAccess.canViewJobs(), [roleAccess]);
+  const canManageJobsValue = useMemo(() => roleAccess.canManageJobs(), [roleAccess]);
+  const isTeamMemberValue = useMemo(() => roleAccess.isTeamMember(), [roleAccess]);
 
   useEffect(() => {
-    if (canViewJobs()) {
+    // Only run once when component mounts and user has permission
+    if (!hasInitializedRef.current && canViewJobsValue && userProfile) {
+      hasInitializedRef.current = true;
       fetchJobs();
-      if (canManageJobs()) {
+      if (canManageJobsValue) {
         fetchClients();
         fetchUsers();
       }
     }
-  }, [canViewJobs, canManageJobs]);
+  }, [canViewJobsValue, canManageJobsValue, userProfile?.id]);
 
   const fetchJobs = async () => {
     // Prevent multiple simultaneous calls
@@ -114,13 +121,13 @@ const JobManagement = () => {
       setIsLoading(true);
       console.log('Starting to fetch jobs...');
       console.log('User profile:', userProfile);
-      console.log('User role access:', { canViewJobs: canViewJobs(), isTeamMember: isTeamMember() });
+      console.log('User role access:', { canViewJobs: canViewJobsValue, isTeamMember: isTeamMemberValue });
       
       // Build the jobs query based on role
       let jobsQuery = supabase.from('jobs').select('*');
 
       // Apply role-based filtering for team members
-      if (isTeamMember() && userProfile?.id) {
+      if (isTeamMemberValue && userProfile?.id) {
         console.log('Filtering jobs for team member:', userProfile.id);
         jobsQuery = jobsQuery.eq('assigned_to', userProfile.id);
       }
@@ -327,7 +334,7 @@ const JobManagement = () => {
     setExpandedJobs(newExpanded);
   };
 
-  if (!canViewJobs()) {
+  if (!canViewJobsValue) {
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -349,9 +356,9 @@ const JobManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">
-          {isTeamMember() ? 'My Jobs' : 'Job Management'}
+          {isTeamMemberValue ? 'My Jobs' : 'Job Management'}
         </h2>
-        {canManageJobs() && (
+        {canManageJobsValue && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -374,7 +381,7 @@ const JobManagement = () => {
           <CardContent className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">
-              {isTeamMember() ? 'No jobs assigned to you yet.' : 'No jobs created yet.'}
+              {isTeamMemberValue ? 'No jobs assigned to you yet.' : 'No jobs created yet.'}
             </p>
           </CardContent>
         </Card>
@@ -442,7 +449,7 @@ const JobManagement = () => {
                     </div>
                   )}
 
-                  {canManageJobs() && (
+                  {canManageJobsValue && (
                     <div className="flex items-center space-x-2 mb-4">
                       <Label htmlFor={`status-${job.id}`} className="text-sm font-medium">
                         Status:
@@ -465,7 +472,7 @@ const JobManagement = () => {
                     </div>
                   )}
 
-                  {canManageJobs() && (
+                  {canManageJobsValue && (
                     <div className="flex space-x-2 mb-4">
                       <Button
                         variant="outline"
@@ -491,7 +498,7 @@ const JobManagement = () => {
                   )}
 
                   {/* File Upload Section - Show for team members */}
-                  {isTeamMember() && (
+                  {isTeamMemberValue && (
                     <div className="mb-4">
                       <FileUpload jobId={job.id} onFileUploaded={fetchJobs} />
                     </div>
