@@ -503,11 +503,29 @@ const JobManagement = () => {
                   {/* Job Files Display */}
                   <JobFilesDisplay jobId={job.id} />
 
-                  {/* Job Workflow Actions - Show for photographers */}
-                  <JobWorkflowActions 
-                    job={job} 
-                    onJobUpdated={handleJobUpdated}
-                  />
+                  {/* Job Workflow Actions - Show for photographers with detailed logging */}
+                  {(() => {
+                    const showWorkflowActions = userProfile?.role === 'photographer' && 
+                                             job.assigned_to === userProfile.id && 
+                                             job.status === 'in_progress';
+                    
+                    console.log('Workflow Actions Check:', {
+                      jobId: job.id,
+                      jobTitle: job.title,
+                      userRole: userProfile?.role,
+                      userId: userProfile?.id,
+                      jobAssignedTo: job.assigned_to,
+                      jobStatus: job.status,
+                      showWorkflowActions
+                    });
+
+                    return showWorkflowActions ? (
+                      <JobWorkflowActions 
+                        job={job} 
+                        onJobUpdated={handleJobUpdated}
+                      />
+                    ) : null;
+                  })()}
 
                   {/* Job Comments Section */}
                   <JobComments 

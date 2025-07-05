@@ -35,8 +35,18 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const isPhotographer = userProfile?.role === 'photographer' && job.assigned_to === userProfile.id;
-  const canUpdateWorkflow = isPhotographer && job.status === 'in_progress';
+  // Check if user can update workflow - must be the assigned photographer
+  const canUpdateWorkflow = userProfile?.role === 'photographer' && 
+                           job.assigned_to === userProfile.id && 
+                           job.status === 'in_progress';
+
+  console.log('JobWorkflowActions Debug:', {
+    userRole: userProfile?.role,
+    userId: userProfile?.id,
+    jobAssignedTo: job.assigned_to,
+    jobStatus: job.status,
+    canUpdateWorkflow
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -254,19 +264,26 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
     }
   };
 
+  // Show debug info and don't render if user can't update workflow
   if (!canUpdateWorkflow) {
+    console.log('JobWorkflowActions: Not rendering - user cannot update workflow');
     return null;
   }
 
+  console.log('JobWorkflowActions: Rendering workflow actions for photographer');
+
   return (
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="mt-4 border-2 border-blue-200">
+      <CardHeader className="bg-blue-50">
+        <CardTitle className="flex items-center gap-2 text-blue-800">
           <ArrowRight className="h-5 w-5" />
           Complete Photography Work
         </CardTitle>
+        <p className="text-sm text-blue-600">
+          Choose what happens next with this job after your photography work is complete.
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         <JobWorkflowSelector 
           nextStep={nextStep}
           onNextStepChange={setNextStep}
@@ -294,7 +311,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         <Button 
           onClick={handleWorkflowUpdate} 
           disabled={!nextStep || isLoading}
-          className="w-full"
+          className="w-full bg-blue-600 hover:bg-blue-700"
         >
           {isLoading ? (
             'Processing...'
