@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +87,9 @@ const JobManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  
+  // Use ref to prevent multiple simultaneous fetch calls
+  const fetchingRef = useRef(false);
 
   useEffect(() => {
     if (canViewJobs()) {
@@ -99,7 +102,14 @@ const JobManagement = () => {
   }, [canViewJobs, canManageJobs]);
 
   const fetchJobs = async () => {
+    // Prevent multiple simultaneous calls
+    if (fetchingRef.current) {
+      console.log('Fetch already in progress, skipping...');
+      return;
+    }
+
     try {
+      fetchingRef.current = true;
       setIsLoading(true);
       console.log('Starting to fetch jobs...');
       
@@ -126,7 +136,6 @@ const JobManagement = () => {
       if (!jobsData || jobsData.length === 0) {
         console.log('No jobs found');
         setJobs([]);
-        setIsLoading(false);
         return;
       }
 
@@ -173,6 +182,7 @@ const JobManagement = () => {
       });
     } finally {
       setIsLoading(false);
+      fetchingRef.current = false;
     }
   };
 
