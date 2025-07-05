@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -19,6 +18,8 @@ interface JobFile {
   file_size: number;
   file_type: string;
   is_final: boolean;
+  is_cloud_link: boolean;
+  cloud_link: string | null;
   created_at: string;
   uploaded_by: string;
   jobs?: {
@@ -82,6 +83,17 @@ const FilesPage = () => {
 
   const downloadFile = async (file: JobFile) => {
     try {
+      // Handle cloud links differently
+      if (file.is_cloud_link && file.cloud_link) {
+        window.open(file.cloud_link, '_blank');
+        toast({
+          title: "Success",
+          description: "Cloud link opened in new tab"
+        });
+        return;
+      }
+
+      // Handle regular file downloads
       const { data, error } = await supabase.storage
         .from('job-files')
         .download(file.file_path);
@@ -115,12 +127,15 @@ const FilesPage = () => {
     if (!window.confirm('Are you sure you want to delete this file?')) return;
 
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('job-files')
-        .remove([file.file_path]);
+      // For cloud links, only delete the database record
+      if (!file.is_cloud_link) {
+        // Delete from storage only if it's not a cloud link
+        const { error: storageError } = await supabase.storage
+          .from('job-files')
+          .remove([file.file_path]);
 
-      if (storageError) throw storageError;
+        if (storageError) throw storageError;
+      }
 
       // Delete from database
       const { error: dbError } = await supabase
@@ -220,19 +235,30 @@ const FilesPage = () => {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        {getFileIcon(file.file_name)}
+                        {file.is_cloud_link ? (
+                          <div className="flex items-center justify-center w-5 h-5 bg-blue-100 rounded">
+                            <span className="text-xs text-blue-600">🔗</span>
+                          </div>
+                        ) : (
+                          getFileIcon(file.file_name)
+                        )}
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold">{file.file_name}</h3>
                             <Badge variant={file.is_final ? "default" : "secondary"}>
                               {file.file_type}
                             </Badge>
+                            {file.is_cloud_link && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                Cloud Link
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-gray-600 text-sm mb-1">
                             Job: {file.jobs?.title || 'Unknown'}
                           </p>
                           <p className="text-gray-500 text-sm">
-                            Size: {formatFileSize(file.file_size)} • 
+                            {!file.is_cloud_link && `Size: ${formatFileSize(file.file_size)} • `}
                             Uploaded: {new Date(file.created_at).toLocaleDateString()}
                           </p>
                         </div>
