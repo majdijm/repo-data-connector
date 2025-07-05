@@ -2,15 +2,14 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowRight, Upload, Link as LinkIcon, MessageSquare, Check, X } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
+import JobWorkflowSelector from './JobWorkflowSelector';
+import JobFileUploadSection from './JobFileUploadSection';
 
 interface Job {
   id: string;
@@ -259,35 +258,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
     return null;
   }
 
-  const getNextStepDetails = (step: string) => {
-    const stepInfo = {
-      handover: { 
-        label: 'Ready for Client Handover', 
-        color: 'bg-green-100 text-green-800',
-        description: 'Job will be marked as completed and ready for client delivery'
-      },
-      editing: { 
-        label: 'Needs Video Editing', 
-        color: 'bg-blue-100 text-blue-800',
-        description: 'Will be assigned to an available editor'
-      },
-      design: { 
-        label: 'Needs Design Work', 
-        color: 'bg-purple-100 text-purple-800',
-        description: 'Will be assigned to an available designer'
-      }
-    };
-    return stepInfo[step as keyof typeof stepInfo];
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   return (
     <Card className="mt-4">
       <CardHeader>
@@ -297,29 +267,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="nextStep">What's the next step for this job?</Label>
-          <Select value={nextStep} onValueChange={setNextStep}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select next step..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="handover">Ready for Client Handover</SelectItem>
-              <SelectItem value="editing">Needs Video Editing</SelectItem>
-              <SelectItem value="design">Needs Design Work</SelectItem>
-            </SelectContent>
-          </Select>
-          {nextStep && (
-            <div className="mt-2">
-              <Badge className={getNextStepDetails(nextStep)?.color}>
-                {getNextStepDetails(nextStep)?.label}
-              </Badge>
-              <p className="text-sm text-gray-600 mt-1">
-                {getNextStepDetails(nextStep)?.description}
-              </p>
-            </div>
-          )}
-        </div>
+        <JobWorkflowSelector 
+          nextStep={nextStep}
+          onNextStepChange={setNextStep}
+        />
 
         <div>
           <Label htmlFor="workflowComment">Workflow Comments (Optional)</Label>
@@ -332,40 +283,13 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           />
         </div>
 
-        <div className="space-y-3">
-          <Label>Attach Files or Links (Optional)</Label>
-          
-          <div>
-            <Label htmlFor="file" className="text-sm">Upload File</Label>
-            <Input
-              id="file"
-              type="file"
-              onChange={handleFileChange}
-              accept="image/*,video/*,.pdf,.doc,.docx,.zip,.rar"
-            />
-            {selectedFile && (
-              <div className="mt-2 flex items-center justify-between p-2 bg-gray-50 rounded">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
-                </div>
-                <Button type="button" variant="ghost" size="sm" onClick={removeFile}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="fileLink" className="text-sm">Cloud Drive Link</Label>
-            <Input
-              id="fileLink"
-              value={fileLink}
-              onChange={(e) => setFileLink(e.target.value)}
-              placeholder="https://drive.google.com/... or https://dropbox.com/..."
-            />
-          </div>
-        </div>
+        <JobFileUploadSection
+          selectedFile={selectedFile}
+          fileLink={fileLink}
+          onFileChange={handleFileChange}
+          onFileLinkChange={setFileLink}
+          onRemoveFile={removeFile}
+        />
 
         <Button 
           onClick={handleWorkflowUpdate} 

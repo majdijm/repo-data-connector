@@ -4,8 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,13 +14,10 @@ import {
   Calendar, 
   User, 
   DollarSign, 
-  Clock, 
-  CheckCircle, 
   AlertCircle,
   Camera,
   Palette,
   Video,
-  Eye,
   Edit,
   Trash2,
   ChevronDown,
@@ -32,6 +27,7 @@ import JobForm from './JobForm';
 import JobComments from './JobComments';
 import JobWorkflowActions from './JobWorkflowActions';
 import FileUpload from './FileUpload';
+import JobFilesDisplay from './JobFilesDisplay';
 
 interface Job {
   id: string;
@@ -503,6 +499,9 @@ const JobManagement = () => {
                       <FileUpload jobId={job.id} onFileUploaded={fetchJobs} />
                     </div>
                   )}
+
+                  {/* Job Files Display */}
+                  <JobFilesDisplay jobId={job.id} />
 
                   {/* Job Workflow Actions - Show for photographers */}
                   <JobWorkflowActions 
