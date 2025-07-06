@@ -1,4 +1,5 @@
 
+
 export type Language = 'en' | 'ar';
 
 export interface TranslationKeys {
@@ -33,6 +34,9 @@ export interface TranslationKeys {
   role: string;
   language: string;
   profile: string;
+  profileInformation: string;
+  languageSettings: string;
+  selectLanguage: string;
   
   // Job Statuses
   pending: string;
@@ -104,6 +108,9 @@ const translations: Record<Language, TranslationKeys> = {
     role: 'Role',
     language: 'Language',
     profile: 'Profile',
+    profileInformation: 'Profile Information',
+    languageSettings: 'Language Settings',
+    selectLanguage: 'Select Language',
     
     // Job Statuses
     pending: 'Pending',
@@ -171,6 +178,9 @@ const translations: Record<Language, TranslationKeys> = {
     role: 'الدور',
     language: 'اللغة',
     profile: 'الملف الشخصي',
+    profileInformation: 'معلومات الملف الشخصي',
+    languageSettings: 'إعدادات اللغة',
+    selectLanguage: 'اختر اللغة',
     
     // Job Statuses
     pending: 'معلق',
@@ -215,3 +225,4 @@ export const getTranslation = (key: TranslationKey, language: Language = 'en'): 
 export const isRTL = (language: Language): boolean => {
   return language === 'ar';
 };
+
