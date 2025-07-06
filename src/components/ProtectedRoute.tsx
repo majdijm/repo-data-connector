@@ -5,6 +5,7 @@ import { useRoleAccess, UserRole } from '@/hooks/useRoleAccess';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -53,12 +54,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!user) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Alert className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please log in to access this page.
-          </AlertDescription>
-        </Alert>
+        <div className="max-w-md space-y-4">
+          <Alert className="max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please log in to access this page.
+            </AlertDescription>
+          </Alert>
+          <Link to="/login">
+            <Button className="w-full">
+              Go to Login Page
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }

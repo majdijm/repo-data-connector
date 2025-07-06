@@ -2,7 +2,9 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { AlertCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -44,12 +46,19 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
   if (!user) {
     return fallback || (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Alert className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Please log in to access this page.
-          </AlertDescription>
-        </Alert>
+        <div className="max-w-md space-y-4">
+          <Alert className="max-w-md">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please log in to access this page.
+            </AlertDescription>
+          </Alert>
+          <Link to="/login">
+            <Button className="w-full">
+              Go to Login Page
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
