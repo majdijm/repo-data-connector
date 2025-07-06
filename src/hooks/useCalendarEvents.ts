@@ -1,0 +1,147 @@
+
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface CalendarEvent {
+  id: string;
+  job_id: string | null;
+  user_id: string;
+  title: string;
+  description: string | null;
+  start_date: string;
+  end_date: string;
+  event_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Job {
+  id: string;
+  title: string;
+  type: string;
+  status: string;
+  due_date: string | null;
+  client_id: string | null;
+  assigned_to: string | null;
+  description: string | null;
+  price: number | null;
+  clients?: {
+    name: string;
+  };
+}
+
+export const useCalendarEvents = () => {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { userProfile } = useAuth();
+
+  const fetchEvents = async () => {
+    if (!userProfile?.id) return;
+
+    try {
+      setLoading(true);
+      
+      // Fetch calendar events
+      const { data: eventsData, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', userProfile.id)
+        .order('start_date', { ascending: true });
+
+      if (eventsError) throw eventsError;
+
+      // Fetch jobs assigned to the user
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          clients (
+            name
+          )
+        `)
+        .eq('assigned_to', userProfile.id);
+
+      if (jobsError) throw jobsError;
+
+      setEvents(eventsData || []);
+      setJobs(jobsData || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching calendar data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, [userProfile?.id]);
+
+  const createEvent = async (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .insert(eventData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEvents(prev => [...prev, data]);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create event');
+      throw err;
+    }
+  };
+
+  const updateEvent = async (id: string, updates: Partial<CalendarEvent>) => {
+    try {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEvents(prev => prev.map(event => event.id === id ? data : event));
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update event');
+      throw err;
+    }
+  };
+
+  const deleteEvent = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEvents(prev => prev.filter(event => event.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete event');
+      throw err;
+    }
+  };
+
+  return {
+    events,
+    jobs,
+    loading,
+    error,
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    refreshEvents: fetchEvents
+  };
+};

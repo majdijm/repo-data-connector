@@ -7,7 +7,10 @@ import ClientsPage from './pages/ClientsPage';
 import UsersPage from './pages/UsersPage';
 import SettingsPage from './pages/SettingsPage';
 import LoginPage from './pages/LoginPage';
+import Calendar from './pages/Calendar';
+import TasksPage from './pages/TasksPage';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import FilesPage from './pages/FilesPage';
 import PaymentsPage from './pages/PaymentsPage';
@@ -16,52 +19,64 @@ import FinancialPage from './pages/FinancialPage';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/jobs" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
-              <JobsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/clients" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
-              <ClientsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/users" element={
-            <ProtectedRoute requiredRoles={['admin']}>
-              <UsersPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/files" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
-              <FilesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/payments" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
-              <PaymentsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/financial" element={
-            <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
-              <FinancialPage />
-            </ProtectedRoute>
-          } />
-        </Routes>
-        <Toaster />
-      </Router>
+      <LanguageProvider>
+        <Router>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs" element={
+              <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
+                <JobsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/tasks" element={
+              <ProtectedRoute>
+                <TasksPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/clients" element={
+              <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
+                <ClientsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute requiredRoles={['admin']}>
+                <UsersPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/files" element={
+              <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
+                <FilesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/calendar" element={
+              <ProtectedRoute>
+                <Calendar />
+              </ProtectedRoute>
+            } />
+            <Route path="/payments" element={
+              <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
+                <PaymentsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/financial" element={
+              <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
+                <FinancialPage />
+              </ProtectedRoute>
+            } />
+          </Routes>
+          <Toaster />
+        </Router>
+      </LanguageProvider>
     </AuthProvider>
   );
 }

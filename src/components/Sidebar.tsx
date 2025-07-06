@@ -3,6 +3,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -13,61 +14,57 @@ import {
   Calendar,
   Settings,
   LogOut,
-  Camera,
-  Palette,
-  Video,
   UserCheck,
   CreditCard,
   Files,
-  Bell,
-  Package,
   Calculator
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, userProfile, signOut } = useAuth();
   const { canManageUsers, canManageClients, canManageJobs, canViewJobs, canManagePayments, canViewFiles } = useRoleAccess();
+  const { t } = useTranslation();
   const location = useLocation();
 
   const navigationItems = [
     {
-      name: 'Dashboard',
+      name: t('dashboard'),
       href: '/',
       icon: LayoutDashboard,
       show: true
     },
     {
-      name: 'Users',
+      name: t('users'),
       href: '/users',
       icon: Users,
       show: canManageUsers()
     },
     {
-      name: 'Clients',
+      name: t('clients'),
       href: '/clients',
       icon: UserCheck,
       show: canManageClients()
     },
     {
-      name: 'Jobs',
+      name: t('jobs'),
       href: '/jobs',
       icon: Briefcase,
       show: canViewJobs()
     },
     {
-      name: 'Files',
+      name: t('files'),
       href: '/files',
       icon: Files,
       show: canViewFiles()
     },
     {
-      name: 'Calendar',
+      name: t('calendar'),
       href: '/calendar',
       icon: Calendar,
       show: true
     },
     {
-      name: 'Payments',
+      name: t('payments'),
       href: '/payments',
       icon: CreditCard,
       show: canManagePayments()
@@ -76,7 +73,7 @@ const Sidebar = () => {
 
   const settingsItems = [
     {
-      name: 'Settings',
+      name: t('settings'),
       href: '/settings',
       icon: Settings,
       show: true
@@ -85,7 +82,7 @@ const Sidebar = () => {
 
   const adminMenuItems = [
     { 
-      name: 'Financial', 
+      name: t('financial'), 
       href: '/financial', 
       icon: Calculator,
       show: canManagePayments()
@@ -95,7 +92,7 @@ const Sidebar = () => {
   return (
     <div className="w-64 flex-shrink-0 border-r bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
       <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="flex items-center space-x-2 mb-6">
+        <div className="flex items-center space-x-2 rtl:space-x-reverse mb-6">
           <Avatar className="h-9 w-9">
             <AvatarFallback>{userProfile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
@@ -113,7 +110,7 @@ const Sidebar = () => {
                   className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                 >
                   <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <span className="ml-3">{item.name}</span>
+                  <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
                 </Link>
               </li>
             )
@@ -122,7 +119,7 @@ const Sidebar = () => {
 
         {adminMenuItems.some(item => item.show) && (
           <>
-            <span className="font-medium text-gray-700 dark:text-gray-400 px-3">Management</span>
+            <span className="font-medium text-gray-700 dark:text-gray-400 px-3">{t('management')}</span>
             <ul className="space-y-2 mb-8">
               {adminMenuItems.map((item) => (
                 item.show && (
@@ -132,7 +129,7 @@ const Sidebar = () => {
                       className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                     >
                       <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <span className="ml-3">{item.name}</span>
+                      <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
                     </Link>
                   </li>
                 )
@@ -141,7 +138,7 @@ const Sidebar = () => {
           </>
         )}
 
-        <span className="font-medium text-gray-700 dark:text-gray-400 px-3">Settings</span>
+        <span className="font-medium text-gray-700 dark:text-gray-400 px-3">{t('settings')}</span>
         <ul className="space-y-2">
           {settingsItems.map((item) => (
             item.show && (
@@ -151,15 +148,15 @@ const Sidebar = () => {
                   className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                 >
                   <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <span className="ml-3">{item.name}</span>
+                  <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
                 </Link>
               </li>
             )
           ))}
         </ul>
         <Button variant="ghost" className="w-full justify-start mt-4" onClick={() => signOut()}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Sign Out
+          <LogOut className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+          {t('signOut')}
         </Button>
       </div>
     </div>

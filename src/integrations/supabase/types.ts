@@ -47,6 +47,63 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_date: string
+          event_type: string
+          id: string
+          job_id: string | null
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_date: string
+          event_type?: string
+          id?: string
+          job_id?: string | null
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_date?: string
+          event_type?: string
+          id?: string
+          job_id?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_contracts: {
         Row: {
           client_id: string
@@ -667,6 +724,7 @@ export type Database = {
           email: string
           id: string
           is_active: boolean | null
+          language: string | null
           name: string
           password: string
           role: string
@@ -678,6 +736,7 @@ export type Database = {
           email: string
           id?: string
           is_active?: boolean | null
+          language?: string | null
           name: string
           password: string
           role: string
@@ -689,6 +748,7 @@ export type Database = {
           email?: string
           id?: string
           is_active?: boolean | null
+          language?: string | null
           name?: string
           password?: string
           role?: string
