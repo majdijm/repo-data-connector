@@ -29,7 +29,7 @@ const Sidebar = () => {
   const navigationItems = [
     {
       name: t('dashboard'),
-      href: '/',
+      href: '/dashboard',
       icon: LayoutDashboard,
       show: true
     },
