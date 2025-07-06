@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,27 +44,43 @@ export const useCalendarEvents = () => {
     try {
       setLoading(true);
       
-      // Fetch calendar events
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', userProfile.id)
-        .order('start_date', { ascending: true });
+      // Fetch calendar events based on user role
+      let eventsQuery = supabase.from('calendar_events').select('*');
+      
+      // If not admin or receptionist, only show user's own events
+      if (!['admin', 'receptionist'].includes(userProfile.role)) {
+        eventsQuery = eventsQuery.eq('user_id', userProfile.id);
+      }
+      
+      const { data: eventsData, error: eventsError } = await eventsQuery.order('start_date', { ascending: true });
 
       if (eventsError) throw eventsError;
 
-      // Fetch jobs assigned to the user
-      const { data: jobsData, error: jobsError } = await supabase
+      // Fetch jobs based on user role
+      let jobsQuery = supabase
         .from('jobs')
         .select(`
           *,
           clients (
             name
           )
-        `)
-        .eq('assigned_to', userProfile.id);
+        `);
+
+      // Apply role-based filtering
+      if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
+        // Admin and receptionist can see all jobs
+        jobsQuery = jobsQuery.order('created_at', { ascending: false });
+      } else {
+        // Other roles only see jobs assigned to them
+        jobsQuery = jobsQuery.eq('assigned_to', userProfile.id).order('created_at', { ascending: false });
+      }
+
+      const { data: jobsData, error: jobsError } = await jobsQuery;
 
       if (jobsError) throw jobsError;
+
+      console.log('Fetched jobs:', jobsData);
+      console.log('Fetched events:', eventsData);
 
       setEvents(eventsData || []);
       setJobs(jobsData || []);
@@ -79,7 +94,7 @@ export const useCalendarEvents = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, [userProfile?.id]);
+  }, [userProfile?.id, userProfile?.role]);
 
   const createEvent = async (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
     try {

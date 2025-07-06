@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +16,8 @@ import {
   UserCheck,
   CreditCard,
   Files,
-  Calculator
+  Calculator,
+  CheckSquare
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -50,6 +50,12 @@ const Sidebar = () => {
       href: '/jobs',
       icon: Briefcase,
       show: canViewJobs()
+    },
+    {
+      name: t('tasks'),
+      href: '/tasks',
+      icon: CheckSquare,
+      show: true
     },
     {
       name: t('files'),

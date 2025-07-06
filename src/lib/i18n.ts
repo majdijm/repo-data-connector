@@ -1,176 +1,215 @@
 
-export const translations = {
+export type Language = 'en' | 'ar';
+
+export interface TranslationKeys {
+  // Navigation & Layout
+  dashboard: string;
+  users: string;
+  clients: string;
+  jobs: string;
+  tasks: string;
+  files: string;
+  calendar: string;
+  payments: string;
+  settings: string;
+  signOut: string;
+  management: string;
+  financial: string;
+  
+  // Common Actions
+  loading: string;
+  search: string;
+  viewDetails: string;
+  save: string;
+  cancel: string;
+  delete: string;
+  edit: string;
+  create: string;
+  update: string;
+  
+  // User & Profile
+  name: string;
+  email: string;
+  role: string;
+  language: string;
+  profile: string;
+  
+  // Job Statuses
+  pending: string;
+  inProgress: string;
+  review: string;
+  completed: string;
+  delivered: string;
+  cancelled: string;
+  
+  // Job Types
+  photoSession: string;
+  videoEditing: string;
+  design: string;
+  
+  // General Terms
+  client: string;
+  type: string;
+  status: string;
+  price: string;
+  dueDate: string;
+  description: string;
+  jobDetails: string;
+  
+  // Languages
+  english: string;
+  arabic: string;
+  
+  // Calendar
+  calendarView: string;
+  selectDate: string;
+  noTasksScheduled: string;
+  scheduledTasks: string;
+  datesWithTasks: string;
+  taskScheduling: string;
+}
+
+export type TranslationKey = keyof TranslationKeys;
+
+const translations: Record<Language, TranslationKeys> = {
   en: {
-    // Navigation
-    dashboard: "Dashboard",
-    users: "Users",
-    clients: "Clients",
-    jobs: "Jobs",
-    files: "Files",
-    calendar: "Calendar",
-    payments: "Payments",
-    settings: "Settings",
-    signOut: "Sign Out",
+    // Navigation & Layout
+    dashboard: 'Dashboard',
+    users: 'Users',
+    clients: 'Clients',
+    jobs: 'Jobs',
+    tasks: 'Tasks',
+    files: 'Files',
+    calendar: 'Calendar',
+    payments: 'Payments',
+    settings: 'Settings',
+    signOut: 'Sign Out',
+    management: 'Management',
+    financial: 'Financial',
     
-    // Calendar
-    calendarView: "Calendar View",
-    taskScheduling: "Task Scheduling and Calendar Management",
-    selectDate: "Select a Date",
-    noTasksScheduled: "No tasks scheduled for this date",
-    scheduledTasks: "Scheduled Tasks",
-    datesWithTasks: "Dates with scheduled tasks",
+    // Common Actions
+    loading: 'Loading...',
+    search: 'Search...',
+    viewDetails: 'View Details',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    edit: 'Edit',
+    create: 'Create',
+    update: 'Update',
     
-    // Jobs & Tasks
-    jobDetails: "Job Details",
-    client: "Client",
-    type: "Type",
-    assigned: "Assigned",
-    status: "Status",
-    dueDate: "Due Date",
-    description: "Description",
-    price: "Price",
-    viewDetails: "View Details",
+    // User & Profile
+    name: 'Name',
+    email: 'Email',
+    role: 'Role',
+    language: 'Language',
+    profile: 'Profile',
     
-    // Status
-    pending: "Pending",
-    inProgress: "In Progress",
-    review: "Review",
-    completed: "Completed",
-    delivered: "Delivered",
-    cancelled: "Cancelled",
+    // Job Statuses
+    pending: 'Pending',
+    inProgress: 'In Progress',
+    review: 'Review',
+    completed: 'Completed',
+    delivered: 'Delivered',
+    cancelled: 'Cancelled',
     
     // Job Types
-    photography: "Photography",
-    design: "Design",
-    editing: "Editing",
-    videoEditing: "Video Editing",
+    photoSession: 'Photo Session',
+    videoEditing: 'Video Editing',
+    design: 'Design',
     
-    // Common
-    loading: "Loading...",
-    error: "Error",
-    save: "Save",
-    cancel: "Cancel",
-    delete: "Delete",
-    edit: "Edit",
-    create: "Create",
-    update: "Update",
-    close: "Close",
-    back: "Back",
-    next: "Next",
-    previous: "Previous",
-    search: "Search",
-    filter: "Filter",
+    // General Terms
+    client: 'Client',
+    type: 'Type',
+    status: 'Status',
+    price: 'Price',
+    dueDate: 'Due Date',
+    description: 'Description',
+    jobDetails: 'Job Details',
     
-    // Settings
-    languageSettings: "Language Settings",
-    selectLanguage: "Select Language",
-    english: "English",
-    arabic: "Arabic",
-    profileInformation: "Profile Information",
-    name: "Name",
-    email: "Email",
-    role: "Role",
+    // Languages
+    english: 'English',
+    arabic: 'العربية',
     
-    // Authentication
-    pleaseLogin: "Please log in to access this page.",
-    goToLogin: "Go to Login Page",
-    accessDenied: "Access denied",
-    requiredRole: "Required role",
-    yourRole: "Your role",
-    
-    // Financial
-    financial: "Financial",
-    management: "Management"
+    // Calendar
+    calendarView: 'Calendar View',
+    selectDate: 'Select a Date',
+    noTasksScheduled: 'No tasks scheduled for this date',
+    scheduledTasks: 'Scheduled Tasks',
+    datesWithTasks: 'Dates with scheduled tasks',
+    taskScheduling: 'Manage and schedule your tasks',
   },
   ar: {
-    // Navigation
-    dashboard: "لوحة التحكم",
-    users: "المستخدمون",
-    clients: "العملاء",
-    jobs: "المهام",
-    files: "الملفات",
-    calendar: "التقويم",
-    payments: "المدفوعات",
-    settings: "الإعدادات",
-    signOut: "تسجيل الخروج",
+    // Navigation & Layout
+    dashboard: 'لوحة التحكم',
+    users: 'المستخدمون',
+    clients: 'العملاء',
+    jobs: 'الوظائف',
+    tasks: 'المهام',
+    files: 'الملفات',
+    calendar: 'التقويم',
+    payments: 'المدفوعات',
+    settings: 'الإعدادات',
+    signOut: 'تسجيل الخروج',
+    management: 'الإدارة',
+    financial: 'المالية',
     
-    // Calendar
-    calendarView: "عرض التقويم",
-    taskScheduling: "جدولة المهام وإدارة التقويم",
-    selectDate: "اختر تاريخ",
-    noTasksScheduled: "لا توجد مهام مجدولة لهذا التاريخ",
-    scheduledTasks: "المهام المجدولة",
-    datesWithTasks: "التواريخ التي تحتوي على مهام مجدولة",
+    // Common Actions
+    loading: 'جاري التحميل...',
+    search: 'البحث...',
+    viewDetails: 'عرض التفاصيل',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    delete: 'حذف',
+    edit: 'تحرير',
+    create: 'إنشاء',
+    update: 'تحديث',
     
-    // Jobs & Tasks
-    jobDetails: "تفاصيل المهمة",
-    client: "العميل",
-    type: "النوع",
-    assigned: "مُكلف إلى",
-    status: "الحالة",
-    dueDate: "تاريخ الاستحقاق",
-    description: "الوصف",
-    price: "السعر",
-    viewDetails: "عرض التفاصيل",
+    // User & Profile
+    name: 'الاسم',
+    email: 'البريد الإلكتروني',
+    role: 'الدور',
+    language: 'اللغة',
+    profile: 'الملف الشخصي',
     
-    // Status
-    pending: "قيد الانتظار",
-    inProgress: "قيد التنفيذ",
-    review: "قيد المراجعة",
-    completed: "مكتمل",
-    delivered: "تم التسليم",
-    cancelled: "ملغى",
+    // Job Statuses
+    pending: 'معلق',
+    inProgress: 'قيد التنفيذ',
+    review: 'مراجعة',
+    completed: 'مكتمل',
+    delivered: 'تم التسليم',
+    cancelled: 'ملغي',
     
     // Job Types
-    photography: "التصوير",
-    design: "التصميم",
-    editing: "التحرير",
-    videoEditing: "تحرير الفيديو",
+    photoSession: 'جلسة تصوير',
+    videoEditing: 'مونتاج فيديو',
+    design: 'تصميم',
     
-    // Common
-    loading: "جاري التحميل...",
-    error: "خطأ",
-    save: "حفظ",
-    cancel: "إلغاء",
-    delete: "حذف",
-    edit: "تعديل",
-    create: "إنشاء",
-    update: "تحديث",
-    close: "إغلاق",
-    back: "رجوع",
-    next: "التالي",
-    previous: "السابق",
-    search: "بحث",
-    filter: "تصفية",
+    // General Terms
+    client: 'العميل',
+    type: 'النوع',
+    status: 'الحالة',
+    price: 'السعر',
+    dueDate: 'تاريخ الاستحقاق',
+    description: 'الوصف',
+    jobDetails: 'تفاصيل الوظيفة',
     
-    // Settings
-    languageSettings: "إعدادات اللغة",
-    selectLanguage: "اختر اللغة",
-    english: "الإنجليزية",
-    arabic: "العربية",
-    profileInformation: "معلومات الملف الشخصي",
-    name: "الاسم",
-    email: "البريد الإلكتروني",
-    role: "الدور",
+    // Languages
+    english: 'English',
+    arabic: 'العربية',
     
-    // Authentication
-    pleaseLogin: "يرجى تسجيل الدخول للوصول إلى هذه الصفحة.",
-    goToLogin: "الذهاب إلى صفحة تسجيل الدخول",
-    accessDenied: "تم رفض الوصول",
-    requiredRole: "الدور المطلوب",
-    yourRole: "دورك",
-    
-    // Financial
-    financial: "المالية",
-    management: "الإدارة"
+    // Calendar
+    calendarView: 'عرض التقويم',
+    selectDate: 'اختر تاريخاً',
+    noTasksScheduled: 'لا توجد مهام مجدولة لهذا التاريخ',
+    scheduledTasks: 'المهام المجدولة',
+    datesWithTasks: 'التواريخ التي تحتوي على مهام مجدولة',
+    taskScheduling: 'إدارة وجدولة مهامك',
   }
 };
 
-export type Language = 'en' | 'ar';
-export type TranslationKey = keyof typeof translations.en;
-
-export const getTranslation = (key: TranslationKey, language: Language): string => {
-  return translations[language][key] || translations.en[key];
+export const getTranslation = (key: TranslationKey, language: Language = 'en'): string => {
+  return translations[language][key] || translations['en'][key] || key;
 };
 
 export const isRTL = (language: Language): boolean => {
