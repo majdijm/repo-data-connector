@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import JobWorkflowActions from '@/components/JobWorkflowActions';
 import JobComments from '@/components/JobComments';
+import { useUsers } from '@/hooks/useUsers';
 
 const JobDetails = () => {
   const { id } = useParams();
@@ -25,6 +26,7 @@ const JobDetails = () => {
   const { userProfile } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { users } = useUsers();
   
   const [job, setJob] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -33,7 +35,8 @@ const JobDetails = () => {
     description: '',
     status: '',
     price: '',
-    due_date: ''
+    due_date: '',
+    assigned_to: ''
   });
 
   useEffect(() => {
@@ -45,7 +48,8 @@ const JobDetails = () => {
         description: foundJob.description || '',
         status: foundJob.status || '',
         price: foundJob.price?.toString() || '',
-        due_date: foundJob.due_date ? format(new Date(foundJob.due_date), 'yyyy-MM-dd') : ''
+        due_date: foundJob.due_date ? format(new Date(foundJob.due_date), 'yyyy-MM-dd') : '',
+        assigned_to: foundJob.assigned_to || ''
       });
     }
   }, [jobs, id]);
@@ -64,6 +68,7 @@ const JobDetails = () => {
         status: editForm.status,
         price: editForm.price ? parseFloat(editForm.price) : null,
         due_date: editForm.due_date || null,
+        assigned_to: editForm.assigned_to || null,
         updated_at: new Date().toISOString()
       };
 
@@ -262,6 +267,34 @@ const JobDetails = () => {
                 ) : (
                   <p className="text-lg">
                     {job.due_date ? format(new Date(job.due_date), 'PPP') : 'Not set'}
+                  </p>
+                )}
+              </div>
+
+              {/* Assigned To */}
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Assigned To
+                </label>
+                {isEditing && (userProfile?.role === 'admin' || userProfile?.role === 'receptionist') ? (
+                  <Select value={editForm.assigned_to} onValueChange={(value) => setEditForm({ ...editForm, assigned_to: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Unassigned</SelectItem>
+                      {users.filter(user => ['photographer', 'designer', 'editor'].includes(user.role) && user.is_active).map(user => (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name} ({user.role})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-lg">
+                    {job.users?.name || 'Not assigned'} 
+                    {job.users?.name && <span className="text-sm text-gray-500 ml-2">({job.assigned_to === userProfile?.id ? 'You' : job.users.role || 'Unknown role'})</span>}
                   </p>
                 )}
               </div>
