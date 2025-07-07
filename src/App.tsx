@@ -16,6 +16,7 @@ import Calendar from '@/pages/Calendar';
 import Settings from '@/pages/Settings';
 import FinancialPage from '@/pages/FinancialPage';
 import JobDetails from '@/pages/JobDetails';
+import FilesPage from '@/pages/FilesPage';
 
 const queryClient = new QueryClient();
 
@@ -71,6 +72,11 @@ function App() {
                 <Route path="/financial" element={
                   <ProtectedRoute>
                     <FinancialPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/files" element={
+                  <ProtectedRoute>
+                    <FilesPage />
                   </ProtectedRoute>
                 } />
               </Routes>

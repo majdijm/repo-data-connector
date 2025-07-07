@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +25,7 @@ interface TasksCalendarViewProps {
 }
 
 const TasksCalendarView: React.FC<TasksCalendarViewProps> = ({ jobs, users }) => {
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
 
   const getStatusColor = (status: string) => {
@@ -110,7 +112,11 @@ const TasksCalendarView: React.FC<TasksCalendarViewProps> = ({ jobs, users }) =>
           ) : (
             <div className="space-y-4">
               {selectedDateJobs.map(job => (
-                <div key={job.id} className="border rounded-lg p-4 bg-gray-50">
+                <div 
+                  key={job.id} 
+                  className="border rounded-lg p-4 bg-gray-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                >
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-gray-900">{job.title}</h4>
                     <Badge className={`text-xs ${getStatusColor(job.status)}`}>

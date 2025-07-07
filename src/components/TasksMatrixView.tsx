@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
@@ -30,6 +31,7 @@ interface TasksMatrixViewProps {
 }
 
 const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users }) => {
+  const navigate = useNavigate();
   const jobTypes = ['photo_session', 'video_editing', 'design'] as const;
   const jobTypeLabels = {
     photo_session: 'Photo Session',
@@ -115,7 +117,11 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
                     ) : (
                       <div className="space-y-3">
                         {clientJobs.map(job => (
-                          <div key={job.id} className="border rounded-lg p-3 bg-gray-50">
+                          <div 
+                            key={job.id} 
+                            className="border rounded-lg p-3 bg-gray-50 cursor-pointer hover:bg-blue-50 transition-colors"
+                            onClick={() => navigate(`/jobs/${job.id}`)}
+                          >
                             <div className="flex items-start justify-between mb-2">
                               <h4 className="font-medium text-sm text-gray-900 leading-tight">
                                 {job.title}
