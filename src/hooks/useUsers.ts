@@ -25,8 +25,10 @@ export const useUsers = () => {
       return;
     }
 
-    if (!['admin', 'receptionist'].includes(userProfile.role)) {
-      setError('Access denied. Admin or receptionist role required.');
+    // Allow admin, receptionist, and team members (photographers) to fetch users
+    // Team members need this for workflow assignment
+    if (!['admin', 'receptionist', 'photographer'].includes(userProfile.role)) {
+      setError('Access denied. Admin, receptionist or photographer role required.');
       setIsLoading(false);
       return;
     }
