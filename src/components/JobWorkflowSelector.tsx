@@ -95,14 +95,14 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
             Assign to {nextStep === 'editing' ? 'Editor' : 'Designer'}
           </Label>
           <Select 
-            value={selectedUserId || ''} 
-            onValueChange={(value) => onSelectedUserChange?.(value)}
+            value={selectedUserId || 'auto-assign'} 
+            onValueChange={(value) => onSelectedUserChange?.(value === 'auto-assign' ? '' : value)}
           >
             <SelectTrigger>
               <SelectValue placeholder={`Select ${nextStep === 'editing' ? 'editor' : 'designer'}...`} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Auto-assign to available {nextStep === 'editing' ? 'editor' : 'designer'}</SelectItem>
+              <SelectItem value="auto-assign">Auto-assign to available {nextStep === 'editing' ? 'editor' : 'designer'}</SelectItem>
               {availableUsers.map((user) => (
                 <SelectItem key={user.id} value={user.id}>
                   {user.name} ({user.email})
