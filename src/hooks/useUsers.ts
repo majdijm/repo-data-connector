@@ -25,10 +25,10 @@ export const useUsers = () => {
       return;
     }
 
-    // Allow admin, receptionist, and team members (photographers) to fetch users
-    // Team members need this for workflow assignment
-    if (!['admin', 'receptionist', 'photographer'].includes(userProfile.role)) {
-      setError('Access denied. Admin, receptionist or photographer role required.');
+    // Allow admin, receptionist, and all team members to fetch users
+    // This is needed for workflow assignment functionality
+    if (!['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role)) {
+      setError('Access denied. Insufficient permissions.');
       setIsLoading(false);
       return;
     }
