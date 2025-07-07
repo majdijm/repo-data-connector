@@ -15,6 +15,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import JobWorkflowActions from '@/components/JobWorkflowActions';
+import JobComments from '@/components/JobComments';
 
 const JobDetails = () => {
   const { id } = useParams();
@@ -289,6 +291,26 @@ const JobDetails = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Workflow Actions */}
+        {job && (
+          <JobWorkflowActions
+            job={job}
+            onJobUpdated={() => {
+              // Refresh job data after workflow update
+              window.location.reload();
+            }}
+          />
+        )}
+
+        {/* Job Comments */}
+        {job && (
+          <JobComments
+            jobId={job.id}
+            jobTitle={job.title}
+            clientName={job.clients?.name}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

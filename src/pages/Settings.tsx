@@ -10,7 +10,8 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Settings, User, Lock, Bell } from 'lucide-react';
+import { Settings, User, Lock, Bell, Globe } from 'lucide-react';
+import LanguageSelector from '@/components/LanguageSelector';
 
 const SettingsPage = () => {
   const { user, userProfile } = useAuth();
@@ -138,6 +139,26 @@ const SettingsPage = () => {
                     <Button variant="outline" size="sm">
                       Change Password
                     </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe size={20} />
+                    Language Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium">Select Language</Label>
+                    <div className="mt-2">
+                      <LanguageSelector />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Language preference will be saved automatically and applied across the entire application.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
