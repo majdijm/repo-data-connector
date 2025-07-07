@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [nextStep, setNextStep] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [workflowComment, setWorkflowComment] = useState('');
   const [fileLink, setFileLink] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -74,6 +74,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
     try {
       console.log('🔄 Starting workflow update for job:', job.id, 'Next step:', nextStep);
       console.log('📋 Current job status:', job.status, 'Current assigned to:', job.assigned_to);
+      console.log('👤 Selected user for assignment:', selectedUserId);
       
       let newStatus = 'review';
       let newAssignedTo = job.assigned_to;
@@ -84,67 +85,81 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         console.log('✅ Setting job to completed for client handover');
       } else if (nextStep === 'editing') {
         newStatus = 'in_progress';
-        // Find an editor to assign to
-        console.log('🔍 Looking for available editors...');
         
-        const { data: editors, error: editorsError } = await supabase
-          .from('users')
-          .select('id, name, role, is_active')
-          .eq('role', 'editor')
-          .eq('is_active', true);
-        
-        console.log('📊 Editor query result:', { editors, editorsError });
-        
-        if (editorsError) {
-          console.error('❌ Error fetching editors:', editorsError);
-          throw editorsError;
-        }
-
-        console.log('👥 Found editors:', editors?.length || 0, editors);
-        
-        if (editors && editors.length > 0) {
-          newAssignedTo = editors[0].id;
-          console.log('✅ Assigning to editor:', editors[0].name, 'ID:', editors[0].id);
+        if (selectedUserId) {
+          // Use the specifically selected editor
+          newAssignedTo = selectedUserId;
+          console.log('✅ Assigning to selected editor:', selectedUserId);
         } else {
-          console.log('⚠️ No available editors found');
-          toast({
-            title: "Warning",
-            description: "No available editors found. Job will remain unassigned.",
-            variant: "destructive"
-          });
-          // Still proceed with status change but keep current assignment
+          // Find an editor to assign to (fallback to auto-assignment)
+          console.log('🔍 Looking for available editors...');
+          
+          const { data: editors, error: editorsError } = await supabase
+            .from('users')
+            .select('id, name, role, is_active')
+            .eq('role', 'editor')
+            .eq('is_active', true);
+          
+          console.log('📊 Editor query result:', { editors, editorsError });
+          
+          if (editorsError) {
+            console.error('❌ Error fetching editors:', editorsError);
+            throw editorsError;
+          }
+
+          console.log('👥 Found editors:', editors?.length || 0, editors);
+          
+          if (editors && editors.length > 0) {
+            newAssignedTo = editors[0].id;
+            console.log('✅ Auto-assigning to editor:', editors[0].name, 'ID:', editors[0].id);
+          } else {
+            console.log('⚠️ No available editors found');
+            toast({
+              title: "Warning",
+              description: "No available editors found. Job will remain unassigned.",
+              variant: "destructive"
+            });
+            // Still proceed with status change but keep current assignment
+          }
         }
       } else if (nextStep === 'design') {
         newStatus = 'in_progress';
-        // Find a designer to assign to
-        console.log('🔍 Looking for available designers...');
         
-        const { data: designers, error: designersError } = await supabase
-          .from('users')
-          .select('id, name, role, is_active')
-          .eq('role', 'designer')
-          .eq('is_active', true);
-        
-        console.log('📊 Designer query result:', { designers, designersError });
-        
-        if (designersError) {
-          console.error('❌ Error fetching designers:', designersError);
-          throw designersError;
-        }
-
-        console.log('👥 Found designers:', designers?.length || 0, designers);
-        
-        if (designers && designers.length > 0) {
-          newAssignedTo = designers[0].id;
-          console.log('✅ Assigning to designer:', designers[0].name, 'ID:', designers[0].id);
+        if (selectedUserId) {
+          // Use the specifically selected designer
+          newAssignedTo = selectedUserId;
+          console.log('✅ Assigning to selected designer:', selectedUserId);
         } else {
-          console.log('⚠️ No available designers found');
-          toast({
-            title: "Warning", 
-            description: "No available designers found. Job will remain unassigned.",
-            variant: "destructive"
-          });
-          // Still proceed with status change but keep current assignment
+          // Find a designer to assign to (fallback to auto-assignment)
+          console.log('🔍 Looking for available designers...');
+          
+          const { data: designers, error: designersError } = await supabase
+            .from('users')
+            .select('id, name, role, is_active')
+            .eq('role', 'designer')
+            .eq('is_active', true);
+          
+          console.log('📊 Designer query result:', { designers, designersError });
+          
+          if (designersError) {
+            console.error('❌ Error fetching designers:', designersError);
+            throw designersError;
+          }
+
+          console.log('👥 Found designers:', designers?.length || 0, designers);
+          
+          if (designers && designers.length > 0) {
+            newAssignedTo = designers[0].id;
+            console.log('✅ Auto-assigning to designer:', designers[0].name, 'ID:', designers[0].id);
+          } else {
+            console.log('⚠️ No available designers found');
+            toast({
+              title: "Warning", 
+              description: "No available designers found. Job will remain unassigned.",
+              variant: "destructive"
+            });
+            // Still proceed with status change but keep current assignment
+          }
         }
       }
 
@@ -187,27 +202,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
       console.log('✅ Job updated successfully:', updatedJob);
       console.log('✅ Verification - Updated job status:', updatedJob.status, 'assigned_to:', updatedJob.assigned_to);
-
-      // Verify the update worked by fetching the job again
-      console.log('🔍 Verifying update by fetching job again...');
-      const { data: verificationJob, error: verifyError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', job.id)
-        .single();
-        
-      console.log('📊 Verification query result:', { verificationJob, verifyError });
-      
-      if (verifyError) {
-        console.error('❌ Error verifying job update:', verifyError);
-      } else {
-        console.log('✅ Verification successful:', {
-          id: verificationJob.id,
-          status: verificationJob.status,
-          assigned_to: verificationJob.assigned_to,
-          updated_at: verificationJob.updated_at
-        });
-      }
 
       // Add workflow comment if provided
       if (workflowComment.trim()) {
@@ -319,6 +313,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       
       // Reset form
       setNextStep('');
+      setSelectedUserId('');
       setWorkflowComment('');
       setSelectedFile(null);
       setFileLink('');
@@ -359,6 +354,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         <JobWorkflowSelector 
           nextStep={nextStep}
           onNextStepChange={setNextStep}
+          selectedUserId={selectedUserId}
+          onSelectedUserChange={setSelectedUserId}
         />
 
         <div>
