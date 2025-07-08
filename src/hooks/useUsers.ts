@@ -42,6 +42,30 @@ export const useUsers = () => {
       }
       
       console.log('Raw users data from database:', usersData);
+      console.log('Detailed user analysis:');
+      
+      // Log each user individually for debugging
+      usersData?.forEach((user, index) => {
+        console.log(`User ${index + 1}:`, {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          is_active: user.is_active,
+          created_at: user.created_at
+        });
+        
+        // Check specifically for the editor you mentioned
+        if (user.email === 'quranlight2019@gmail.com') {
+          console.log('🔍 FOUND TARGET USER:', {
+            email: user.email,
+            role: user.role,
+            is_active: user.is_active,
+            roleCheck: user.role === 'editor',
+            activeCheck: user.is_active === true
+          });
+        }
+      });
       
       const transformedUsers = usersData?.map(user => ({
         id: user.id,
@@ -53,14 +77,30 @@ export const useUsers = () => {
       })) || [];
       
       console.log('Transformed users:', transformedUsers);
-      console.log('Users by role:', {
+      
+      // More detailed role analysis
+      const roleStats = {
         admins: transformedUsers.filter(u => u.role === 'admin').length,
         receptionists: transformedUsers.filter(u => u.role === 'receptionist').length,
         photographers: transformedUsers.filter(u => u.role === 'photographer').length,
         editors: transformedUsers.filter(u => u.role === 'editor').length,
         designers: transformedUsers.filter(u => u.role === 'designer').length,
         clients: transformedUsers.filter(u => u.role === 'client').length
-      });
+      };
+      
+      console.log('Users by role:', roleStats);
+      
+      // Check specifically for active editors
+      const activeEditors = transformedUsers.filter(u => u.role === 'editor' && u.is_active);
+      console.log('Active editors specifically:', activeEditors);
+      
+      // Check for the specific user
+      const targetUser = transformedUsers.find(u => u.email === 'quranlight2019@gmail.com');
+      if (targetUser) {
+        console.log('🎯 Target user found in transformed data:', targetUser);
+      } else {
+        console.log('❌ Target user NOT found in transformed data');
+      }
       
       setUsers(transformedUsers);
       console.log('Users set successfully:', transformedUsers.length);

@@ -29,6 +29,7 @@ import JobWorkflowActions from './JobWorkflowActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
 import UserDebugPanel from './UserDebugPanel';
+import UserRoleChecker from './UserRoleChecker';
 
 interface Job {
   id: string;
@@ -373,8 +374,9 @@ const JobManagement = () => {
         )}
       </div>
 
-      {/* Add UserDebugPanel for debugging */}
+      {/* Add UserDebugPanel and UserRoleChecker for debugging */}
       <UserDebugPanel />
+      <UserRoleChecker />
 
       {jobs.length === 0 ? (
         <Card>
