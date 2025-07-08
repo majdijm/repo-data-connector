@@ -63,6 +63,38 @@ const UserRoleChecker: React.FC = () => {
     }
   };
 
+  const createEditorUser = async () => {
+    setLoading(true);
+    try {
+      console.log('🔧 Creating editor user...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .insert({
+          email: 'quranlight2019@gmail.com',
+          name: 'Video Editor',
+          role: 'editor',
+          password: 'temp_password_123', // This should be changed
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error creating user:', error);
+        setResult({ error: error.message });
+      } else {
+        console.log('✅ User created:', data);
+        setResult({ created: data });
+      }
+    } catch (err) {
+      console.error('💥 Exception creating user:', err);
+      setResult({ error: 'Exception occurred' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Only show for admin users
   if (!userProfile || userProfile.role !== 'admin') {
     return null;
@@ -87,6 +119,12 @@ const UserRoleChecker: React.FC = () => {
             </Button>
             <Button onClick={checkAllUsers} disabled={loading} size="sm" variant="outline">
               {loading ? 'Loading...' : 'Check All Users'}
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            <Button onClick={createEditorUser} disabled={loading} size="sm" variant="destructive">
+              {loading ? 'Creating...' : 'Create Editor User'}
             </Button>
           </div>
           
