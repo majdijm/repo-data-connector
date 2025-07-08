@@ -29,7 +29,10 @@ export const useRoleAccess = () => {
   
   const canViewJobs = () => hasRole(['admin', 'receptionist', 'photographer', 'designer', 'editor']);
   
-  const canManagePayments = () => hasRole(['admin', 'receptionist']);
+  const canManagePayments = () => {
+    console.log('Checking payment permissions for role:', userProfile?.role);
+    return hasRole(['admin', 'receptionist']);
+  };
   
   const canViewFiles = () => hasRole(['admin', 'receptionist', 'photographer', 'designer', 'editor']);
 

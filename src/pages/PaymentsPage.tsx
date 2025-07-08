@@ -4,8 +4,18 @@ import DashboardLayout from '@/components/DashboardLayout';
 import PaymentManagement from '@/components/PaymentManagement';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { CreditCard, DollarSign, TrendingUp, FileText } from 'lucide-react';
+import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useAuth } from '@/contexts/AuthContext';
 
 const PaymentsPage = () => {
+  const { canManagePayments } = useRoleAccess();
+  const { userProfile } = useAuth();
+
+  console.log('PaymentsPage Access Check:', {
+    userProfile: userProfile?.role,
+    canManagePayments: canManagePayments()
+  });
+
   return (
     <ProtectedRoute requiredRoles={['admin', 'receptionist']}>
       <DashboardLayout>
@@ -52,7 +62,17 @@ const PaymentsPage = () => {
             </div>
           </div>
 
-          <PaymentManagement />
+          {canManagePayments() ? (
+            <PaymentManagement />
+          ) : (
+            <div className="text-center p-8 bg-red-50 rounded-lg">
+              <h2 className="text-xl font-semibold text-red-800 mb-2">Access Denied</h2>
+              <p className="text-red-600">
+                You don't have permission to access the payments page. 
+                Current role: {userProfile?.role}
+              </p>
+            </div>
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

@@ -25,7 +25,15 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
   selectedUserId,
   onSelectedUserChange
 }) => {
-  const { users } = useUsers();
+  const { users, isLoading, error } = useUsers();
+
+  console.log('JobWorkflowSelector Debug:', {
+    users,
+    isLoading,
+    error,
+    nextStep,
+    selectedUserId
+  });
 
   const nextStepOptions: NextStepOption[] = [
     { 
@@ -54,11 +62,29 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
   const getAvailableUsers = () => {
     if (!nextStep || nextStep === 'handover') return [];
     
+    console.log('Getting available users for step:', nextStep);
+    console.log('All users:', users);
+    
     const roleFilter = nextStep === 'editing' ? 'editor' : 'designer';
-    return users.filter(user => user.role === roleFilter && user.is_active);
+    const filteredUsers = users.filter(user => {
+      console.log('Checking user:', user.name, 'role:', user.role, 'active:', user.is_active);
+      return user.role === roleFilter && user.is_active;
+    });
+    
+    console.log('Filtered users:', filteredUsers);
+    return filteredUsers;
   };
 
   const availableUsers = getAvailableUsers();
+
+  if (isLoading) {
+    return <div className="text-sm text-gray-500">Loading users...</div>;
+  }
+
+  if (error) {
+    console.error('Error in JobWorkflowSelector:', error);
+    return <div className="text-sm text-red-500">Error loading users: {error}</div>;
+  }
 
   return (
     <div className="space-y-4">
@@ -111,9 +137,15 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
             </SelectContent>
           </Select>
           {availableUsers.length === 0 && (
-            <p className="text-sm text-red-600 mt-1">
-              No active {nextStep === 'editing' ? 'editors' : 'designers'} available
-            </p>
+            <div className="mt-2">
+              <p className="text-sm text-red-600">
+                No active {nextStep === 'editing' ? 'editors' : 'designers'} available
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Total users loaded: {users.length}. 
+                {nextStep === 'editing' ? 'Editors' : 'Designers'} found: {users.filter(u => u.role === (nextStep === 'editing' ? 'editor' : 'designer')).length}
+              </p>
+            </div>
           )}
         </div>
       )}
