@@ -15,7 +15,7 @@ const UserRoleChecker: React.FC = () => {
   const checkUser = async () => {
     setLoading(true);
     try {
-      console.log('Checking user:', email);
+      console.log('🔍 Checking user:', email);
       
       const { data, error } = await supabase
         .from('users')
@@ -24,14 +24,39 @@ const UserRoleChecker: React.FC = () => {
         .single();
 
       if (error) {
-        console.error('Error checking user:', error);
+        console.error('❌ Error checking user:', error);
         setResult({ error: error.message });
       } else {
-        console.log('User found:', data);
+        console.log('✅ User found:', data);
         setResult({ user: data });
       }
     } catch (err) {
-      console.error('Exception checking user:', err);
+      console.error('💥 Exception checking user:', err);
+      setResult({ error: 'Exception occurred' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkAllUsers = async () => {
+    setLoading(true);
+    try {
+      console.log('🔍 Fetching all users...');
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching all users:', error);
+        setResult({ error: error.message });
+      } else {
+        console.log('✅ All users found:', data);
+        setResult({ allUsers: data });
+      }
+    } catch (err) {
+      console.error('💥 Exception fetching all users:', err);
       setResult({ error: 'Exception occurred' });
     } finally {
       setLoading(false);
@@ -46,10 +71,10 @@ const UserRoleChecker: React.FC = () => {
   return (
     <Card className="mt-4 bg-yellow-50 border-yellow-200">
       <CardHeader>
-        <CardTitle className="text-sm">User Role Checker</CardTitle>
+        <CardTitle className="text-sm">User Role Checker & Debugger</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2">
+        <div className="space-y-4">
           <div className="flex gap-2">
             <Input 
               value={email}
@@ -60,11 +85,14 @@ const UserRoleChecker: React.FC = () => {
             <Button onClick={checkUser} disabled={loading} size="sm">
               {loading ? 'Checking...' : 'Check User'}
             </Button>
+            <Button onClick={checkAllUsers} disabled={loading} size="sm" variant="outline">
+              {loading ? 'Loading...' : 'Check All Users'}
+            </Button>
           </div>
           
           {result && (
-            <div className="mt-2 p-2 bg-white rounded border">
-              <pre className="text-xs overflow-auto">
+            <div className="mt-2 p-3 bg-white rounded border max-h-96 overflow-auto">
+              <pre className="text-xs">
                 {JSON.stringify(result, null, 2)}
               </pre>
             </div>

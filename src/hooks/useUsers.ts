@@ -19,34 +19,36 @@ export const useUsers = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
-    if (!userProfile) {
-      setError('User profile not loaded');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('Fetching users as:', userProfile.role);
+      console.log('🔍 Fetching all users...');
       
+      // Fetch ALL users without any role-based filtering
       const { data: usersData, error: fetchError } = await supabase
         .from('users')
         .select('id, email, name, role, is_active, created_at')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('Error fetching users:', fetchError);
+        console.error('❌ Error fetching users:', fetchError);
         throw fetchError;
       }
       
-      console.log('Raw users data from database:', usersData);
-      console.log('Detailed user analysis:');
+      console.log('📊 Raw users data from database:', usersData);
+      console.log('📊 Total users found:', usersData?.length || 0);
       
+      if (!usersData || usersData.length === 0) {
+        console.log('⚠️ No users found in database');
+        setUsers([]);
+        setError('No users found in the database');
+        return;
+      }
+
       // Log each user individually for debugging
-      usersData?.forEach((user, index) => {
-        console.log(`User ${index + 1}:`, {
+      usersData.forEach((user, index) => {
+        console.log(`👤 User ${index + 1}:`, {
           id: user.id,
           email: user.email,
           name: user.name,
@@ -55,9 +57,9 @@ export const useUsers = () => {
           created_at: user.created_at
         });
         
-        // Check specifically for the editor you mentioned
+        // Check specifically for the editor mentioned
         if (user.email === 'quranlight2019@gmail.com') {
-          console.log('🔍 FOUND TARGET USER:', {
+          console.log('🎯 FOUND TARGET EDITOR:', {
             email: user.email,
             role: user.role,
             is_active: user.is_active,
@@ -67,18 +69,18 @@ export const useUsers = () => {
         }
       });
       
-      const transformedUsers = usersData?.map(user => ({
+      const transformedUsers = usersData.map(user => ({
         id: user.id,
         email: user.email,
-        name: user.name || 'No name',
+        name: user.name || user.email, // Fallback to email if name is missing
         role: user.role,
         is_active: user.is_active ?? true,
         created_at: user.created_at
-      })) || [];
+      })) as User[];
       
-      console.log('Transformed users:', transformedUsers);
+      console.log('✅ Transformed users:', transformedUsers);
       
-      // More detailed role analysis
+      // Detailed role analysis
       const roleStats = {
         admins: transformedUsers.filter(u => u.role === 'admin').length,
         receptionists: transformedUsers.filter(u => u.role === 'receptionist').length,
@@ -88,26 +90,27 @@ export const useUsers = () => {
         clients: transformedUsers.filter(u => u.role === 'client').length
       };
       
-      console.log('Users by role:', roleStats);
+      console.log('📈 Users by role:', roleStats);
       
       // Check specifically for active editors
       const activeEditors = transformedUsers.filter(u => u.role === 'editor' && u.is_active);
-      console.log('Active editors specifically:', activeEditors);
+      console.log('✅ Active editors found:', activeEditors.length, activeEditors);
       
-      // Check for the specific user
+      // Check for the specific editor user
       const targetUser = transformedUsers.find(u => u.email === 'quranlight2019@gmail.com');
       if (targetUser) {
-        console.log('🎯 Target user found in transformed data:', targetUser);
+        console.log('🎯 Target editor found in transformed data:', targetUser);
       } else {
-        console.log('❌ Target user NOT found in transformed data');
+        console.log('❌ Target editor NOT found in transformed data');
       }
       
       setUsers(transformedUsers);
-      console.log('Users set successfully:', transformedUsers.length);
+      console.log('🎉 Users set successfully. Total count:', transformedUsers.length);
       
     } catch (err) {
-      console.error('Error in fetchUsers:', err);
+      console.error('💥 Error in fetchUsers:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while fetching users');
+      setUsers([]); // Set empty array on error to prevent stale data
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +122,7 @@ export const useUsers = () => {
     }
 
     try {
-      console.log('Updating user role:', { userId, newRole });
+      console.log('🔄 Updating user role:', { userId, newRole });
       
       const { error } = await supabase
         .from('users')
@@ -130,26 +133,24 @@ export const useUsers = () => {
         .eq('id', userId);
 
       if (error) {
-        console.error('Error updating user role:', error);
+        console.error('❌ Error updating user role:', error);
         throw error;
       }
 
-      console.log('User role updated successfully');
+      console.log('✅ User role updated successfully');
       
       // Refresh users list
       await fetchUsers();
     } catch (error) {
-      console.error('Error updating user role:', error);
+      console.error('💥 Error updating user role:', error);
       throw error;
     }
   };
 
   useEffect(() => {
-    if (userProfile) {
-      console.log('UserProfile loaded, fetching users...', userProfile);
-      fetchUsers();
-    }
-  }, [userProfile]);
+    console.log('🚀 useUsers hook initialized');
+    fetchUsers();
+  }, []); // Remove dependency on userProfile to fetch all users immediately
 
   return {
     users,
