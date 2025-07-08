@@ -25,14 +25,6 @@ export const useUsers = () => {
       return;
     }
 
-    // Allow admin, receptionist, and all team members to fetch users
-    // This is needed for workflow assignment functionality
-    if (!['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role)) {
-      setError('Access denied. Insufficient permissions.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
@@ -49,7 +41,7 @@ export const useUsers = () => {
         throw fetchError;
       }
       
-      console.log('Fetched users:', usersData);
+      console.log('Raw users data from database:', usersData);
       
       const transformedUsers = usersData?.map(user => ({
         id: user.id,
@@ -59,6 +51,16 @@ export const useUsers = () => {
         is_active: user.is_active ?? true,
         created_at: user.created_at
       })) || [];
+      
+      console.log('Transformed users:', transformedUsers);
+      console.log('Users by role:', {
+        admins: transformedUsers.filter(u => u.role === 'admin').length,
+        receptionists: transformedUsers.filter(u => u.role === 'receptionist').length,
+        photographers: transformedUsers.filter(u => u.role === 'photographer').length,
+        editors: transformedUsers.filter(u => u.role === 'editor').length,
+        designers: transformedUsers.filter(u => u.role === 'designer').length,
+        clients: transformedUsers.filter(u => u.role === 'client').length
+      });
       
       setUsers(transformedUsers);
       console.log('Users set successfully:', transformedUsers.length);

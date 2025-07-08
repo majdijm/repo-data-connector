@@ -32,7 +32,8 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
     isLoading,
     error,
     nextStep,
-    selectedUserId
+    selectedUserId,
+    totalUsers: users.length
   });
 
   const nextStepOptions: NextStepOption[] = [
@@ -64,14 +65,16 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
     
     console.log('Getting available users for step:', nextStep);
     console.log('All users:', users);
+    console.log('User roles breakdown:', users.map(u => ({ name: u.name, role: u.role, active: u.is_active })));
     
     const roleFilter = nextStep === 'editing' ? 'editor' : 'designer';
     const filteredUsers = users.filter(user => {
-      console.log('Checking user:', user.name, 'role:', user.role, 'active:', user.is_active);
-      return user.role === roleFilter && user.is_active;
+      const matches = user.role === roleFilter && user.is_active;
+      console.log(`User ${user.name} (${user.role}) - matches ${roleFilter}:`, matches);
+      return matches;
     });
     
-    console.log('Filtered users:', filteredUsers);
+    console.log('Filtered users for', roleFilter, ':', filteredUsers);
     return filteredUsers;
   };
 
@@ -83,7 +86,12 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
 
   if (error) {
     console.error('Error in JobWorkflowSelector:', error);
-    return <div className="text-sm text-red-500">Error loading users: {error}</div>;
+    return (
+      <div className="text-sm text-red-500">
+        <p>Error loading users: {error}</p>
+        <p className="text-xs mt-1">Please check console for details</p>
+      </div>
+    );
   }
 
   return (
@@ -136,17 +144,19 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
               ))}
             </SelectContent>
           </Select>
-          {availableUsers.length === 0 && (
-            <div className="mt-2">
-              <p className="text-sm text-red-600">
-                No active {nextStep === 'editing' ? 'editors' : 'designers'} available
+          
+          {/* Debug information */}
+          <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+            <p><strong>Debug Info:</strong></p>
+            <p>Total users loaded: {users.length}</p>
+            <p>Looking for role: {nextStep === 'editing' ? 'editor' : 'designer'}</p>
+            <p>Available {nextStep === 'editing' ? 'editors' : 'designers'}: {availableUsers.length}</p>
+            {availableUsers.length === 0 && (
+              <p className="text-red-600 mt-1">
+                No active {nextStep === 'editing' ? 'editors' : 'designers'} found in the system
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Total users loaded: {users.length}. 
-                {nextStep === 'editing' ? 'Editors' : 'Designers'} found: {users.filter(u => u.role === (nextStep === 'editing' ? 'editor' : 'designer')).length}
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
     </div>

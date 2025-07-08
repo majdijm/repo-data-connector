@@ -28,6 +28,7 @@ import JobComments from './JobComments';
 import JobWorkflowActions from './JobWorkflowActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
+import UserDebugPanel from './UserDebugPanel';
 
 interface Job {
   id: string;
@@ -371,6 +372,9 @@ const JobManagement = () => {
           </Dialog>
         )}
       </div>
+
+      {/* Add UserDebugPanel for debugging */}
+      <UserDebugPanel />
 
       {jobs.length === 0 ? (
         <Card>
