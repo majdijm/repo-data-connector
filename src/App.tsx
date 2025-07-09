@@ -7,6 +7,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Index from '@/pages/Index';
+import LoginPage from '@/pages/LoginPage';
 import Dashboard from '@/pages/Dashboard';
 import Users from '@/pages/Users';
 import Clients from '@/pages/Clients';
@@ -15,6 +16,7 @@ import Tasks from '@/pages/Tasks';
 import Calendar from '@/pages/Calendar';
 import Settings from '@/pages/Settings';
 import FinancialPage from '@/pages/FinancialPage';
+import PaymentsPage from '@/pages/PaymentsPage';
 import JobDetails from '@/pages/JobDetails';
 import FilesPage from '@/pages/FilesPage';
 
@@ -29,6 +31,7 @@ function App() {
             <div className="App">
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/login" element={<LoginPage />} />
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
@@ -72,6 +75,11 @@ function App() {
                 <Route path="/financial" element={
                   <ProtectedRoute>
                     <FinancialPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/payments" element={
+                  <ProtectedRoute>
+                    <PaymentsPage />
                   </ProtectedRoute>
                 } />
                 <Route path="/files" element={

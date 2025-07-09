@@ -5,7 +5,7 @@ import { useRoleAccess, UserRole } from '@/hooks/useRoleAccess';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,6 +20,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { user, userProfile, isLoading, error, refreshUserProfile } = useAuth();
   const { hasRole } = useRoleAccess();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -61,11 +62,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
               Please log in to access this page.
             </AlertDescription>
           </Alert>
-          <Link to="/login">
-            <Button className="w-full">
-              Go to Login Page
-            </Button>
-          </Link>
+          <Button onClick={() => navigate('/login')} className="w-full">
+            Go to Login Page
+          </Button>
         </div>
       </div>
     );
