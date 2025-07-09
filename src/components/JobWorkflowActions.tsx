@@ -198,7 +198,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newAssignedTo 
       });
 
-      // Update job status and assignment with more detailed error handling
+      // Update job status and assignment with more specific error handling
       const updateData = {
         status: newStatus,
         assigned_to: newAssignedTo,
@@ -207,6 +207,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       
       console.log('🔄 Executing database update with data:', updateData);
       
+      // Try the update with more specific error catching
       const { data: updatedJob, error: jobError } = await supabase
         .from('jobs')
         .update(updateData)
@@ -218,13 +219,25 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
       if (jobError) {
         console.error('❌ Error updating job:', jobError);
-        console.error('❌ Full error details:', JSON.stringify(jobError, null, 2));
-        throw jobError;
+        console.error('❌ Error code:', jobError.code);
+        console.error('❌ Error message:', jobError.message);
+        console.error('❌ Error details:', jobError.details);
+        console.error('❌ Error hint:', jobError.hint);
+        
+        // Provide specific error message based on error type
+        let errorMessage = 'Failed to update job workflow';
+        if (jobError.code === '42501') {
+          errorMessage = 'Permission denied: You may not have permission to update this job';
+        } else if (jobError.message) {
+          errorMessage = `Database error: ${jobError.message}`;
+        }
+        
+        throw new Error(errorMessage);
       }
 
       if (!updatedJob) {
         console.error('❌ No job returned from update query');
-        throw new Error('No job returned from update query');
+        throw new Error('No job returned from update query - job may not exist');
       }
 
       console.log('✅ Job updated successfully:', updatedJob);
@@ -243,9 +256,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (commentError) {
           console.error('❌ Error adding comment:', commentError);
-          throw commentError;
+          // Don't throw here, comment is optional
+        } else {
+          console.log('✅ Comment added successfully');
         }
-        console.log('✅ Comment added successfully');
       }
 
       // Upload file if provided
@@ -261,27 +275,28 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (uploadError) {
           console.error('❌ Error uploading file:', uploadError);
-          throw uploadError;
-        }
+          // Don't throw here, file upload is optional
+        } else {
+          // Save file record
+          const { error: fileError } = await supabase
+            .from('job_files')
+            .insert({
+              job_id: job.id,
+              file_name: selectedFile.name,
+              file_path: filePath,
+              file_type: selectedFile.type,
+              file_size: selectedFile.size,
+              uploaded_by: userProfile?.id,
+              is_final: nextStep === 'handover'
+            });
 
-        // Save file record
-        const { error: fileError } = await supabase
-          .from('job_files')
-          .insert({
-            job_id: job.id,
-            file_name: selectedFile.name,
-            file_path: filePath,
-            file_type: selectedFile.type,
-            file_size: selectedFile.size,
-            uploaded_by: userProfile?.id,
-            is_final: nextStep === 'handover'
-          });
-
-        if (fileError) {
-          console.error('❌ Error saving file record:', fileError);
-          throw fileError;
+          if (fileError) {
+            console.error('❌ Error saving file record:', fileError);
+            // Don't throw here, file record is optional
+          } else {
+            console.log('✅ File uploaded and recorded successfully');
+          }
         }
-        console.log('✅ File uploaded and recorded successfully');
       }
 
       // Add cloud link if provided
@@ -303,9 +318,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (linkError) {
           console.error('❌ Error adding cloud link:', linkError);
-          throw linkError;
+          // Don't throw here, cloud link is optional
+        } else {
+          console.log('✅ Cloud link added successfully');
         }
-        console.log('✅ Cloud link added successfully');
       }
 
       // Create notifications for assignment change
@@ -322,6 +338,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (notificationError) {
           console.error('❌ Error creating notification:', notificationError);
+          // Don't throw here, notifications are optional
         } else {
           console.log('✅ Notification created successfully');
         }
@@ -347,10 +364,21 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       
     } catch (error) {
       console.error('💥 Error updating job workflow:', error);
-      console.error('💥 Full error object:', JSON.stringify(error, null, 2));
+      console.error('💥 Error type:', typeof error);
+      console.error('💥 Error constructor:', error?.constructor?.name);
+      
+      let errorMessage = 'Failed to update job workflow';
+      if (error instanceof Error) {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      } else if (typeof error === 'string') {
+        errorMessage = `${errorMessage}: ${error}`;
+      } else {
+        errorMessage = `${errorMessage}: Unknown error`;
+      }
+      
       toast({
         title: "Error",
-        description: `Failed to update job workflow: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
