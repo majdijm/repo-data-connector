@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,11 +41,12 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   // Check if this is a workflow job
   const isWorkflowJob = Boolean(job.workflow_stage && job.workflow_order);
   
-  // Check if user can update workflow - must be the assigned photographer for workflow jobs
-  const canUpdateWorkflow = userProfile?.role === 'photographer' && 
-                           job.assigned_to === userProfile.id && 
-                           ['pending', 'in_progress', 'review'].includes(job.status) &&
-                           isWorkflowJob;
+  // Check if user can update workflow based on their role and job assignment
+  const canUpdateWorkflow = 
+    ['photographer', 'designer', 'editor'].includes(userProfile?.role || '') && 
+    job.assigned_to === userProfile?.id && 
+    ['pending', 'in_progress', 'review'].includes(job.status) &&
+    isWorkflowJob;
 
   console.log('🔍 JobWorkflowActions Debug:', {
     componentName: 'JobWorkflowActions',
@@ -113,13 +115,9 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newStatus = 'in_progress';
         
         if (selectedUserId) {
-          // Use the specifically selected editor
           newAssignedTo = selectedUserId;
           console.log('✅ Assigning to selected editor:', selectedUserId);
         } else {
-          // Find an editor to assign to (fallback to auto-assignment)
-          console.log('🔍 Looking for available editors...');
-          
           const { data: editors, error: editorsError } = await supabase
             .from('users')
             .select('id, name, role, is_active')
@@ -133,8 +131,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             throw editorsError;
           }
 
-          console.log('👥 Found editors:', editors?.length || 0, editors);
-          
           if (editors && editors.length > 0) {
             newAssignedTo = editors[0].id;
             console.log('✅ Auto-assigning to editor:', editors[0].name, 'ID:', editors[0].id);
@@ -145,20 +141,15 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
               description: "No available editors found. Job will remain unassigned.",
               variant: "destructive"
             });
-            // Still proceed with status change but keep current assignment
           }
         }
       } else if (nextStep === 'design') {
         newStatus = 'in_progress';
         
         if (selectedUserId) {
-          // Use the specifically selected designer
           newAssignedTo = selectedUserId;
           console.log('✅ Assigning to selected designer:', selectedUserId);
         } else {
-          // Find a designer to assign to (fallback to auto-assignment)
-          console.log('🔍 Looking for available designers...');
-          
           const { data: designers, error: designersError } = await supabase
             .from('users')
             .select('id, name, role, is_active')
@@ -172,8 +163,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
             throw designersError;
           }
 
-          console.log('👥 Found designers:', designers?.length || 0, designers);
-          
           if (designers && designers.length > 0) {
             newAssignedTo = designers[0].id;
             console.log('✅ Auto-assigning to designer:', designers[0].name, 'ID:', designers[0].id);
@@ -184,7 +173,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
               description: "No available designers found. Job will remain unassigned.",
               variant: "destructive"
             });
-            // Still proceed with status change but keep current assignment
           }
         }
       }
@@ -197,15 +185,9 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newAssignedTo 
       });
 
-      const updateData = {
-        status: newStatus,
-        assigned_to: newAssignedTo,
-        updated_at: new Date().toISOString()
-      };
+      console.log('🔄 Executing database update via RPC function');
       
-      console.log('🔄 Executing database update with data:', updateData);
-      
-      // Use direct SQL query to bypass RLS restrictions for workflow updates
+      // Use the RPC function to bypass RLS restrictions for workflow updates
       const { data: updatedJob, error: jobError } = await supabase.rpc('update_job_workflow', {
         job_id: job.id,
         new_status: newStatus,
@@ -234,7 +216,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (commentError) {
           console.error('❌ Error adding comment:', commentError);
-          // Don't throw here, comment is optional
         } else {
           console.log('✅ Comment added successfully');
         }
@@ -253,9 +234,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (uploadError) {
           console.error('❌ Error uploading file:', uploadError);
-          // Don't throw here, file upload is optional
         } else {
-          // Save file record
           const { error: fileError } = await supabase
             .from('job_files')
             .insert({
@@ -270,7 +249,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
           if (fileError) {
             console.error('❌ Error saving file record:', fileError);
-            // Don't throw here, file record is optional
           } else {
             console.log('✅ File uploaded and recorded successfully');
           }
@@ -296,7 +274,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (linkError) {
           console.error('❌ Error adding cloud link:', linkError);
-          // Don't throw here, cloud link is optional
         } else {
           console.log('✅ Cloud link added successfully');
         }
@@ -316,7 +293,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
         if (notificationError) {
           console.error('❌ Error creating notification:', notificationError);
-          // Don't throw here, notifications are optional
         } else {
           console.log('✅ Notification created successfully');
         }
@@ -329,8 +305,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         description: `Job updated successfully - ${nextStep === 'handover' ? 'Ready for client' : `Assigned for ${nextStep}`}`
       });
 
-      // Call onJobUpdated to refresh the job list
-      console.log('🔄 Calling onJobUpdated to refresh job list...');
       onJobUpdated();
       
       // Reset form
@@ -342,16 +316,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       
     } catch (error) {
       console.error('💥 Error updating job workflow:', error);
-      console.error('💥 Error type:', typeof error);
-      console.error('💥 Error constructor:', error?.constructor?.name);
       
       let errorMessage = 'Failed to update job workflow';
       if (error instanceof Error) {
         errorMessage = `${errorMessage}: ${error.message}`;
-      } else if (typeof error === 'string') {
-        errorMessage = `${errorMessage}: ${error}`;
-      } else {
-        errorMessage = `${errorMessage}: Unknown error`;
       }
       
       toast({
@@ -364,17 +332,45 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
     }
   };
 
-  console.log('✅ JobWorkflowActions: Rendering workflow actions for photographer');
+  // Get the appropriate title and description based on current workflow stage
+  const getWorkflowInfo = () => {
+    switch (job.workflow_stage) {
+      case 'photo_session':
+        return {
+          title: 'Complete Photography Work',
+          description: 'Choose what happens next with this job after your photography work is complete.'
+        };
+      case 'video_editing':
+        return {
+          title: 'Complete Video Editing Work', 
+          description: 'Choose what happens next with this job after your video editing work is complete.'
+        };
+      case 'design':
+        return {
+          title: 'Complete Design Work',
+          description: 'Choose what happens next with this job after your design work is complete.'
+        };
+      default:
+        return {
+          title: 'Complete Current Work',
+          description: 'Choose what happens next with this job after your work is complete.'
+        };
+    }
+  };
+
+  const workflowInfo = getWorkflowInfo();
+
+  console.log('✅ JobWorkflowActions: Rendering workflow actions for', userProfile?.role);
 
   return (
     <Card className="mt-4 border-2 border-blue-200">
       <CardHeader className="bg-blue-50">
         <CardTitle className="flex items-center gap-2 text-blue-800">
           <ArrowRight className="h-5 w-5" />
-          Complete Photography Work
+          {workflowInfo.title}
         </CardTitle>
         <p className="text-sm text-blue-600">
-          Choose what happens next with this job after your photography work is complete.
+          {workflowInfo.description}
         </p>
       </CardHeader>
       <CardContent className="space-y-4 pt-6">
@@ -383,6 +379,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           onNextStepChange={setNextStep}
           selectedUserId={selectedUserId}
           onSelectedUserChange={setSelectedUserId}
+          currentWorkflowStage={job.workflow_stage}
         />
 
         <div>
