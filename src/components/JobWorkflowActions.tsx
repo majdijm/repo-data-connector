@@ -114,7 +114,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       } else if (nextStep === 'editing') {
         newStatus = 'in_progress';
         
-        if (selectedUserId) {
+        // Handle auto-assign vs specific user selection
+        if (selectedUserId && selectedUserId !== 'auto-assign') {
           newAssignedTo = selectedUserId;
           console.log('✅ Assigning to selected editor:', selectedUserId);
         } else {
@@ -146,7 +147,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       } else if (nextStep === 'design') {
         newStatus = 'in_progress';
         
-        if (selectedUserId) {
+        // Handle auto-assign vs specific user selection
+        if (selectedUserId && selectedUserId !== 'auto-assign') {
           newAssignedTo = selectedUserId;
           console.log('✅ Assigning to selected designer:', selectedUserId);
         } else {

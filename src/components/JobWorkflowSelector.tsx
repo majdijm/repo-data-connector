@@ -140,7 +140,7 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
               <SelectValue placeholder={`Select ${nextStep === 'editing' ? 'editor' : 'designer'}...`} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Auto-assign (first available)</SelectItem>
+              <SelectItem value="auto-assign">Auto-assign (first available)</SelectItem>
               {filteredUsers.map(user => (
                 <SelectItem key={user.id} value={user.id}>
                   {user.name} ({user.email})
