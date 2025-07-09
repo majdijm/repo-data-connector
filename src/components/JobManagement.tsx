@@ -118,27 +118,57 @@ const JobManagement = () => {
     try {
       fetchingRef.current = true;
       setIsLoading(true);
-      console.log('Starting to fetch jobs...');
-      console.log('User profile:', userProfile);
-      console.log('Auth user:', user);
-      console.log('User role access:', { canViewJobs: canViewJobsValue, isTeamMember: isTeamMemberValue });
+      console.log('🔍 DETAILED DEBUG: Starting to fetch jobs...');
+      console.log('🔍 User profile:', userProfile);
+      console.log('🔍 Auth user:', user);
+      console.log('🔍 User role access:', { canViewJobs: canViewJobsValue, isTeamMember: isTeamMemberValue });
+      
+      // First, let's fetch ALL jobs to see what's in the database
+      console.log('🔍 Fetching ALL jobs from database for debugging...');
+      const { data: allJobsData, error: allJobsError } = await supabase
+        .from('jobs')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (allJobsError) {
+        console.error('❌ Error fetching all jobs:', allJobsError);
+      } else {
+        console.log('🔍 ALL JOBS IN DATABASE:', allJobsData);
+        allJobsData?.forEach(job => {
+          console.log(`🔍 Job: "${job.title}" - ID: ${job.id} - Assigned to: ${job.assigned_to} - Type: ${job.type} - Workflow: ${job.workflow_stage}`);
+        });
+      }
       
       // Build the jobs query based on role
       let jobsQuery = supabase.from('jobs').select('*');
 
       // Apply role-based filtering for team members using the authenticated user ID
       if (isTeamMemberValue && user?.id) {
-        console.log('Filtering jobs for team member with user ID:', user.id);
+        console.log('🔍 Filtering jobs for team member with user ID:', user.id);
+        console.log('🔍 Looking for jobs where assigned_to =', user.id);
         jobsQuery = jobsQuery.eq('assigned_to', user.id);
+        
+        // Let's also check what jobs are assigned to this user
+        const { data: userJobsCheck, error: userJobsError } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('assigned_to', user.id);
+        
+        console.log('🔍 Jobs assigned to current user:', userJobsCheck);
+        if (userJobsError) {
+          console.error('❌ Error checking user jobs:', userJobsError);
+        }
+      } else {
+        console.log('🔍 Not filtering jobs (admin/receptionist view)');
       }
 
       jobsQuery = jobsQuery.order('created_at', { ascending: false });
 
-      console.log('Executing jobs query...');
+      console.log('🔍 Executing filtered jobs query...');
       const { data: jobsData, error: jobsError } = await jobsQuery;
 
       if (jobsError) {
-        console.error('Jobs query error:', jobsError);
+        console.error('❌ Jobs query error:', jobsError);
         toast({
           title: "Error",
           description: `Failed to fetch jobs: ${jobsError.message}`,
@@ -147,48 +177,52 @@ const JobManagement = () => {
         throw jobsError;
       }
       
-      console.log('Raw jobs data:', jobsData);
-      console.log('Jobs found:', jobsData?.length || 0);
+      console.log('🔍 Raw filtered jobs data:', jobsData);
+      console.log('🔍 Jobs found:', jobsData?.length || 0);
 
       if (!jobsData || jobsData.length === 0) {
-        console.log('No jobs found for user');
+        console.log('🔍 No jobs found for user after filtering');
         setJobs([]);
         return;
       }
 
       // Get clients data separately
-      console.log('Fetching clients...');
+      console.log('🔍 Fetching clients...');
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name, email');
 
       if (clientsError) {
-        console.error('Clients query error:', clientsError);
+        console.error('❌ Clients query error:', clientsError);
         console.warn('Continuing without client data');
       }
 
       // Get users data separately  
-      console.log('Fetching users...');
+      console.log('🔍 Fetching users...');
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('id, name');
 
       if (usersError) {
-        console.error('Users query error:', usersError);
+        console.error('❌ Users query error:', usersError);
         console.warn('Continuing without user data');
       }
 
       // Transform and combine the data
-      console.log('Transforming job data...');
+      console.log('🔍 Transforming job data...');
       const transformedJobs = jobsData.map(job => {
         const client = clientsData?.find(c => c.id === job.client_id);
         const assignedUser = usersData?.find(u => u.id === job.assigned_to);
         
-        console.log(`Job ${job.title}:`, {
+        console.log(`🔍 Job "${job.title}":`, {
           jobId: job.id,
           assignedTo: job.assigned_to,
           currentUserId: user?.id,
-          isAssignedToCurrentUser: job.assigned_to === user?.id
+          isAssignedToCurrentUser: job.assigned_to === user?.id,
+          workflowStage: job.workflow_stage,
+          workflowOrder: job.workflow_order,
+          type: job.type,
+          status: job.status
         });
         
         return {
@@ -198,7 +232,7 @@ const JobManagement = () => {
         };
       }) as Job[];
       
-      console.log('Final transformed jobs:', transformedJobs);
+      console.log('🔍 Final transformed jobs:', transformedJobs);
       setJobs(transformedJobs);
       
       toast({
@@ -207,7 +241,7 @@ const JobManagement = () => {
       });
       
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error('💥 Error fetching jobs:', error);
       toast({
         title: "Error",
         description: `Failed to fetch jobs: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -215,7 +249,7 @@ const JobManagement = () => {
       });
       setJobs([]); // Set empty array on error
     } finally {
-      console.log('Fetch jobs completed, setting loading to false');
+      console.log('🔍 Fetch jobs completed, setting loading to false');
       setIsLoading(false);
       fetchingRef.current = false;
     }
@@ -388,6 +422,21 @@ const JobManagement = () => {
       <UserDebugPanel />
       <UserRoleChecker />
 
+      {/* Enhanced Debug Information */}
+      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <h3 className="font-semibold text-yellow-800 mb-2">🔍 Enhanced Debug Information</h3>
+        <div className="text-sm text-yellow-700 space-y-1">
+          <p><strong>Current User ID:</strong> {user?.id}</p>
+          <p><strong>User Profile ID:</strong> {userProfile?.id}</p>
+          <p><strong>User Role:</strong> {userProfile?.role}</p>
+          <p><strong>Is Team Member:</strong> {isTeamMemberValue ? 'Yes' : 'No'}</p>
+          <p><strong>Can View Jobs:</strong> {canViewJobsValue ? 'Yes' : 'No'}</p>
+          <p><strong>Can Manage Jobs:</strong> {canManageJobsValue ? 'Yes' : 'No'}</p>
+          <p><strong>Jobs Loaded:</strong> {jobs.length}</p>
+          <p><strong>Filter Applied:</strong> {isTeamMemberValue ? `assigned_to = ${user?.id}` : 'No filter (admin/receptionist)'}</p>
+        </div>
+      </div>
+
       {jobs.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
@@ -402,7 +451,8 @@ const JobManagement = () => {
                   Current User ID: {user?.id}<br/>
                   User Profile ID: {userProfile?.id}<br/>
                   User Role: {userProfile?.role}<br/>
-                  Is Team Member: {isTeamMemberValue ? 'Yes' : 'No'}
+                  Is Team Member: {isTeamMemberValue ? 'Yes' : 'No'}<br/>
+                  <strong>Check the enhanced debug section above for more details.</strong>
                 </p>
               </div>
             )}
