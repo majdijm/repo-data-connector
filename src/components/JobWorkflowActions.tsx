@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,8 @@ interface Job {
   photographer_notes: string | null;
   assigned_to: string | null;
   type: string;
+  workflow_stage: string | null;
+  workflow_order: number | null;
 }
 
 interface JobWorkflowActionsProps {
@@ -35,20 +38,38 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if user can update workflow - must be the assigned photographer
-  // Allow for pending, in_progress, and review statuses
+  // Check if this is a workflow job
+  const isWorkflowJob = job.workflow_stage && job.workflow_order;
+  
+  // Check if user can update workflow - must be the assigned photographer for workflow jobs
   const canUpdateWorkflow = userProfile?.role === 'photographer' && 
                            job.assigned_to === userProfile.id && 
-                           ['pending', 'in_progress', 'review'].includes(job.status);
+                           ['pending', 'in_progress', 'review'].includes(job.status) &&
+                           isWorkflowJob;
 
   console.log('JobWorkflowActions Debug:', {
     userRole: userProfile?.role,
     userId: userProfile?.id,
     jobAssignedTo: job.assigned_to,
     jobStatus: job.status,
+    workflowStage: job.workflow_stage,
+    workflowOrder: job.workflow_order,
+    isWorkflowJob,
     canUpdateWorkflow,
     allowedStatuses: ['pending', 'in_progress', 'review']
   });
+
+  // Don't render if this is not a workflow job
+  if (!isWorkflowJob) {
+    console.log('🚫 JobWorkflowActions: Not rendering - not a workflow job');
+    return null;
+  }
+
+  // Don't render if user can't update workflow
+  if (!canUpdateWorkflow) {
+    console.log('🚫 JobWorkflowActions: Not rendering - user cannot update workflow');
+    return null;
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -330,12 +351,6 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       setIsLoading(false);
     }
   };
-
-  // Show debug info and don't render if user can't update workflow
-  if (!canUpdateWorkflow) {
-    console.log('🚫 JobWorkflowActions: Not rendering - user cannot update workflow');
-    return null;
-  }
 
   console.log('✅ JobWorkflowActions: Rendering workflow actions for photographer');
 

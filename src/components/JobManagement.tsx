@@ -26,6 +26,7 @@ import {
 import JobForm from './JobForm';
 import JobComments from './JobComments';
 import JobWorkflowActions from './JobWorkflowActions';
+import JobCompletionActions from './JobCompletionActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
 import UserDebugPanel from './UserDebugPanel';
@@ -509,29 +510,52 @@ const JobManagement = () => {
                   {/* Job Files Display */}
                   <JobFilesDisplay jobId={job.id} />
 
-                  {/* Job Workflow Actions - Show for photographers with expanded conditions */}
+                  {/* Job Completion Actions - Updated logic to show correct component */}
                   {(() => {
-                    const showWorkflowActions = userProfile?.role === 'photographer' && 
-                                             job.assigned_to === userProfile.id && 
-                                             ['pending', 'in_progress', 'review'].includes(job.status);
+                    const isWorkflowJob = job.workflow_stage && job.workflow_order;
+                    const isAssignedToUser = job.assigned_to === userProfile?.id;
+                    const canCompleteJob = isTeamMemberValue && isAssignedToUser && 
+                                         ['pending', 'in_progress', 'review'].includes(job.status);
                     
-                    console.log('Workflow Actions Check:', {
+                    console.log('Job Completion Check:', {
                       jobId: job.id,
                       jobTitle: job.title,
+                      isWorkflowJob,
+                      workflowStage: job.workflow_stage,
+                      workflowOrder: job.workflow_order,
                       userRole: userProfile?.role,
                       userId: userProfile?.id,
                       jobAssignedTo: job.assigned_to,
+                      isAssignedToUser,
                       jobStatus: job.status,
-                      allowedStatuses: ['pending', 'in_progress', 'review'],
-                      showWorkflowActions
+                      canCompleteJob
                     });
 
-                    return showWorkflowActions ? (
-                      <JobWorkflowActions 
-                        job={job} 
-                        onJobUpdated={handleJobUpdated}
-                      />
-                    ) : null;
+                    if (!canCompleteJob) {
+                      return null;
+                    }
+
+                    // Show workflow actions for workflow jobs assigned to photographers
+                    if (isWorkflowJob && userProfile?.role === 'photographer') {
+                      return (
+                        <JobWorkflowActions 
+                          job={job} 
+                          onJobUpdated={handleJobUpdated}
+                        />
+                      );
+                    }
+
+                    // Show simple completion actions for regular jobs or non-photographer roles
+                    if (!isWorkflowJob || userProfile?.role !== 'photographer') {
+                      return (
+                        <JobCompletionActions 
+                          job={job} 
+                          onJobUpdated={handleJobUpdated}
+                        />
+                      );
+                    }
+
+                    return null;
                   })()}
 
                   {/* Job Comments Section */}
