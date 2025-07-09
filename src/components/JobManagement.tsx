@@ -29,8 +29,6 @@ import JobWorkflowActions from './JobWorkflowActions';
 import JobCompletionActions from './JobCompletionActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
-import UserDebugPanel from './UserDebugPanel';
-import UserRoleChecker from './UserRoleChecker';
 
 interface Job {
   id: string;
@@ -87,17 +85,14 @@ const JobManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
   
-  // Use ref to prevent multiple simultaneous fetch calls
   const fetchingRef = useRef(false);
   const hasInitializedRef = useRef(false);
 
-  // Memoize role access to prevent unnecessary re-renders
   const canViewJobsValue = useMemo(() => roleAccess.canViewJobs(), [roleAccess]);
   const canManageJobsValue = useMemo(() => roleAccess.canManageJobs(), [roleAccess]);
   const isTeamMemberValue = useMemo(() => roleAccess.isTeamMember(), [roleAccess]);
 
   useEffect(() => {
-    // Only run once when component mounts and user has permission
     if (!hasInitializedRef.current && canViewJobsValue && userProfile && user) {
       hasInitializedRef.current = true;
       fetchJobs();
@@ -109,7 +104,6 @@ const JobManagement = () => {
   }, [canViewJobsValue, canManageJobsValue, userProfile?.id, user?.id]);
 
   const fetchJobs = async () => {
-    // Prevent multiple simultaneous calls
     if (fetchingRef.current) {
       console.log('Fetch already in progress, skipping...');
       return;
@@ -118,46 +112,16 @@ const JobManagement = () => {
     try {
       fetchingRef.current = true;
       setIsLoading(true);
-      console.log('🔍 DETAILED DEBUG: Starting to fetch jobs...');
+      console.log('🔍 Starting to fetch jobs...');
       console.log('🔍 User profile:', userProfile);
       console.log('🔍 Auth user:', user);
       console.log('🔍 User role access:', { canViewJobs: canViewJobsValue, isTeamMember: isTeamMemberValue });
       
-      // First, let's fetch ALL jobs to see what's in the database
-      console.log('🔍 Fetching ALL jobs from database for debugging...');
-      const { data: allJobsData, error: allJobsError } = await supabase
-        .from('jobs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (allJobsError) {
-        console.error('❌ Error fetching all jobs:', allJobsError);
-      } else {
-        console.log('🔍 ALL JOBS IN DATABASE:', allJobsData);
-        allJobsData?.forEach(job => {
-          console.log(`🔍 Job: "${job.title}" - ID: ${job.id} - Assigned to: ${job.assigned_to} - Type: ${job.type} - Workflow: ${job.workflow_stage}`);
-        });
-      }
-      
-      // Build the jobs query based on role
       let jobsQuery = supabase.from('jobs').select('*');
 
-      // Apply role-based filtering for team members using the authenticated user ID
       if (isTeamMemberValue && user?.id) {
         console.log('🔍 Filtering jobs for team member with user ID:', user.id);
-        console.log('🔍 Looking for jobs where assigned_to =', user.id);
         jobsQuery = jobsQuery.eq('assigned_to', user.id);
-        
-        // Let's also check what jobs are assigned to this user
-        const { data: userJobsCheck, error: userJobsError } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('assigned_to', user.id);
-        
-        console.log('🔍 Jobs assigned to current user:', userJobsCheck);
-        if (userJobsError) {
-          console.error('❌ Error checking user jobs:', userJobsError);
-        }
       } else {
         console.log('🔍 Not filtering jobs (admin/receptionist view)');
       }
@@ -187,7 +151,6 @@ const JobManagement = () => {
       }
 
       // Get clients data separately
-      console.log('🔍 Fetching clients...');
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('id, name, email');
@@ -198,7 +161,6 @@ const JobManagement = () => {
       }
 
       // Get users data separately  
-      console.log('🔍 Fetching users...');
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('id, name');
@@ -209,21 +171,9 @@ const JobManagement = () => {
       }
 
       // Transform and combine the data
-      console.log('🔍 Transforming job data...');
       const transformedJobs = jobsData.map(job => {
         const client = clientsData?.find(c => c.id === job.client_id);
         const assignedUser = usersData?.find(u => u.id === job.assigned_to);
-        
-        console.log(`🔍 Job "${job.title}":`, {
-          jobId: job.id,
-          assignedTo: job.assigned_to,
-          currentUserId: user?.id,
-          isAssignedToCurrentUser: job.assigned_to === user?.id,
-          workflowStage: job.workflow_stage,
-          workflowOrder: job.workflow_order,
-          type: job.type,
-          status: job.status
-        });
         
         return {
           ...job,
@@ -247,9 +197,8 @@ const JobManagement = () => {
         description: `Failed to fetch jobs: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
-      setJobs([]); // Set empty array on error
+      setJobs([]);
     } finally {
-      console.log('🔍 Fetch jobs completed, setting loading to false');
       setIsLoading(false);
       fetchingRef.current = false;
     }
@@ -418,25 +367,6 @@ const JobManagement = () => {
         )}
       </div>
 
-      {/* Add UserDebugPanel and UserRoleChecker for debugging */}
-      <UserDebugPanel />
-      <UserRoleChecker />
-
-      {/* Enhanced Debug Information */}
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <h3 className="font-semibold text-yellow-800 mb-2">🔍 Enhanced Debug Information</h3>
-        <div className="text-sm text-yellow-700 space-y-1">
-          <p><strong>Current User ID:</strong> {user?.id}</p>
-          <p><strong>User Profile ID:</strong> {userProfile?.id}</p>
-          <p><strong>User Role:</strong> {userProfile?.role}</p>
-          <p><strong>Is Team Member:</strong> {isTeamMemberValue ? 'Yes' : 'No'}</p>
-          <p><strong>Can View Jobs:</strong> {canViewJobsValue ? 'Yes' : 'No'}</p>
-          <p><strong>Can Manage Jobs:</strong> {canManageJobsValue ? 'Yes' : 'No'}</p>
-          <p><strong>Jobs Loaded:</strong> {jobs.length}</p>
-          <p><strong>Filter Applied:</strong> {isTeamMemberValue ? `assigned_to = ${user?.id}` : 'No filter (admin/receptionist)'}</p>
-        </div>
-      </div>
-
       {jobs.length === 0 ? (
         <Card>
           <CardContent className="text-center py-8">
@@ -444,18 +374,6 @@ const JobManagement = () => {
             <p className="text-gray-600">
               {isTeamMemberValue ? 'No jobs assigned to you yet.' : 'No jobs created yet.'}
             </p>
-            {isTeamMemberValue && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
-                  <strong>Debug Info:</strong><br/>
-                  Current User ID: {user?.id}<br/>
-                  User Profile ID: {userProfile?.id}<br/>
-                  User Role: {userProfile?.role}<br/>
-                  Is Team Member: {isTeamMemberValue ? 'Yes' : 'No'}<br/>
-                  <strong>Check the enhanced debug section above for more details.</strong>
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
       ) : (
@@ -499,7 +417,6 @@ const JobManagement = () => {
 
               {expandedJobs.has(job.id) && (
                 <CardContent className="pt-0">
-                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4 text-gray-400" />
