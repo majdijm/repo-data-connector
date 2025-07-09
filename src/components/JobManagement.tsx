@@ -75,7 +75,7 @@ interface User {
 }
 
 const JobManagement = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, user } = useAuth();
   const roleAccess = useRoleAccess();
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -98,7 +98,7 @@ const JobManagement = () => {
 
   useEffect(() => {
     // Only run once when component mounts and user has permission
-    if (!hasInitializedRef.current && canViewJobsValue && userProfile) {
+    if (!hasInitializedRef.current && canViewJobsValue && userProfile && user) {
       hasInitializedRef.current = true;
       fetchJobs();
       if (canManageJobsValue) {
@@ -106,7 +106,7 @@ const JobManagement = () => {
         fetchUsers();
       }
     }
-  }, [canViewJobsValue, canManageJobsValue, userProfile?.id]);
+  }, [canViewJobsValue, canManageJobsValue, userProfile?.id, user?.id]);
 
   const fetchJobs = async () => {
     // Prevent multiple simultaneous calls
@@ -120,15 +120,16 @@ const JobManagement = () => {
       setIsLoading(true);
       console.log('Starting to fetch jobs...');
       console.log('User profile:', userProfile);
+      console.log('Auth user:', user);
       console.log('User role access:', { canViewJobs: canViewJobsValue, isTeamMember: isTeamMemberValue });
       
       // Build the jobs query based on role
       let jobsQuery = supabase.from('jobs').select('*');
 
-      // Apply role-based filtering for team members
-      if (isTeamMemberValue && userProfile?.id) {
-        console.log('Filtering jobs for team member:', userProfile.id);
-        jobsQuery = jobsQuery.eq('assigned_to', userProfile.id);
+      // Apply role-based filtering for team members using the authenticated user ID
+      if (isTeamMemberValue && user?.id) {
+        console.log('Filtering jobs for team member with user ID:', user.id);
+        jobsQuery = jobsQuery.eq('assigned_to', user.id);
       }
 
       jobsQuery = jobsQuery.order('created_at', { ascending: false });
@@ -147,6 +148,7 @@ const JobManagement = () => {
       }
       
       console.log('Raw jobs data:', jobsData);
+      console.log('Jobs found:', jobsData?.length || 0);
 
       if (!jobsData || jobsData.length === 0) {
         console.log('No jobs found for user');
@@ -181,6 +183,13 @@ const JobManagement = () => {
       const transformedJobs = jobsData.map(job => {
         const client = clientsData?.find(c => c.id === job.client_id);
         const assignedUser = usersData?.find(u => u.id === job.assigned_to);
+        
+        console.log(`Job ${job.title}:`, {
+          jobId: job.id,
+          assignedTo: job.assigned_to,
+          currentUserId: user?.id,
+          isAssignedToCurrentUser: job.assigned_to === user?.id
+        });
         
         return {
           ...job,
@@ -386,6 +395,17 @@ const JobManagement = () => {
             <p className="text-gray-600">
               {isTeamMemberValue ? 'No jobs assigned to you yet.' : 'No jobs created yet.'}
             </p>
+            {isTeamMemberValue && (
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Debug Info:</strong><br/>
+                  Current User ID: {user?.id}<br/>
+                  User Profile ID: {userProfile?.id}<br/>
+                  User Role: {userProfile?.role}<br/>
+                  Is Team Member: {isTeamMemberValue ? 'Yes' : 'No'}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -429,6 +449,7 @@ const JobManagement = () => {
 
               {expandedJobs.has(job.id) && (
                 <CardContent className="pt-0">
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div className="flex items-center space-x-2">
                       <User className="h-4 w-4 text-gray-400" />
@@ -518,7 +539,7 @@ const JobManagement = () => {
                   {/* Job Completion Actions - Show workflow actions for photographers on workflow jobs */}
                   {(() => {
                     const isWorkflowJob = job.workflow_stage && job.workflow_order;
-                    const isAssignedToUser = job.assigned_to === userProfile?.id;
+                    const isAssignedToUser = job.assigned_to === user?.id;
                     const canCompleteJob = isTeamMemberValue && isAssignedToUser && 
                                          ['pending', 'in_progress', 'review'].includes(job.status);
                     
@@ -529,7 +550,7 @@ const JobManagement = () => {
                       workflowStage: job.workflow_stage,
                       workflowOrder: job.workflow_order,
                       userRole: userProfile?.role,
-                      userId: userProfile?.id,
+                      userId: user?.id,
                       jobAssignedTo: job.assigned_to,
                       isAssignedToUser,
                       jobStatus: job.status,
