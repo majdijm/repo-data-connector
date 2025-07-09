@@ -27,13 +27,15 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
 }) => {
   const { users, isLoading, error } = useUsers();
 
-  console.log('JobWorkflowSelector Debug:', {
-    users,
-    isLoading,
-    error,
+  console.log('🔍 JobWorkflowSelector - Component State:', {
     nextStep,
     selectedUserId,
-    totalUsers: users.length
+    usersHookState: {
+      users,
+      isLoading,
+      error,
+      totalUsers: users.length
+    }
   });
 
   const nextStepOptions: NextStepOption[] = [
@@ -61,38 +63,96 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
   
   // Get available users based on selected next step
   const getAvailableUsers = () => {
-    if (!nextStep || nextStep === 'handover') return [];
+    if (!nextStep || nextStep === 'handover') {
+      console.log('🚫 No filtering needed - handover or no step selected');
+      return [];
+    }
     
-    console.log('Getting available users for step:', nextStep);
-    console.log('All users:', users);
-    console.log('User roles breakdown:', users.map(u => ({ name: u.name, role: u.role, active: u.is_active })));
+    console.log('🔍 Filtering users for step:', nextStep);
+    console.log('📊 Raw users array:', users);
+    console.log('📊 Users detailed breakdown:');
+    
+    users.forEach((user, index) => {
+      console.log(`👤 User ${index + 1}:`, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        is_active: user.is_active,
+        roleMatch: user.role === (nextStep === 'editing' ? 'editor' : 'designer'),
+        activeMatch: user.is_active === true,
+        bothMatch: user.role === (nextStep === 'editing' ? 'editor' : 'designer') && user.is_active === true
+      });
+    });
     
     const roleFilter = nextStep === 'editing' ? 'editor' : 'designer';
+    console.log('🎯 Looking for role:', roleFilter);
+    
     const filteredUsers = users.filter(user => {
-      const matches = user.role === roleFilter && user.is_active;
-      console.log(`User ${user.name} (${user.role}) - matches ${roleFilter}:`, matches);
+      const roleMatch = user.role === roleFilter;
+      const activeMatch = user.is_active === true;
+      const matches = roleMatch && activeMatch;
+      
+      console.log(`🔍 User ${user.name} (${user.email}) - Role: ${user.role}, Active: ${user.is_active}`, {
+        roleMatch,
+        activeMatch,
+        finalMatch: matches
+      });
+      
       return matches;
     });
     
-    console.log('Filtered users for', roleFilter, ':', filteredUsers);
+    console.log('✅ Final filtered users:', filteredUsers);
+    console.log('📈 Filter summary:', {
+      totalUsers: users.length,
+      targetRole: roleFilter,
+      matchingUsers: filteredUsers.length,
+      userNames: filteredUsers.map(u => u.name)
+    });
+    
     return filteredUsers;
   };
 
   const availableUsers = getAvailableUsers();
 
+  // Log the specific target user we're looking for
+  React.useEffect(() => {
+    const targetUser = users.find(u => u.email === 'quranlight2019@gmail.com');
+    if (targetUser) {
+      console.log('🎯 TARGET USER FOUND:', {
+        email: targetUser.email,
+        name: targetUser.name,
+        role: targetUser.role,
+        is_active: targetUser.is_active,
+        id: targetUser.id,
+        shouldAppearInEditing: targetUser.role === 'editor' && targetUser.is_active === true
+      });
+    } else {
+      console.log('❌ TARGET USER NOT FOUND in users array');
+    }
+  }, [users]);
+
   if (isLoading) {
+    console.log('⏳ JobWorkflowSelector - Loading users...');
     return <div className="text-sm text-gray-500">Loading users...</div>;
   }
 
   if (error) {
-    console.error('Error in JobWorkflowSelector:', error);
+    console.error('💥 JobWorkflowSelector - Error:', error);
     return (
       <div className="text-sm text-red-500">
         <p>Error loading users: {error}</p>
-        <p className="text-xs mt-1">Please check console for details</p>
+        <p className="text-xs mt-1">Check console for detailed logs</p>
       </div>
     );
   }
+
+  console.log('✅ JobWorkflowSelector - Rendering with:', {
+    totalUsers: users.length,
+    availableUsers: availableUsers.length,
+    nextStep,
+    selectedUserId
+  });
 
   return (
     <div className="space-y-4">
@@ -145,16 +205,44 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
             </SelectContent>
           </Select>
           
-          {/* Debug information */}
-          <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-            <p><strong>Debug Info:</strong></p>
-            <p>Total users loaded: {users.length}</p>
-            <p>Looking for role: {nextStep === 'editing' ? 'editor' : 'designer'}</p>
-            <p>Available {nextStep === 'editing' ? 'editors' : 'designers'}: {availableUsers.length}</p>
+          {/* Enhanced Debug Information */}
+          <div className="mt-2 p-3 bg-gray-50 rounded text-xs space-y-1">
+            <p><strong>🔍 Debug Info:</strong></p>
+            <p>Total users loaded: <strong>{users.length}</strong></p>
+            <p>Looking for role: <strong>{nextStep === 'editing' ? 'editor' : 'designer'}</strong></p>
+            <p>Available {nextStep === 'editing' ? 'editors' : 'designers'}: <strong>{availableUsers.length}</strong></p>
+            
+            {/* Show target user status */}
+            {(() => {
+              const targetUser = users.find(u => u.email === 'quranlight2019@gmail.com');
+              return targetUser ? (
+                <div className="mt-2 p-2 bg-blue-50 rounded">
+                  <p><strong>🎯 Target User (quranlight2019@gmail.com):</strong></p>
+                  <p>• Name: {targetUser.name}</p>
+                  <p>• Role: {targetUser.role}</p>
+                  <p>• Active: {targetUser.is_active ? 'Yes' : 'No'}</p>
+                  <p>• Should appear: {targetUser.role === 'editor' && targetUser.is_active ? '✅ Yes' : '❌ No'}</p>
+                </div>
+              ) : (
+                <div className="mt-2 p-2 bg-red-50 rounded">
+                  <p><strong>❌ Target User (quranlight2019@gmail.com) not found in users array</strong></p>
+                </div>
+              );
+            })()}
+            
             {availableUsers.length === 0 && (
-              <p className="text-red-600 mt-1">
-                No active {nextStep === 'editing' ? 'editors' : 'designers'} found in the system
+              <p className="text-red-600 mt-1 font-semibold">
+                ⚠️ No active {nextStep === 'editing' ? 'editors' : 'designers'} found
               </p>
+            )}
+            
+            {availableUsers.length > 0 && (
+              <div className="mt-2">
+                <p><strong>Available users:</strong></p>
+                {availableUsers.map(user => (
+                  <p key={user.id} className="ml-2">• {user.name} ({user.email})</p>
+                ))}
+              </div>
             )}
           </div>
         </div>

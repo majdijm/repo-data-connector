@@ -1,13 +1,14 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsers } from '@/hooks/useUsers';
 
 const UserRoleChecker: React.FC = () => {
   const { userProfile } = useAuth();
+  const { refetch } = useUsers();
   const [email, setEmail] = useState('quranlight2019@gmail.com');
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -58,6 +59,21 @@ const UserRoleChecker: React.FC = () => {
     } catch (err) {
       console.error('💥 Exception fetching all users:', err);
       setResult({ error: 'Exception occurred' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshUsersData = async () => {
+    setLoading(true);
+    try {
+      console.log('🔄 Refreshing users data...');
+      await refetch();
+      setResult({ message: 'Users data refreshed successfully!' });
+      console.log('✅ Users data refreshed');
+    } catch (err) {
+      console.error('💥 Exception refreshing users:', err);
+      setResult({ error: 'Failed to refresh users data' });
     } finally {
       setLoading(false);
     }
@@ -125,6 +141,9 @@ const UserRoleChecker: React.FC = () => {
           <div className="flex gap-2">
             <Button onClick={createEditorUser} disabled={loading} size="sm" variant="destructive">
               {loading ? 'Creating...' : 'Create Editor User'}
+            </Button>
+            <Button onClick={refreshUsersData} disabled={loading} size="sm" variant="secondary">
+              {loading ? 'Refreshing...' : 'Refresh Users Data'}
             </Button>
           </div>
           
