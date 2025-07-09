@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -161,7 +162,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
       {
         title: `${formData.title} - Video Editing`,
         type: 'video_editing',
-        status: 'pending',
+        status: 'waiting_dependency',
         client_id: formData.client_id,
         assigned_to: editor?.id || null,
         due_date: formData.due_date,
@@ -178,7 +179,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
       {
         title: `${formData.title} - Design`,
         type: 'design',
-        status: 'pending',
+        status: 'waiting_dependency',
         client_id: formData.client_id,
         assigned_to: designer?.id || null,
         due_date: formData.due_date,
@@ -231,10 +232,20 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
     e.preventDefault();
     if (!session) return;
 
-    if (!formData.title || !formData.type || !formData.client_id) {
+    if (!formData.title || !formData.client_id) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // For single jobs, type is required. For workflow jobs, it's auto-generated
+    if (jobMode === 'single' && !formData.type) {
+      toast({
+        title: "Error",
+        description: "Please select a job type",
         variant: "destructive"
       });
       return;
@@ -281,71 +292,82 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
         <CardDescription>Enter job details</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Job Type Selector - Always visible at the top */}
           <JobTypeSelector jobMode={jobMode} onJobModeChange={setJobMode} />
           
-          <Input
-            placeholder="Job Title"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            required
-          />
+          {/* Job Title */}
+          <div className="space-y-2">
+            <label htmlFor="title" className="text-sm font-medium">Job Title *</label>
+            <Input
+              id="title"
+              placeholder="Enter job title"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              required
+            />
+          </div>
           
+          {/* Job Type - Only for single jobs */}
           {jobMode === 'single' && (
-            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select job type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="photo_session">Photo Session</SelectItem>
-                <SelectItem value="video_editing">Video Editing</SelectItem>
-                <SelectItem value="design">Design</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-
-          {jobMode === 'workflow' && (
-            <div className="bg-purple-50 p-3 rounded-md">
-              <p className="text-sm text-purple-800">
-                This will create 3 connected jobs: Photo Session → Video Editing → Design
-              </p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Job Type *</label>
+              <Select value={formData.type} onValueChange={(value) => setFormData(prev => ({ ...prev, type: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select job type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="photo_session">Photo Session</SelectItem>
+                  <SelectItem value="video_editing">Video Editing</SelectItem>
+                  <SelectItem value="design">Design</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           )}
 
-          <Select onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select client" />
-            </SelectTrigger>
-            <SelectContent>
-              {clients.map((client) => (
-                <SelectItem key={client.id} value={client.id}>
-                  {client.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {jobMode === 'single' && (
-            <Select onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
+          {/* Client Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Client *</label>
+            <Select value={formData.client_id} onValueChange={(value) => setFormData(prev => ({ ...prev, client_id: value }))}>
               <SelectTrigger>
-                <SelectValue placeholder="Assign to team member" />
+                <SelectValue placeholder="Select client" />
               </SelectTrigger>
               <SelectContent>
-                {teamMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.name} ({member.role})
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Team Member Assignment - Only for single jobs */}
+          {jobMode === 'single' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Assign to Team Member</label>
+              <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Assign to team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name} ({member.role})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
+          {/* Workflow Assignment Info - Only for workflow jobs */}
           {jobMode === 'workflow' && (
-            <div className="bg-blue-50 p-3 rounded-md">
-              <p className="text-sm text-blue-800">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <p className="text-sm text-blue-800 font-medium mb-2">
                 Team members will be automatically assigned based on their roles:
               </p>
-              <ul className="text-sm text-blue-700 mt-1">
+              <ul className="text-sm text-blue-700 space-y-1">
                 <li>• Photo Session → Photographer</li>
                 <li>• Video Editing → Editor</li>
                 <li>• Design → Designer</li>
@@ -353,27 +375,37 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
             </div>
           )}
 
-          <Textarea
-            placeholder="Job Description"
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          />
+          {/* Job Description */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Description</label>
+            <Textarea
+              placeholder="Enter job description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              rows={3}
+            />
+          </div>
 
-          <Input
-            type="date"
-            value={formData.due_date}
-            onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
-          />
+          {/* Due Date */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Due Date</label>
+            <Input
+              type="date"
+              value={formData.due_date}
+              onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+            />
+          </div>
 
           {/* Package Selection */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 checked={formData.package_included}
                 onChange={(e) => setFormData(prev => ({ ...prev, package_included: e.target.checked }))}
+                className="rounded"
               />
-              <span>This job is included in a client package</span>
+              <span className="text-sm font-medium">This job is included in a client package</span>
             </label>
 
             {formData.package_included && clientPackages.length > 0 && (
@@ -395,16 +427,22 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
           </div>
 
           {/* Pricing Section */}
-          <div className="space-y-4 bg-gray-50 p-4 rounded-md">
+          <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
             <h4 className="font-medium">Pricing</h4>
             
             {!formData.package_included && (
-              <Input
-                type="number"
-                placeholder={jobMode === 'workflow' ? "Total Workflow Price" : "Job Price"}
-                value={formData.price}
-                onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {jobMode === 'workflow' ? "Total Workflow Price" : "Job Price"}
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.price}
+                  onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
             )}
 
             {jobMode === 'workflow' && formData.price > 0 && (
@@ -415,26 +453,33 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Input
-                type="number"
-                placeholder="Extra Cost (if any)"
-                value={formData.extra_cost}
-                onChange={(e) => setFormData(prev => ({ ...prev, extra_cost: parseFloat(e.target.value) || 0 }))}
-              />
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Extra Cost (if any)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.extra_cost}
+                  onChange={(e) => setFormData(prev => ({ ...prev, extra_cost: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
               
               {formData.extra_cost > 0 && (
-                <Textarea
-                  placeholder="Reason for extra cost (e.g., model fees, studio rental, special equipment)"
-                  value={formData.extra_cost_reason}
-                  onChange={(e) => setFormData(prev => ({ ...prev, extra_cost_reason: e.target.value }))}
-                  rows={2}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Reason for Extra Cost</label>
+                  <Textarea
+                    placeholder="e.g., model fees, studio rental, special equipment"
+                    value={formData.extra_cost_reason}
+                    onChange={(e) => setFormData(prev => ({ ...prev, extra_cost_reason: e.target.value }))}
+                    rows={2}
+                  />
+                </div>
               )}
             </div>
           </div>
 
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? 'Creating...' : `Create ${jobMode === 'workflow' ? 'Workflow' : 'Job'}`}
           </Button>
         </form>
