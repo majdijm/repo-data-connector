@@ -131,26 +131,23 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
     });
   };
 
-  const createWorkflowJobs = async () => {
+  const createWorkflowJob = async () => {
     if (!formData.client_id) {
       throw new Error('Client must be selected for workflow jobs');
     }
 
-    const photographer = teamMembers.find(m => m.role === 'photographer');
-    const editor = teamMembers.find(m => m.role === 'editor');
-    const designer = teamMembers.find(m => m.role === 'designer');
-
-    // Create the three workflow jobs
-    const workflowJobs = [
-      {
-        title: `${formData.title} - Photo Session`,
-        type: 'photo_session',
+    // Create a single workflow job that will transition through stages
+    const { error } = await supabase
+      .from('jobs')
+      .insert([{
+        title: formData.title,
+        type: 'photo_session', // Start with photo session
         status: 'pending',
         client_id: formData.client_id,
-        assigned_to: photographer?.id || null,
+        assigned_to: formData.assigned_to,
         due_date: formData.due_date,
-        description: `Photo session for ${formData.title}`,
-        price: formData.price / 3, // Divide price equally among workflow stages
+        description: formData.description,
+        price: formData.price,
         package_included: formData.package_included,
         extra_cost: formData.extra_cost,
         extra_cost_reason: formData.extra_cost_reason,
@@ -158,73 +155,13 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
         workflow_stage: 'photo_session',
         workflow_order: 1,
         depends_on_job_id: null
-      },
-      {
-        title: `${formData.title} - Video Editing`,
-        type: 'video_editing',
-        status: 'waiting_dependency',
-        client_id: formData.client_id,
-        assigned_to: editor?.id || null,
-        due_date: formData.due_date,
-        description: `Video editing for ${formData.title}`,
-        price: formData.price / 3,
-        package_included: formData.package_included,
-        extra_cost: 0,
-        extra_cost_reason: null,
-        created_by: session?.user.id,
-        workflow_stage: 'video_editing',
-        workflow_order: 2,
-        depends_on_job_id: null // Will be updated after first job is created
-      },
-      {
-        title: `${formData.title} - Design`,
-        type: 'design',
-        status: 'waiting_dependency',
-        client_id: formData.client_id,
-        assigned_to: designer?.id || null,
-        due_date: formData.due_date,
-        description: `Design work for ${formData.title}`,
-        price: formData.price / 3,
-        package_included: formData.package_included,
-        extra_cost: 0,
-        extra_cost_reason: null,
-        created_by: session?.user.id,
-        workflow_stage: 'design',
-        workflow_order: 3,
-        depends_on_job_id: null // Will be updated after second job is created
-      }
-    ];
+      }]);
 
-    // Insert first job (photo session)
-    const { data: firstJob, error: firstError } = await supabase
-      .from('jobs')
-      .insert([workflowJobs[0]])
-      .select()
-      .single();
-
-    if (firstError) throw firstError;
-
-    // Insert second job (video editing) with dependency on first job
-    workflowJobs[1].depends_on_job_id = firstJob.id;
-    const { data: secondJob, error: secondError } = await supabase
-      .from('jobs')
-      .insert([workflowJobs[1]])
-      .select()
-      .single();
-
-    if (secondError) throw secondError;
-
-    // Insert third job (design) with dependency on second job
-    workflowJobs[2].depends_on_job_id = secondJob.id;
-    const { error: thirdError } = await supabase
-      .from('jobs')
-      .insert([workflowJobs[2]]);
-
-    if (thirdError) throw thirdError;
+    if (error) throw error;
 
     toast({
       title: "Success",
-      description: "Workflow created successfully with 3 connected jobs"
+      description: "Workflow job created successfully - it will progress through photo session, video editing, and design stages"
     });
   };
 
@@ -241,11 +178,21 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
       return;
     }
 
-    // For single jobs, type is required. For workflow jobs, it's auto-generated
+    // For single jobs, type is required. For workflow jobs, it starts with photo_session
     if (jobMode === 'single' && !formData.type) {
       toast({
         title: "Error",
         description: "Please select a job type",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // For workflow jobs, require assignment
+    if (jobMode === 'workflow' && !formData.assigned_to) {
+      toast({
+        title: "Error",
+        description: "Please assign the workflow to a team member (starting with photographer)",
         variant: "destructive"
       });
       return;
@@ -256,7 +203,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
       if (jobMode === 'single') {
         await createSingleJob();
       } else {
-        await createWorkflowJobs();
+        await createWorkflowJob();
       }
 
       setFormData({
@@ -342,35 +289,36 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
             </Select>
           </div>
 
-          {/* Team Member Assignment - Only for single jobs */}
-          {jobMode === 'single' && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Assign to Team Member</label>
-              <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Assign to team member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>
-                      {member.name} ({member.role})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Team Member Assignment */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              {jobMode === 'workflow' ? 'Assign to Team Member (Starting Role) *' : 'Assign to Team Member'}
+            </label>
+            <Select value={formData.assigned_to} onValueChange={(value) => setFormData(prev => ({ ...prev, assigned_to: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder={jobMode === 'workflow' ? "Select starting team member (photographer recommended)" : "Assign to team member"} />
+              </SelectTrigger>
+              <SelectContent>
+                {teamMembers.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.name} ({member.role})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Workflow Assignment Info - Only for workflow jobs */}
           {jobMode === 'workflow' && (
             <div className="bg-blue-50 p-4 rounded-lg">
               <p className="text-sm text-blue-800 font-medium mb-2">
-                Team members will be automatically assigned based on their roles:
+                Workflow Process:
               </p>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Photo Session → Photographer</li>
-                <li>• Video Editing → Editor</li>
-                <li>• Design → Designer</li>
+                <li>• Job starts with Photo Session stage</li>
+                <li>• After completion, transitions to Video Editing</li>
+                <li>• Finally moves to Design & Delivery</li>
+                <li>• Team members can reassign during transitions</li>
               </ul>
             </div>
           )}
@@ -445,14 +393,6 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
               </div>
             )}
 
-            {jobMode === 'workflow' && formData.price > 0 && (
-              <div className="bg-purple-50 p-3 rounded-md">
-                <p className="text-sm text-purple-800">
-                  Price will be divided equally among the 3 workflow stages: ${(formData.price / 3).toFixed(2)} each
-                </p>
-              </div>
-            )}
-
             <div className="space-y-3">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Extra Cost (if any)</label>
@@ -480,7 +420,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
           </div>
 
           <Button type="submit" disabled={isLoading} className="w-full">
-            {isLoading ? 'Creating...' : `Create ${jobMode === 'workflow' ? 'Workflow' : 'Job'}`}
+            {isLoading ? 'Creating...' : `Create ${jobMode === 'workflow' ? 'Workflow Job' : 'Job'}`}
           </Button>
         </form>
       </CardContent>

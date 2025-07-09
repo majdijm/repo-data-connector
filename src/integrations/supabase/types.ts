@@ -417,60 +417,72 @@ export type Database = {
           client_id: string | null
           created_at: string | null
           created_by: string | null
+          current_workflow_stage: string | null
           depends_on_job_id: string | null
           description: string | null
           due_date: string | null
           extra_cost: number | null
           extra_cost_reason: string | null
           id: string
+          original_assigned_to: string | null
           package_included: boolean | null
           price: number | null
           status: string
           title: string
           type: string
           updated_at: string | null
+          workflow_history: Json | null
           workflow_order: number | null
           workflow_stage: string | null
+          workflow_stages: Json | null
         }
         Insert: {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_workflow_stage?: string | null
           depends_on_job_id?: string | null
           description?: string | null
           due_date?: string | null
           extra_cost?: number | null
           extra_cost_reason?: string | null
           id?: string
+          original_assigned_to?: string | null
           package_included?: boolean | null
           price?: number | null
           status: string
           title: string
           type: string
           updated_at?: string | null
+          workflow_history?: Json | null
           workflow_order?: number | null
           workflow_stage?: string | null
+          workflow_stages?: Json | null
         }
         Update: {
           assigned_to?: string | null
           client_id?: string | null
           created_at?: string | null
           created_by?: string | null
+          current_workflow_stage?: string | null
           depends_on_job_id?: string | null
           description?: string | null
           due_date?: string | null
           extra_cost?: number | null
           extra_cost_reason?: string | null
           id?: string
+          original_assigned_to?: string | null
           package_included?: boolean | null
           price?: number | null
           status?: string
           title?: string
           type?: string
           updated_at?: string | null
+          workflow_history?: Json | null
           workflow_order?: number | null
           workflow_stage?: string | null
+          workflow_stages?: Json | null
         }
         Relationships: [
           {
@@ -499,6 +511,13 @@ export type Database = {
             columns: ["depends_on_job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_original_assigned_to_fkey"
+            columns: ["original_assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -770,8 +789,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      initialize_job_workflow: {
+        Args: { job_id: string; stages: Json }
+        Returns: undefined
+      }
       update_job_workflow: {
         Args: { job_id: string; new_status: string; new_assigned_to: string }
+        Returns: undefined
+      }
+      update_job_workflow_stage: {
+        Args: {
+          job_id: string
+          new_stage: string
+          new_assigned_to: string
+          stage_notes?: string
+        }
         Returns: undefined
       }
     }
