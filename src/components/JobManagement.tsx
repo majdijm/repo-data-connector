@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from '@/hooks/useTranslation';
 import { 
   Plus, 
   Calendar, 
@@ -76,6 +77,7 @@ const JobManagement = () => {
   const { userProfile, user } = useAuth();
   const roleAccess = useRoleAccess();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -134,8 +136,8 @@ const JobManagement = () => {
       if (jobsError) {
         console.error('❌ Jobs query error:', jobsError);
         toast({
-          title: "Error",
-          description: `Failed to fetch jobs: ${jobsError.message}`,
+          title: t('error'),
+          description: `${t('failedToFetchJobs')}: ${jobsError.message}`,
           variant: "destructive"
         });
         throw jobsError;
@@ -177,6 +179,8 @@ const JobManagement = () => {
         
         return {
           ...job,
+          next_step: job.next_step || null,
+          photographer_notes: job.photographer_notes || null,
           clients: client ? { name: client.name, email: client.email } : undefined,
           users: assignedUser ? { name: assignedUser.name } : null
         };
@@ -186,15 +190,15 @@ const JobManagement = () => {
       setJobs(transformedJobs);
       
       toast({
-        title: "Success",
-        description: `Loaded ${transformedJobs.length} jobs`
+        title: t('success'),
+        description: `${t('loaded')} ${transformedJobs.length} ${t('jobs')}`
       });
       
     } catch (error) {
       console.error('💥 Error fetching jobs:', error);
       toast({
-        title: "Error",
-        description: `Failed to fetch jobs: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        title: t('error'),
+        description: `${t('failedToFetchJobs')}: ${error instanceof Error ? error.message : t('unknownError')}`,
         variant: "destructive"
       });
       setJobs([]);
@@ -246,7 +250,7 @@ const JobManagement = () => {
   };
 
   const handleDeleteJob = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this job?')) return;
+    if (!confirm(t('confirmDeleteJob'))) return;
 
     try {
       const { error } = await supabase
@@ -257,15 +261,15 @@ const JobManagement = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Job deleted successfully"
+        title: t('success'),
+        description: t('jobDeletedSuccessfully')
       });
       fetchJobs();
     } catch (error) {
       console.error('Error deleting job:', error);
       toast({
-        title: "Error",
-        description: "Failed to delete job",
+        title: t('error'),
+        description: t('failedToDeleteJob'),
         variant: "destructive"
       });
     }
@@ -281,15 +285,15 @@ const JobManagement = () => {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Job status updated successfully"
+        title: t('success'),
+        description: t('jobStatusUpdatedSuccessfully')
       });
       fetchJobs();
     } catch (error) {
       console.error('Error updating job status:', error);
       toast({
-        title: "Error",
-        description: "Failed to update job status",
+        title: t('error'),
+        description: t('failedToUpdateJobStatus'),
         variant: "destructive"
       });
     }
@@ -297,12 +301,12 @@ const JobManagement = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'review': return 'bg-purple-100 text-purple-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'delivered': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      case 'in_progress': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      case 'review': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'delivered': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
@@ -329,7 +333,7 @@ const JobManagement = () => {
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600">You don't have permission to view jobs.</p>
+        <p className="text-gray-600">{t('noPermissionToViewJobs')}</p>
       </div>
     );
   }
@@ -337,8 +341,8 @@ const JobManagement = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading jobs...</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2 rtl:mr-2 rtl:ml-0">{t('loadingJobs')}</span>
       </div>
     );
   }
@@ -346,20 +350,20 @@ const JobManagement = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          {isTeamMemberValue ? 'My Jobs' : 'Job Management'}
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          {isTeamMemberValue ? t('myJobs') : t('jobManagement')}
         </h2>
         {canManageJobsValue && (
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Job
+              <Button className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg hover:shadow-xl transition-all duration-300">
+                <Plus className="h-4 w-4 mr-2 rtl:mr-0 rtl:ml-2" />
+                {t('createJob')}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Job</DialogTitle>
+                <DialogTitle>{t('createNewJob')}</DialogTitle>
               </DialogHeader>
               <JobForm onJobAdded={handleJobCreated} />
             </DialogContent>
@@ -368,42 +372,47 @@ const JobManagement = () => {
       </div>
 
       {jobs.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">
-              {isTeamMemberValue ? 'No jobs assigned to you yet.' : 'No jobs created yet.'}
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-card via-card/50 to-muted/30">
+          <CardContent className="text-center py-12">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-primary/20 to-purple-600/20 rounded-full flex items-center justify-center">
+              <AlertCircle className="h-10 w-10 text-primary" />
+            </div>
+            <p className="text-muted-foreground text-lg">
+              {isTeamMemberValue ? t('noJobsAssignedYet') : t('noJobsCreatedYet')}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {jobs.map((job) => (
-            <Card key={job.id} className="overflow-hidden">
-              <CardHeader className="pb-3">
+            <Card key={job.id} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card via-card/80 to-muted/20">
+              <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-purple-600/5">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {getTypeIcon(job.type)}
+                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div className="p-2 bg-gradient-to-br from-primary/20 to-purple-600/20 rounded-lg">
+                      {getTypeIcon(job.type)}
+                    </div>
                     <div>
-                      <CardTitle className="text-lg">{job.title}</CardTitle>
-                      <p className="text-sm text-gray-600">
-                        Client: {job.clients?.name || 'Unknown'}
+                      <CardTitle className="text-lg bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">{job.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {t('client')}: {job.clients?.name || t('unknown')}
                       </p>
                       {job.workflow_stage && (
-                        <p className="text-xs text-purple-600">
-                          Workflow: {job.workflow_stage} (Step {job.workflow_order})
+                        <p className="text-xs text-purple-600 dark:text-purple-400">
+                          {t('workflow')}: {job.workflow_stage} ({t('step')} {job.workflow_order})
                         </p>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Badge className={getStatusColor(job.status)}>
-                      {job.status.replace('_', ' ')}
+                      {t(job.status.replace('_', ''))}
                     </Badge>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleJobExpansion(job.id)}
+                      className="hover:bg-primary/10"
                     >
                       {expandedJobs.has(job.id) ? (
                         <ChevronUp className="h-4 w-4" />
@@ -418,37 +427,37 @@ const JobManagement = () => {
               {expandedJobs.has(job.id) && (
                 <CardContent className="pt-0">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <User className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-3 rounded-lg">
+                      <User className="h-4 w-4 text-blue-600" />
                       <span className="text-sm">
-                        Assigned: {job.users?.name || 'Unassigned'}
+                        {t('assigned')}: {job.users?.name || t('unassigned')}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-3 rounded-lg">
+                      <Calendar className="h-4 w-4 text-green-600" />
                       <span className="text-sm">
-                        Due: {job.due_date ? new Date(job.due_date).toLocaleDateString() : 'No due date'}
+                        {t('due')}: {job.due_date ? new Date(job.due_date).toLocaleDateString() : t('noDueDate')}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <DollarSign className="h-4 w-4 text-gray-400" />
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 p-3 rounded-lg">
+                      <DollarSign className="h-4 w-4 text-yellow-600" />
                       <span className="text-sm">
-                        Price: ${job.price}
+                        {t('price')}: ${job.price}
                       </span>
                     </div>
                   </div>
 
                   {job.description && (
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Description</h4>
-                      <p className="text-sm text-gray-600">{job.description}</p>
+                    <div className="mb-4 p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                      <h4 className="font-semibold mb-2 text-primary">{t('description')}</h4>
+                      <p className="text-sm text-muted-foreground">{job.description}</p>
                     </div>
                   )}
 
                   {canManageJobsValue && (
-                    <div className="flex items-center space-x-2 mb-4">
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse mb-4">
                       <Label htmlFor={`status-${job.id}`} className="text-sm font-medium">
-                        Status:
+                        {t('status')}:
                       </Label>
                       <Select
                         value={job.status}
@@ -458,18 +467,18 @@ const JobManagement = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="review">Review</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
+                          <SelectItem value="pending">{t('pending')}</SelectItem>
+                          <SelectItem value="in_progress">{t('inProgress')}</SelectItem>
+                          <SelectItem value="review">{t('review')}</SelectItem>
+                          <SelectItem value="completed">{t('completed')}</SelectItem>
+                          <SelectItem value="delivered">{t('delivered')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   )}
 
                   {canManageJobsValue && (
-                    <div className="flex space-x-2 mb-4">
+                    <div className="flex space-x-2 rtl:space-x-reverse mb-4">
                       <Button
                         variant="outline"
                         size="sm"
@@ -477,18 +486,19 @@ const JobManagement = () => {
                           setSelectedJob(job);
                           setIsEditDialogOpen(true);
                         }}
+                        className="hover:bg-primary/10 hover:border-primary/50"
                       >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
+                        <Edit className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+                        {t('edit')}
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleDeleteJob(job.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/50"
                       >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
+                        <Trash2 className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+                        {t('delete')}
                       </Button>
                     </div>
                   )}
@@ -503,35 +513,19 @@ const JobManagement = () => {
                   {/* Job Files Display */}
                   <JobFilesDisplay jobId={job.id} />
 
-                  {/* Job Completion Actions - Show workflow actions for photographers on workflow jobs */}
+                  {/* Job Completion Actions */}
                   {(() => {
                     const isWorkflowJob = job.workflow_stage && job.workflow_order;
                     const isAssignedToUser = job.assigned_to === user?.id;
                     const canCompleteJob = isTeamMemberValue && isAssignedToUser && 
                                          ['pending', 'in_progress', 'review'].includes(job.status);
                     
-                    console.log('Job Completion Check:', {
-                      jobId: job.id,
-                      jobTitle: job.title,
-                      isWorkflowJob,
-                      workflowStage: job.workflow_stage,
-                      workflowOrder: job.workflow_order,
-                      userRole: userProfile?.role,
-                      userId: user?.id,
-                      jobAssignedTo: job.assigned_to,
-                      isAssignedToUser,
-                      jobStatus: job.status,
-                      canCompleteJob
-                    });
-
                     if (!canCompleteJob) {
-                      console.log('❌ Cannot complete job - user not assigned or wrong status');
                       return null;
                     }
 
                     // Show workflow actions for workflow jobs assigned to photographers
                     if (isWorkflowJob && userProfile?.role === 'photographer') {
-                      console.log('✅ Showing JobWorkflowActions for photographer');
                       return (
                         <JobWorkflowActions 
                           job={job} 
@@ -542,7 +536,6 @@ const JobManagement = () => {
 
                     // Show simple completion actions for regular jobs or non-photographer roles
                     if (!isWorkflowJob || userProfile?.role !== 'photographer') {
-                      console.log('✅ Showing JobCompletionActions for regular job or non-photographer');
                       return (
                         <JobCompletionActions 
                           job={job} 
@@ -551,7 +544,6 @@ const JobManagement = () => {
                       );
                     }
 
-                    console.log('❌ No completion actions to show');
                     return null;
                   })()}
 
@@ -572,7 +564,7 @@ const JobManagement = () => {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Job</DialogTitle>
+            <DialogTitle>{t('editJob')}</DialogTitle>
           </DialogHeader>
           {selectedJob && (
             <JobForm onJobAdded={handleJobUpdated} />

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +18,10 @@ import {
   CreditCard,
   Files,
   Calculator,
-  CheckSquare
+  CheckSquare,
+  Palette,
+  Camera,
+  Sparkles
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -96,74 +100,126 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="w-64 flex-shrink-0 border-r bg-gray-50 dark:bg-gray-900 dark:border-gray-800">
-      <div className="h-full px-3 py-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-        <div className="flex items-center space-x-2 rtl:space-x-reverse mb-6">
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>{userProfile?.name?.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
+    <div className="w-64 flex-shrink-0 border-r bg-card/50 backdrop-blur-xl">
+      <div className="h-full px-3 py-4 overflow-y-auto">
+        
+        {/* Creative Studio Branding */}
+        <div className="flex items-center space-x-3 rtl:space-x-reverse mb-6 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg">
+          <div className="p-2 bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg">
+            <Sparkles className="h-6 w-6 text-primary" />
+          </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{userProfile?.name}</h2>
-            <Badge variant="secondary">{userProfile?.role}</Badge>
+            <h2 className="text-sm font-bold text-gradient">{t('creativeStudio')}</h2>
+            <p className="text-xs text-muted-foreground">{t('digitalDesign')}</p>
           </div>
         </div>
-        <ul className="space-y-2 mb-8">
+
+        {/* User Profile Section */}
+        <div className="flex items-center space-x-2 rtl:space-x-reverse mb-6 p-3 bg-gradient-to-r from-muted/50 to-accent/5 rounded-lg">
+          <Avatar className="h-9 w-9 ring-2 ring-primary/20">
+            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-accent/20 text-primary font-semibold">
+              {userProfile?.name?.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">{userProfile?.name}</h2>
+            <Badge variant="secondary" className="text-xs bg-gradient-to-r from-primary/10 to-accent/10 text-primary border-primary/20">
+              {userProfile?.role}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Main Navigation */}
+        <div className="space-y-1 mb-8">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-3">
+            {t('navigation')}
+          </h3>
           {navigationItems.map((item) => (
             item.show && (
-              <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                >
-                  <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
-                </Link>
-              </li>
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  location.pathname === item.href 
+                    ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary shadow-lg border border-primary/20' 
+                    : 'text-muted-foreground hover:bg-gradient-to-r hover:from-muted/50 hover:to-accent/5 hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3" />
+                <span>{item.name}</span>
+                {location.pathname === item.href && (
+                  <div className="w-2 h-2 bg-primary rounded-full ml-auto rtl:ml-0 rtl:mr-auto animate-pulse"></div>
+                )}
+              </Link>
             )
           ))}
-        </ul>
+        </div>
 
+        {/* Admin Menu */}
         {adminMenuItems.some(item => item.show) && (
-          <>
-            <span className="font-medium text-gray-700 dark:text-gray-400 px-3">{t('management')}</span>
-            <ul className="space-y-2 mb-8">
-              {adminMenuItems.map((item) => (
-                item.show && (
-                  <li key={item.name}>
-                    <Link
-                      to={item.href}
-                      className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                    >
-                      <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
-                    </Link>
-                  </li>
-                )
-              ))}
-            </ul>
-          </>
+          <div className="space-y-1 mb-8">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-3">
+              {t('management')}
+            </h3>
+            {adminMenuItems.map((item) => (
+              item.show && (
+                <Link
+                  key={item.name}
+                  to={item.href}
+                  className={`flex items-center p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    location.pathname === item.href 
+                      ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary shadow-lg border border-primary/20' 
+                      : 'text-muted-foreground hover:bg-gradient-to-r hover:from-muted/50 hover:to-accent/5 hover:text-foreground'
+                  }`}
+                >
+                  <item.icon className="w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3" />
+                  <span>{item.name}</span>
+                  {location.pathname === item.href && (
+                    <div className="w-2 h-2 bg-primary rounded-full ml-auto rtl:ml-0 rtl:mr-auto animate-pulse"></div>
+                  )}
+                </Link>
+              )
+            ))}
+          </div>
         )}
 
-        <span className="font-medium text-gray-700 dark:text-gray-400 px-3">{t('settings')}</span>
-        <ul className="space-y-2">
+        {/* Settings */}
+        <div className="space-y-1 mb-8">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-3">
+            {t('settings')}
+          </h3>
           {settingsItems.map((item) => (
             item.show && (
-              <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 ${location.pathname === item.href ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                >
-                  <item.icon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                  <span className="ml-3 rtl:mr-3 rtl:ml-0">{item.name}</span>
-                </Link>
-              </li>
+              <Link
+                key={item.name}
+                to={item.href}
+                className={`flex items-center p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  location.pathname === item.href 
+                    ? 'bg-gradient-to-r from-primary/20 to-accent/20 text-primary shadow-lg border border-primary/20' 
+                    : 'text-muted-foreground hover:bg-gradient-to-r hover:from-muted/50 hover:to-accent/5 hover:text-foreground'
+                }`}
+              >
+                <item.icon className="w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3" />
+                <span>{item.name}</span>
+                {location.pathname === item.href && (
+                  <div className="w-2 h-2 bg-primary rounded-full ml-auto rtl:ml-0 rtl:mr-auto animate-pulse"></div>
+                )}
+              </Link>
             )
           ))}
-        </ul>
-        <Button variant="ghost" className="w-full justify-start mt-4" onClick={() => signOut()}>
-          <LogOut className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
-          {t('signOut')}
-        </Button>
+        </div>
+
+        {/* Sign Out Button */}
+        <div className="mt-auto pt-4 border-t border-border/50">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 p-3" 
+            onClick={() => signOut()}
+          >
+            <LogOut className="w-4 h-4 mr-2 rtl:mr-0 rtl:ml-2" />
+            {t('signOut')}
+          </Button>
+        </div>
       </div>
     </div>
   );
