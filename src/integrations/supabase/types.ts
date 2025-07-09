@@ -770,6 +770,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      update_job_workflow: {
+        Args: { job_id: string; new_status: string; new_assigned_to: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
