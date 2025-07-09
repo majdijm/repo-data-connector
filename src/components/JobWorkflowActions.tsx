@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -198,23 +197,80 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newAssignedTo 
       });
 
-      // First, get the current user's auth session to verify they're authenticated
+      // Get current session and user info for detailed debugging
       const { data: session } = await supabase.auth.getSession();
-      console.log('🔐 Current session:', session?.session?.user?.id);
+      console.log('🔐 Current session debug:', {
+        sessionExists: !!session?.session,
+        userId: session?.session?.user?.id,
+        userEmail: session?.session?.user?.email,
+        userProfileId: userProfile?.id,
+        userProfileRole: userProfile?.role,
+        sessionMatches: session?.session?.user?.id === userProfile?.id
+      });
 
-      // Update job status and assignment with more specific error handling
+      // Test the get_current_user_role function directly
+      console.log('🧪 Testing get_current_user_role function...');
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_current_user_role');
+      
+      console.log('🧪 Role function result:', { roleData, roleError });
+
+      // Test if we can read the current job
+      console.log('🧪 Testing job read access...');
+      const { data: currentJobTest, error: readError } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('id', job.id)
+        .single();
+      
+      console.log('🧪 Job read test result:', { 
+        success: !readError, 
+        error: readError?.message,
+        jobExists: !!currentJobTest,
+        jobAssignedTo: currentJobTest?.assigned_to,
+        authUserMatches: currentJobTest?.assigned_to === session?.session?.user?.id
+      });
+
+      // Try a minimal update first to test the policy
+      console.log('🧪 Testing minimal update (just updated_at)...');
+      const { data: minimalUpdateTest, error: minimalError } = await supabase
+        .from('jobs')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', job.id)
+        .select()
+        .single();
+      
+      console.log('🧪 Minimal update test result:', { 
+        success: !minimalError, 
+        error: minimalError?.message,
+        errorCode: minimalError?.code,
+        data: minimalUpdateTest
+      });
+
+      if (minimalError) {
+        console.error('❌ Even minimal update failed. This is definitely an RLS policy issue.');
+        console.error('❌ RLS Policy Debug Info:', {
+          errorCode: minimalError.code,
+          errorMessage: minimalError.message,
+          currentUser: session?.session?.user?.id,
+          jobAssignedTo: job.assigned_to,
+          userRole: userProfile?.role,
+          roleFromFunction: roleData
+        });
+        throw new Error(`RLS Policy Issue: ${minimalError.message}`);
+      }
+
+      // If minimal update succeeded, try the full update
+      console.log('✅ Minimal update succeeded, proceeding with full update...');
+      
       const updateData = {
         status: newStatus,
         assigned_to: newAssignedTo,
         updated_at: new Date().toISOString()
       };
       
-      console.log('🔄 Executing database update with data:', updateData);
-      console.log('🔒 Current user auth ID:', session?.session?.user?.id);
-      console.log('👤 User profile ID:', userProfile?.id);
-      console.log('🎭 User role:', userProfile?.role);
+      console.log('🔄 Executing full database update with data:', updateData);
       
-      // Try the update with more specific error catching
       const { data: updatedJob, error: jobError } = await supabase
         .from('jobs')
         .update(updateData)
@@ -231,37 +287,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         console.error('❌ Error details:', jobError.details);
         console.error('❌ Error hint:', jobError.hint);
         
-        // Log the exact policy that's failing
-        if (jobError.code === '42501') {
-          console.error('❌ RLS Policy violation detected');
-          console.error('📝 Checking current job data for policy evaluation...');
-          
-          // Get the current job data to see what the policy is evaluating
-          const { data: currentJob } = await supabase
-            .from('jobs')
-            .select('*')
-            .eq('id', job.id)
-            .single();
-          
-          console.error('📊 Current job in DB:', currentJob);
-          console.error('🔍 Policy evaluation context:', {
-            currentJobAssignedTo: currentJob?.assigned_to,
-            authUid: session?.session?.user?.id,
-            userRole: userProfile?.role,
-            workflowStage: currentJob?.workflow_stage,
-            isWorkflowJob: currentJob?.workflow_stage !== null
-          });
-        }
-        
-        // Provide specific error message based on error type
-        let errorMessage = 'Failed to update job workflow';
-        if (jobError.code === '42501') {
-          errorMessage = 'Permission denied: RLS policy is blocking this update. Check job assignment and user role.';
-        } else if (jobError.message) {
-          errorMessage = `Database error: ${jobError.message}`;
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error(`Database error: ${jobError.message}`);
       }
 
       if (!updatedJob) {
