@@ -198,6 +198,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         newAssignedTo 
       });
 
+      // First, get the current user's auth session to verify they're authenticated
+      const { data: session } = await supabase.auth.getSession();
+      console.log('🔐 Current session:', session?.session?.user?.id);
+
       // Update job status and assignment with more specific error handling
       const updateData = {
         status: newStatus,
@@ -206,6 +210,9 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       };
       
       console.log('🔄 Executing database update with data:', updateData);
+      console.log('🔒 Current user auth ID:', session?.session?.user?.id);
+      console.log('👤 User profile ID:', userProfile?.id);
+      console.log('🎭 User role:', userProfile?.role);
       
       // Try the update with more specific error catching
       const { data: updatedJob, error: jobError } = await supabase
@@ -224,10 +231,32 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         console.error('❌ Error details:', jobError.details);
         console.error('❌ Error hint:', jobError.hint);
         
+        // Log the exact policy that's failing
+        if (jobError.code === '42501') {
+          console.error('❌ RLS Policy violation detected');
+          console.error('📝 Checking current job data for policy evaluation...');
+          
+          // Get the current job data to see what the policy is evaluating
+          const { data: currentJob } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('id', job.id)
+            .single();
+          
+          console.error('📊 Current job in DB:', currentJob);
+          console.error('🔍 Policy evaluation context:', {
+            currentJobAssignedTo: currentJob?.assigned_to,
+            authUid: session?.session?.user?.id,
+            userRole: userProfile?.role,
+            workflowStage: currentJob?.workflow_stage,
+            isWorkflowJob: currentJob?.workflow_stage !== null
+          });
+        }
+        
         // Provide specific error message based on error type
         let errorMessage = 'Failed to update job workflow';
         if (jobError.code === '42501') {
-          errorMessage = 'Permission denied: You may not have permission to update this job';
+          errorMessage = 'Permission denied: RLS policy is blocking this update. Check job assignment and user role.';
         } else if (jobError.message) {
           errorMessage = `Database error: ${jobError.message}`;
         }
