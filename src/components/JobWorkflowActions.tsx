@@ -39,7 +39,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if this is a workflow job
-  const isWorkflowJob = job.workflow_stage && job.workflow_order;
+  const isWorkflowJob = Boolean(job.workflow_stage && job.workflow_order);
   
   // Check if user can update workflow - must be the assigned photographer for workflow jobs
   const canUpdateWorkflow = userProfile?.role === 'photographer' && 
@@ -47,7 +47,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
                            ['pending', 'in_progress', 'review'].includes(job.status) &&
                            isWorkflowJob;
 
-  console.log('JobWorkflowActions Debug:', {
+  console.log('🔍 JobWorkflowActions Debug:', {
+    componentName: 'JobWorkflowActions',
     userRole: userProfile?.role,
     userId: userProfile?.id,
     jobAssignedTo: job.assigned_to,
@@ -56,7 +57,12 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
     workflowOrder: job.workflow_order,
     isWorkflowJob,
     canUpdateWorkflow,
-    allowedStatuses: ['pending', 'in_progress', 'review']
+    allowedStatuses: ['pending', 'in_progress', 'review'],
+    jobDetails: {
+      id: job.id,
+      title: job.title,
+      type: job.type
+    }
   });
 
   // Don't render if this is not a workflow job

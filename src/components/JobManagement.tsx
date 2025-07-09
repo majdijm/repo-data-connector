@@ -365,7 +365,7 @@ const JobManagement = () => {
                 Create Job
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Job</DialogTitle>
               </DialogHeader>
@@ -401,6 +401,11 @@ const JobManagement = () => {
                       <p className="text-sm text-gray-600">
                         Client: {job.clients?.name || 'Unknown'}
                       </p>
+                      {job.workflow_stage && (
+                        <p className="text-xs text-purple-600">
+                          Workflow: {job.workflow_stage} (Step {job.workflow_order})
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -510,7 +515,7 @@ const JobManagement = () => {
                   {/* Job Files Display */}
                   <JobFilesDisplay jobId={job.id} />
 
-                  {/* Job Completion Actions - Updated logic to show correct component */}
+                  {/* Job Completion Actions - Show workflow actions for photographers on workflow jobs */}
                   {(() => {
                     const isWorkflowJob = job.workflow_stage && job.workflow_order;
                     const isAssignedToUser = job.assigned_to === userProfile?.id;
@@ -532,11 +537,13 @@ const JobManagement = () => {
                     });
 
                     if (!canCompleteJob) {
+                      console.log('❌ Cannot complete job - user not assigned or wrong status');
                       return null;
                     }
 
                     // Show workflow actions for workflow jobs assigned to photographers
                     if (isWorkflowJob && userProfile?.role === 'photographer') {
+                      console.log('✅ Showing JobWorkflowActions for photographer');
                       return (
                         <JobWorkflowActions 
                           job={job} 
@@ -547,6 +554,7 @@ const JobManagement = () => {
 
                     // Show simple completion actions for regular jobs or non-photographer roles
                     if (!isWorkflowJob || userProfile?.role !== 'photographer') {
+                      console.log('✅ Showing JobCompletionActions for regular job or non-photographer');
                       return (
                         <JobCompletionActions 
                           job={job} 
@@ -555,6 +563,7 @@ const JobManagement = () => {
                       );
                     }
 
+                    console.log('❌ No completion actions to show');
                     return null;
                   })()}
 
@@ -573,7 +582,7 @@ const JobManagement = () => {
 
       {/* Edit Job Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Job</DialogTitle>
           </DialogHeader>
