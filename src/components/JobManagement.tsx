@@ -191,7 +191,7 @@ const JobManagement = () => {
       
       toast({
         title: t('success'),
-        description: `${t('loaded')} ${transformedJobs.length} ${t('jobs')}`
+        description: `${t('loaded')} ${transformedJobs.length} ${t('jobsCount')}`
       });
       
     } catch (error) {

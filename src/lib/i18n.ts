@@ -1,4 +1,6 @@
 
+export type Language = 'en' | 'ar';
+
 export interface TranslationKeys {
   // Navigation
   navigation: string;
@@ -42,7 +44,7 @@ export interface TranslationKeys {
   noJobsCreatedYet: string;
   noPermissionToViewJobs: string;
   failedToFetchJobs: string;
-  jobs: string;
+  jobsCount: string;
   loaded: string;
   
   // Job details
@@ -103,7 +105,9 @@ export interface TranslationKeys {
   type: string;
 }
 
-export const translations: Record<string, TranslationKeys> = {
+export type TranslationKey = keyof TranslationKeys;
+
+export const translations: Record<Language, TranslationKeys> = {
   en: {
     // Navigation
     navigation: "Navigation",
@@ -147,7 +151,7 @@ export const translations: Record<string, TranslationKeys> = {
     noJobsCreatedYet: "No jobs created yet",
     noPermissionToViewJobs: "You don't have permission to view jobs",
     failedToFetchJobs: "Failed to fetch jobs",
-    jobs: "jobs",
+    jobsCount: "jobs",
     loaded: "Loaded",
     
     // Job details
@@ -250,7 +254,7 @@ export const translations: Record<string, TranslationKeys> = {
     noJobsCreatedYet: "لم يتم إنشاء أي مشاريع حتى الآن",
     noPermissionToViewJobs: "ليس لديك صلاحية لعرض المشاريع",
     failedToFetchJobs: "فشل في جلب المشاريع",
-    jobs: "مشاريع",
+    jobsCount: "مشاريع",
     loaded: "تم التحميل",
     
     // Job details
@@ -310,4 +314,12 @@ export const translations: Record<string, TranslationKeys> = {
     createdDate: "تاريخ الإنشاء",
     type: "النوع",
   }
+};
+
+export const isRTL = (language: Language): boolean => {
+  return language === 'ar';
+};
+
+export const getTranslation = (key: TranslationKey, language: Language): string => {
+  return translations[language][key] || translations.en[key] || key;
 };
