@@ -1,4 +1,5 @@
 
+
 export type Language = 'en' | 'ar';
 
 export interface TranslationKeys {
@@ -103,6 +104,37 @@ export interface TranslationKeys {
   contactUsToStart: string;
   createdDate: string;
   type: string;
+
+  // Creative Studio specific
+  creativeStudio: string;
+  digitalDesign: string;
+  innovation: string;
+  creativity: string;
+  inspiration: string;
+
+  // Calendar specific
+  calendarView: string;
+  datesWithTasks: string;
+  selectDate: string;
+  noTasksScheduled: string;
+  scheduledTasks: string;
+  taskScheduling: string;
+  viewDetails: string;
+
+  // Language
+  english: string;
+  arabic: string;
+  languageSettings: string;
+  selectLanguage: string;
+
+  // Profile
+  profileInformation: string;
+  name: string;
+  email: string;
+  role: string;
+
+  // Task status
+  inProgress: string;
 }
 
 export type TranslationKey = keyof TranslationKeys;
@@ -210,6 +242,37 @@ export const translations: Record<Language, TranslationKeys> = {
     contactUsToStart: "Contact us to start your first project!",
     createdDate: "Created",
     type: "Type",
+
+    // Creative Studio specific
+    creativeStudio: "Creative Studio",
+    digitalDesign: "Digital Design",
+    innovation: "Innovation",
+    creativity: "Creativity",
+    inspiration: "Inspiration",
+
+    // Calendar specific
+    calendarView: "Calendar View",
+    datesWithTasks: "Dates with Tasks",
+    selectDate: "Select Date",
+    noTasksScheduled: "No Tasks Scheduled",
+    scheduledTasks: "Scheduled Tasks",
+    taskScheduling: "Task Scheduling",
+    viewDetails: "View Details",
+
+    // Language
+    english: "English",
+    arabic: "Arabic",
+    languageSettings: "Language Settings",
+    selectLanguage: "Select Language",
+
+    // Profile
+    profileInformation: "Profile Information",
+    name: "Name",
+    email: "Email",
+    role: "Role",
+
+    // Task status
+    inProgress: "In Progress",
   },
   ar: {
     // Navigation
@@ -313,6 +376,37 @@ export const translations: Record<Language, TranslationKeys> = {
     contactUsToStart: "اتصل بنا لبدء مشروعك الأول!",
     createdDate: "تاريخ الإنشاء",
     type: "النوع",
+
+    // Creative Studio specific
+    creativeStudio: "الاستوديو الإبداعي",
+    digitalDesign: "التصميم الرقمي",
+    innovation: "الابتكار",
+    creativity: "الإبداع",
+    inspiration: "الإلهام",
+
+    // Calendar specific
+    calendarView: "عرض التقويم",
+    datesWithTasks: "التواريخ التي تحتوي على مهام",
+    selectDate: "اختر التاريخ",
+    noTasksScheduled: "لا توجد مهام مجدولة",
+    scheduledTasks: "المهام المجدولة",
+    taskScheduling: "جدولة المهام",
+    viewDetails: "عرض التفاصيل",
+
+    // Language
+    english: "الإنجليزية",
+    arabic: "العربية",
+    languageSettings: "إعدادات اللغة",
+    selectLanguage: "اختر اللغة",
+
+    // Profile
+    profileInformation: "معلومات الملف الشخصي",
+    name: "الاسم",
+    email: "البريد الإلكتروني",
+    role: "الدور",
+
+    // Task status
+    inProgress: "قيد التنفيذ",
   }
 };
 

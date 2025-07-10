@@ -50,8 +50,6 @@ interface Job {
   workflow_order: number | null;
   depends_on_job_id: string | null;
   created_by: string | null;
-  next_step?: string | null;
-  photographer_notes?: string | null;
   clients?: {
     name: string;
     email: string;
@@ -179,8 +177,6 @@ const JobManagement = () => {
         
         return {
           ...job,
-          next_step: job.next_step || null,
-          photographer_notes: job.photographer_notes || null,
           clients: client ? { name: client.name, email: client.email } : undefined,
           users: assignedUser ? { name: assignedUser.name } : null
         };
@@ -406,7 +402,7 @@ const JobManagement = () => {
                   </div>
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Badge className={getStatusColor(job.status)}>
-                      {t(job.status.replace('_', ''))}
+                      {t(job.status.replace('_', '') as keyof TranslationKeys)}
                     </Badge>
                     <Button
                       variant="ghost"
