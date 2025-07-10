@@ -3,20 +3,35 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { DollarSign, FileText, CheckCircle, Clock } from 'lucide-react';
 
-interface ClientDashboardProps {
-  jobs: any[];
-  clients: any[];
-  payments: any[];
-}
-
-const ClientDashboard: React.FC<ClientDashboardProps> = ({ jobs, clients, payments }) => {
+const ClientDashboard: React.FC = () => {
   const { t } = useTranslation();
+  const { jobs, clients, payments, loading, error } = useSupabaseData();
 
   console.log('ClientDashboard render - Jobs:', jobs);
   console.log('ClientDashboard render - Clients:', clients);
   console.log('ClientDashboard render - Payments:', payments);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading dashboard data</p>
+      </div>
+    );
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {

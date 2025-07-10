@@ -182,6 +182,7 @@ export const useSupabaseData = () => {
   const stats = {
     totalJobs: jobs.length,
     activeJobs: jobs.filter(job => job.status === 'in_progress' || job.status === 'pending').length,
+    pendingJobs: jobs.filter(job => job.status === 'pending').length,
     completedJobs: jobs.filter(job => job.status === 'completed' || job.status === 'delivered').length,
     totalClients: clients.length,
     totalUsers: users.length,
