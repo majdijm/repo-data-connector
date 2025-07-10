@@ -50,8 +50,8 @@ interface Job {
   workflow_order: number | null;
   depends_on_job_id: string | null;
   created_by: string | null;
-  next_step: string | null;
-  photographer_notes: string | null;
+  next_step?: string | null;
+  photographer_notes?: string | null;
   clients?: {
     name: string;
     email: string;
@@ -468,7 +468,7 @@ const JobManagement = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">{t('pending')}</SelectItem>
-                          <SelectItem value="in_progress">{t('inProgress')}</SelectItem>
+                          <SelectItem value="in_progress">{t('inprogress')}</SelectItem>
                           <SelectItem value="review">{t('review')}</SelectItem>
                           <SelectItem value="completed">{t('completed')}</SelectItem>
                           <SelectItem value="delivered">{t('delivered')}</SelectItem>

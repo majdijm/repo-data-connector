@@ -1,84 +1,29 @@
 
-export type Language = 'en' | 'ar';
-
 export interface TranslationKeys {
-  // Navigation & Layout
+  // Navigation
+  navigation: string;
   dashboard: string;
-  users: string;
-  clients: string;
-  jobs: string;
   tasks: string;
-  files: string;
+  jobs: string;
+  clients: string;
   calendar: string;
+  files: string;
+  financial: string;
   payments: string;
   settings: string;
   signOut: string;
-  management: string;
-  financial: string;
+  users: string;
   
-  // Common Actions
-  loading: string;
-  search: string;
-  viewDetails: string;
+  // Common actions
+  create: string;
+  edit: string;
+  delete: string;
   save: string;
   cancel: string;
-  delete: string;
-  edit: string;
-  create: string;
-  update: string;
-  success: string;
-  error: string;
-  
-  // User & Profile
-  name: string;
-  email: string;
-  role: string;
-  language: string;
-  profile: string;
-  profileInformation: string;
-  languageSettings: string;
-  selectLanguage: string;
-  
-  // Job Statuses
-  pending: string;
-  inProgress: string;
-  review: string;
-  completed: string;
-  delivered: string;
-  cancelled: string;
-  
-  // Job Types
-  photoSession: string;
-  videoEditing: string;
-  design: string;
-  
-  // General Terms
-  client: string;
-  type: string;
-  status: string;
-  price: string;
-  dueDate: string;
-  description: string;
-  jobDetails: string;
-  assigned: string;
-  unassigned: string;
-  due: string;
-  noDueDate: string;
-  workflow: string;
-  step: string;
-  unknown: string;
-  
-  // Languages
-  english: string;
-  arabic: string;
-  
-  // Calendar
-  calendarView: string;
-  selectDate: string;
-  noTasksScheduled: string;
-  scheduledTasks: string;
-  datesWithTasks: string;
-  taskScheduling: string;
+  submit: string;
+  loading: string;
+  search: string;
+  filter: string;
   
   // Job Management
   jobManagement: string;
@@ -86,306 +31,283 @@ export interface TranslationKeys {
   createJob: string;
   createNewJob: string;
   editJob: string;
-  noJobsAssignedYet: string;
-  noJobsCreatedYet: string;
+  deleteJob: string;
   confirmDeleteJob: string;
   jobDeletedSuccessfully: string;
   failedToDeleteJob: string;
   jobStatusUpdatedSuccessfully: string;
   failedToUpdateJobStatus: string;
-  failedToFetchJobs: string;
-  unknownError: string;
-  loaded: string;
   loadingJobs: string;
+  noJobsAssignedYet: string;
+  noJobsCreatedYet: string;
   noPermissionToViewJobs: string;
+  failedToFetchJobs: string;
+  jobs: string;
+  loaded: string;
   
-  // Creative Studio Terms
-  creativeStudio: string;
-  digitalDesign: string;
-  portfolio: string;
-  showcase: string;
-  inspiration: string;
-  creativity: string;
-  innovation: string;
-  artDirection: string;
-  brandIdentity: string;
-  visualCommunication: string;
+  // Job details
+  title: string;
+  description: string;
+  status: string;
+  client: string;
+  assigned: string;
+  due: string;
+  price: string;
+  workflow: string;
+  step: string;
+  unknown: string;
+  unassigned: string;
+  noDueDate: string;
   
-  // Additional UI Terms
+  // Job statuses
+  pending: string;
+  inprogress: string;
+  review: string;
+  completed: string;
+  delivered: string;
+  
+  // Workflow
+  workflowJob: string;
+  selectWorkflowStage: string;
+  autoAssign: string;
+  manualAssign: string;
+  selectUser: string;
+  completeCurrentStage: string;
+  markAsComplete: string;
+  
+  // Messages
+  success: string;
+  error: string;
+  unknownError: string;
+  
+  // Welcome messages
   welcome: string;
-  getStarted: string;
-  learnMore: string;
-  contactUs: string;
-  aboutUs: string;
-  services: string;
-  projects: string;
-  team: string;
-  blog: string;
-  news: string;
-  events: string;
-  gallery: string;
-  testimonials: string;
+  welcomeBack: string;
+  
+  // Dashboard
+  myDashboard: string;
+  activeProjects: string;
+  completedProjects: string;
+  totalProjects: string;
+  totalSpent: string;
+  currentlyInProgress: string;
+  successfullyFinished: string;
+  allYourProjects: string;
+  projectInvestment: string;
+  projectTypes: string;
+  myProjects: string;
+  trackProgress: string;
+  noProjectsFound: string;
+  contactUsToStart: string;
+  createdDate: string;
+  type: string;
 }
 
-export type TranslationKey = keyof TranslationKeys;
-
-const translations: Record<Language, TranslationKeys> = {
+export const translations: Record<string, TranslationKeys> = {
   en: {
-    // Navigation & Layout
-    dashboard: 'Dashboard',
-    users: 'Users',
-    clients: 'Clients',
-    jobs: 'Jobs',
-    tasks: 'Tasks',
-    files: 'Files',
-    calendar: 'Calendar',
-    payments: 'Payments',
-    settings: 'Settings',
-    signOut: 'Sign Out',
-    management: 'Management',
-    financial: 'Financial',
+    // Navigation
+    navigation: "Navigation",
+    dashboard: "Dashboard",
+    tasks: "Tasks",
+    jobs: "Jobs",
+    clients: "Clients", 
+    calendar: "Calendar",
+    files: "Files",
+    financial: "Financial",
+    payments: "Payments",
+    settings: "Settings",
+    signOut: "Sign Out",
+    users: "Users",
     
-    // Common Actions
-    loading: 'Loading...',
-    search: 'Search...',
-    viewDetails: 'View Details',
-    save: 'Save',
-    cancel: 'Cancel',
-    delete: 'Delete',
-    edit: 'Edit',
-    create: 'Create',
-    update: 'Update',
-    success: 'Success',
-    error: 'Error',
-    
-    // User & Profile
-    name: 'Name',
-    email: 'Email',
-    role: 'Role',
-    language: 'Language',
-    profile: 'Profile',
-    profileInformation: 'Profile Information',
-    languageSettings: 'Language Settings',
-    selectLanguage: 'Select Language',
-    
-    // Job Statuses
-    pending: 'Pending',
-    inProgress: 'In Progress',
-    review: 'Review',
-    completed: 'Completed',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled',
-    
-    // Job Types
-    photoSession: 'Photo Session',
-    videoEditing: 'Video Editing',
-    design: 'Design',
-    
-    // General Terms
-    client: 'Client',
-    type: 'Type',
-    status: 'Status',
-    price: 'Price',
-    dueDate: 'Due Date',
-    description: 'Description',
-    jobDetails: 'Job Details',
-    assigned: 'Assigned',
-    unassigned: 'Unassigned',
-    due: 'Due',
-    noDueDate: 'No due date',
-    workflow: 'Workflow',
-    step: 'Step',
-    unknown: 'Unknown',
-    
-    // Languages
-    english: 'English',
-    arabic: 'العربية',
-    
-    // Calendar
-    calendarView: 'Calendar View',
-    selectDate: 'Select a Date',
-    noTasksScheduled: 'No tasks scheduled for this date',
-    scheduledTasks: 'Scheduled Tasks',
-    datesWithTasks: 'Dates with scheduled tasks',
-    taskScheduling: 'Manage and schedule your tasks',
+    // Common actions
+    create: "Create",
+    edit: "Edit",
+    delete: "Delete",
+    save: "Save",
+    cancel: "Cancel",
+    submit: "Submit",
+    loading: "Loading...",
+    search: "Search",
+    filter: "Filter",
     
     // Job Management
-    jobManagement: 'Job Management',
-    myJobs: 'My Jobs',
-    createJob: 'Create Job',
-    createNewJob: 'Create New Job',
-    editJob: 'Edit Job',
-    noJobsAssignedYet: 'No jobs assigned to you yet.',
-    noJobsCreatedYet: 'No jobs created yet.',
-    confirmDeleteJob: 'Are you sure you want to delete this job?',
-    jobDeletedSuccessfully: 'Job deleted successfully',
-    failedToDeleteJob: 'Failed to delete job',
-    jobStatusUpdatedSuccessfully: 'Job status updated successfully',
-    failedToUpdateJobStatus: 'Failed to update job status',
-    failedToFetchJobs: 'Failed to fetch jobs',
-    unknownError: 'Unknown error',
-    loaded: 'Loaded',
-    loadingJobs: 'Loading jobs...',
-    noPermissionToViewJobs: 'You don\'t have permission to view jobs.',
+    jobManagement: "Job Management",
+    myJobs: "My Jobs",
+    createJob: "Create Job",
+    createNewJob: "Create New Job",
+    editJob: "Edit Job",
+    deleteJob: "Delete Job", 
+    confirmDeleteJob: "Are you sure you want to delete this job?",
+    jobDeletedSuccessfully: "Job deleted successfully",
+    failedToDeleteJob: "Failed to delete job",
+    jobStatusUpdatedSuccessfully: "Job status updated successfully",
+    failedToUpdateJobStatus: "Failed to update job status",
+    loadingJobs: "Loading jobs...",
+    noJobsAssignedYet: "No jobs assigned to you yet",
+    noJobsCreatedYet: "No jobs created yet",
+    noPermissionToViewJobs: "You don't have permission to view jobs",
+    failedToFetchJobs: "Failed to fetch jobs",
+    jobs: "jobs",
+    loaded: "Loaded",
     
-    // Creative Studio Terms
-    creativeStudio: 'Creative Studio',
-    digitalDesign: 'Digital Design',
-    portfolio: 'Portfolio',
-    showcase: 'Showcase',
-    inspiration: 'Inspiration',
-    creativity: 'Creativity',
-    innovation: 'Innovation',
-    artDirection: 'Art Direction',
-    brandIdentity: 'Brand Identity',
-    visualCommunication: 'Visual Communication',
+    // Job details
+    title: "Title",
+    description: "Description",
+    status: "Status",
+    client: "Client",
+    assigned: "Assigned",
+    due: "Due",
+    price: "Price",
+    workflow: "Workflow",
+    step: "Step",
+    unknown: "Unknown",
+    unassigned: "Unassigned",
+    noDueDate: "No due date",
     
-    // Additional UI Terms
-    welcome: 'Welcome',
-    getStarted: 'Get Started',
-    learnMore: 'Learn More',
-    contactUs: 'Contact Us',
-    aboutUs: 'About Us',
-    services: 'Services',
-    projects: 'Projects',
-    team: 'Team',
-    blog: 'Blog',
-    news: 'News',
-    events: 'Events',
-    gallery: 'Gallery',
-    testimonials: 'Testimonials',
+    // Job statuses
+    pending: "Pending",
+    inprogress: "In Progress",
+    review: "Review",
+    completed: "Completed",
+    delivered: "Delivered",
+    
+    // Workflow
+    workflowJob: "Workflow Job",
+    selectWorkflowStage: "Select workflow stage",
+    autoAssign: "Auto-assign",
+    manualAssign: "Manual assign",
+    selectUser: "Select user",
+    completeCurrentStage: "Complete Current Stage",
+    markAsComplete: "Mark as Complete",
+    
+    // Messages
+    success: "Success",
+    error: "Error", 
+    unknownError: "Unknown error",
+    
+    // Welcome messages
+    welcome: "Welcome",
+    welcomeBack: "Welcome back",
+    
+    // Dashboard
+    myDashboard: "My Dashboard",
+    activeProjects: "Active Projects",
+    completedProjects: "Completed",
+    totalProjects: "Total Projects",
+    totalSpent: "Total Spent",
+    currentlyInProgress: "Currently in progress",
+    successfullyFinished: "Successfully finished",
+    allYourProjects: "All your projects",
+    projectInvestment: "Project investment",
+    projectTypes: "Project Types",
+    myProjects: "My Projects",
+    trackProgress: "Track the progress of your projects",
+    noProjectsFound: "No projects found. Contact us to start your first project!",
+    contactUsToStart: "Contact us to start your first project!",
+    createdDate: "Created",
+    type: "Type",
   },
   ar: {
-    // Navigation & Layout
-    dashboard: 'لوحة التحكم',
-    users: 'المستخدمون',
-    clients: 'العملاء',
-    jobs: 'المشاريع',
-    tasks: 'المهام',
-    files: 'الملفات',
-    calendar: 'التقويم',
-    payments: 'المدفوعات',
-    settings: 'الإعدادات',
-    signOut: 'تسجيل الخروج',
-    management: 'الإدارة',
-    financial: 'المالية',
+    // Navigation
+    navigation: "التنقل",
+    dashboard: "لوحة التحكم",
+    tasks: "المهام",
+    jobs: "المشاريع",
+    clients: "العملاء",
+    calendar: "التقويم", 
+    files: "الملفات",
+    financial: "المالية",
+    payments: "المدفوعات",
+    settings: "الإعدادات",
+    signOut: "تسجيل الخروج",
+    users: "المستخدمين",
     
-    // Common Actions
-    loading: 'جاري التحميل...',
-    search: 'البحث...',
-    viewDetails: 'عرض التفاصيل',
-    save: 'حفظ',
-    cancel: 'إلغاء',
-    delete: 'حذف',
-    edit: 'تحرير',
-    create: 'إنشاء',
-    update: 'تحديث',
-    success: 'نجح',
-    error: 'خطأ',
-    
-    // User & Profile
-    name: 'الاسم',
-    email: 'البريد الإلكتروني',
-    role: 'الدور',
-    language: 'اللغة',
-    profile: 'الملف الشخصي',
-    profileInformation: 'معلومات الملف الشخصي',
-    languageSettings: 'إعدادات اللغة',
-    selectLanguage: 'اختر اللغة',
-    
-    // Job Statuses
-    pending: 'معلق',
-    inProgress: 'قيد التنفيذ',
-    review: 'مراجعة',
-    completed: 'مكتمل',
-    delivered: 'تم التسليم',
-    cancelled: 'ملغي',
-    
-    // Job Types
-    photoSession: 'جلسة تصوير',
-    videoEditing: 'مونتاج فيديو',
-    design: 'تصميم',
-    
-    // General Terms
-    client: 'العميل',
-    type: 'النوع',
-    status: 'الحالة',
-    price: 'السعر',
-    dueDate: 'تاريخ الاستحقاق',
-    description: 'الوصف',
-    jobDetails: 'تفاصيل المشروع',
-    assigned: 'مُكلف',
-    unassigned: 'غير مُكلف',
-    due: 'موعد الاستحقاق',
-    noDueDate: 'لا يوجد تاريخ استحقاق',
-    workflow: 'سير العمل',
-    step: 'خطوة',
-    unknown: 'غير معروف',
-    
-    // Languages
-    english: 'English',
-    arabic: 'العربية',
-    
-    // Calendar
-    calendarView: 'عرض التقويم',
-    selectDate: 'اختر تاريخاً',
-    noTasksScheduled: 'لا توجد مهام مجدولة لهذا التاريخ',
-    scheduledTasks: 'المهام المجدولة',
-    datesWithTasks: 'التواريخ التي تحتوي على مهام مجدولة',
-    taskScheduling: 'إدارة وجدولة مهامك',
+    // Common actions
+    create: "إنشاء",
+    edit: "تعديل",
+    delete: "حذف",
+    save: "حفظ",
+    cancel: "إلغاء",
+    submit: "إرسال",
+    loading: "جاري التحميل...",
+    search: "بحث",
+    filter: "تصفية",
     
     // Job Management
-    jobManagement: 'إدارة المشاريع',
-    myJobs: 'مشاريعي',
-    createJob: 'إنشاء مشروع',
-    createNewJob: 'إنشاء مشروع جديد',
-    editJob: 'تحرير المشروع',
-    noJobsAssignedYet: 'لم يتم تكليفك بأي مشاريع بعد.',
-    noJobsCreatedYet: 'لم يتم إنشاء أي مشاريع بعد.',
-    confirmDeleteJob: 'هل أنت متأكد من أنك تريد حذف هذا المشروع؟',
-    jobDeletedSuccessfully: 'تم حذف المشروع بنجاح',
-    failedToDeleteJob: 'فشل في حذف المشروع',
-    jobStatusUpdatedSuccessfully: 'تم تحديث حالة المشروع بنجاح',
-    failedToUpdateJobStatus: 'فشل في تحديث حالة المشروع',
-    failedToFetchJobs: 'فشل في جلب المشاريع',
-    unknownError: 'خطأ غير معروف',
-    loaded: 'تم التحميل',
-    loadingJobs: 'جاري تحميل المشاريع...',
-    noPermissionToViewJobs: 'ليس لديك صلاحية لعرض المشاريع.',
+    jobManagement: "إدارة المشاريع",
+    myJobs: "مشاريعي",
+    createJob: "إنشاء مشروع",
+    createNewJob: "إنشاء مشروع جديد",
+    editJob: "تعديل المشروع",
+    deleteJob: "حذف المشروع",
+    confirmDeleteJob: "هل أنت متأكد من حذف هذا المشروع؟",
+    jobDeletedSuccessfully: "تم حذف المشروع بنجاح",
+    failedToDeleteJob: "فشل في حذف المشروع",
+    jobStatusUpdatedSuccessfully: "تم تحديث حالة المشروع بنجاح",
+    failedToUpdateJobStatus: "فشل في تحديث حالة المشروع",
+    loadingJobs: "جاري تحميل المشاريع...",
+    noJobsAssignedYet: "لا توجد مشاريع مخصصة لك حتى الآن",
+    noJobsCreatedYet: "لم يتم إنشاء أي مشاريع حتى الآن",
+    noPermissionToViewJobs: "ليس لديك صلاحية لعرض المشاريع",
+    failedToFetchJobs: "فشل في جلب المشاريع",
+    jobs: "مشاريع",
+    loaded: "تم التحميل",
     
-    // Creative Studio Terms
-    creativeStudio: 'الاستوديو الإبداعي',
-    digitalDesign: 'التصميم الرقمي',
-    portfolio: 'معرض الأعمال',
-    showcase: 'عرض الأعمال',
-    inspiration: 'الإلهام',
-    creativity: 'الإبداع',
-    innovation: 'الابتكار',
-    artDirection: 'التوجيه الفني',
-    brandIdentity: 'الهوية التجارية',
-    visualCommunication: 'التواصل البصري',
+    // Job details
+    title: "العنوان",
+    description: "الوصف",
+    status: "الحالة",
+    client: "العميل",
+    assigned: "مكلف",
+    due: "موعد التسليم",
+    price: "السعر",
+    workflow: "سير العمل",
+    step: "خطوة",
+    unknown: "غير معروف",
+    unassigned: "غير مكلف",
+    noDueDate: "لا يوجد موعد تسليم",
     
-    // Additional UI Terms
-    welcome: 'مرحباً',
-    getStarted: 'ابدأ الآن',
-    learnMore: 'اعرف المزيد',
-    contactUs: 'اتصل بنا',
-    aboutUs: 'نبذة عنا',
-    services: 'الخدمات',
-    projects: 'المشاريع',
-    team: 'الفريق',
-    blog: 'المدونة',
-    news: 'الأخبار',
-    events: 'الفعاليات',
-    gallery: 'المعرض',
-    testimonials: 'شهادات العملاء',
+    // Job statuses
+    pending: "في الانتظار",
+    inprogress: "قيد التنفيذ",
+    review: "قيد المراجعة",
+    completed: "مكتمل",
+    delivered: "تم التسليم",
+    
+    // Workflow
+    workflowJob: "مشروع سير عمل",
+    selectWorkflowStage: "اختر مرحلة سير العمل",
+    autoAssign: "تكليف تلقائي",
+    manualAssign: "تكليف يدوي",
+    selectUser: "اختر مستخدم",
+    completeCurrentStage: "إكمال المرحلة الحالية",
+    markAsComplete: "تعيين كمكتمل",
+    
+    // Messages
+    success: "نجح",
+    error: "خطأ",
+    unknownError: "خطأ غير معروف",
+    
+    // Welcome messages
+    welcome: "أهلاً وسهلاً",
+    welcomeBack: "مرحباً بعودتك",
+    
+    // Dashboard
+    myDashboard: "لوحة التحكم الخاصة بي",
+    activeProjects: "المشاريع النشطة",
+    completedProjects: "المكتملة",
+    totalProjects: "إجمالي المشاريع",
+    totalSpent: "إجمالي المنفق",
+    currentlyInProgress: "قيد التنفيذ حالياً",
+    successfullyFinished: "تم إنجازها بنجاح",
+    allYourProjects: "جميع مشاريعك",
+    projectInvestment: "استثمار المشروع",
+    projectTypes: "أنواع المشاريع",
+    myProjects: "مشاريعي",
+    trackProgress: "تتبع تقدم مشاريعك",
+    noProjectsFound: "لم يتم العثور على مشاريع. اتصل بنا لبدء مشروعك الأول!",
+    contactUsToStart: "اتصل بنا لبدء مشروعك الأول!",
+    createdDate: "تاريخ الإنشاء",
+    type: "النوع",
   }
-};
-
-export const getTranslation = (key: TranslationKey, language: Language = 'en'): string => {
-  return translations[language][key] || translations['en'][key] || key;
-};
-
-export const isRTL = (language: Language): boolean => {
-  return language === 'ar';
 };
