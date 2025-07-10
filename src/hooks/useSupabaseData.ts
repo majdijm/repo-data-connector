@@ -70,31 +70,31 @@ export const useSupabaseData = () => {
           .from('clients')
           .select('*')
           .eq('email', userProfile.email)
-          .single();
+          .maybeSingle();
 
         if (clientError) {
           console.error('Error fetching client data:', clientError);
-          if (clientError.code === 'PGRST116') {
-            // No client record found
-            console.log('No client record found for email:', userProfile.email);
-            setStats({
-              totalClients: 0,
-              totalJobs: 0,
-              pendingJobs: 0,
-              completedJobs: 0,
-              totalRevenue: 0,
-              pendingPayments: 0,
-            });
-            setRecentJobs([]);
-            setClients([]);
-            return;
-          }
           throw clientError;
+        }
+
+        if (!clientData) {
+          console.log('No client record found for email:', userProfile.email);
+          setStats({
+            totalClients: 0,
+            totalJobs: 0,
+            pendingJobs: 0,
+            completedJobs: 0,
+            totalRevenue: 0,
+            pendingPayments: 0,
+          });
+          setRecentJobs([]);
+          setClients([]);
+          return;
         }
 
         console.log('Found client data:', clientData);
 
-        // Now fetch jobs for this client
+        // Now fetch jobs for this client with better error handling
         const { data: jobsData, error: jobsError } = await supabase
           .from('jobs')
           .select(`
@@ -108,7 +108,8 @@ export const useSupabaseData = () => {
 
         if (jobsError) {
           console.error('Error fetching client jobs:', jobsError);
-          throw jobsError;
+          // Don't throw here, just log and continue with empty jobs
+          console.warn('Continuing with empty jobs list');
         }
 
         console.log('Found client jobs:', jobsData);
@@ -121,7 +122,8 @@ export const useSupabaseData = () => {
 
         if (paymentsError) {
           console.error('Error fetching client payments:', paymentsError);
-          throw paymentsError;
+          // Don't throw here, just log and continue
+          console.warn('Continuing without payment data');
         }
 
         const jobsDataTyped = jobsData || [];
@@ -131,6 +133,13 @@ export const useSupabaseData = () => {
         const totalRevenue = paymentsDataTyped.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
         const pendingJobs = jobsDataTyped.filter(job => job.status === 'pending').length;
         const completedJobs = jobsDataTyped.filter(job => ['completed', 'delivered'].includes(job.status)).length;
+
+        console.log('Client stats calculated:', {
+          totalJobs: jobsDataTyped.length,
+          pendingJobs,
+          completedJobs,
+          totalRevenue
+        });
 
         setStats({
           totalClients: 1, // The client themselves

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +30,14 @@ interface ClientDashboardProps {
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ userProfile }) => {
   const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
 
+  console.log('ClientDashboard render:', {
+    userProfile: userProfile.email,
+    stats,
+    recentJobsCount: recentJobs.length,
+    isLoading,
+    error
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -62,6 +69,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userProfile }) => {
   const activeProjects = recentJobs.filter(job => !['completed', 'delivered'].includes(job.status)).length;
   const completedProjects = recentJobs.filter(job => ['completed', 'delivered'].includes(job.status)).length;
 
+  console.log('Project calculations:', {
+    totalJobs: recentJobs.length,
+    activeProjects,
+    completedProjects,
+    jobStatuses: recentJobs.map(job => ({ id: job.id, status: job.status }))
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -90,6 +104,17 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userProfile }) => {
         <h1 className="text-3xl font-bold text-gray-900">My Dashboard</h1>
         <p className="text-gray-600 mt-1">Welcome back, {userProfile.name}!</p>
       </div>
+
+      {/* Debug info for development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm">
+          <strong>Debug Info:</strong>
+          <br />Email: {userProfile.email}
+          <br />Total Jobs: {recentJobs.length}
+          <br />Stats: {JSON.stringify(stats)}
+          <br />Jobs: {recentJobs.map(job => `${job.title} (${job.status})`).join(', ')}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -173,7 +198,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userProfile }) => {
           <div className="space-y-4">
             {recentJobs.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No projects found. Contact us to start your first project!
+                <p>No projects found for your account.</p>
+                <p className="text-sm mt-2">
+                  If you expect to see projects here, please contact support to verify your client account is properly set up.
+                </p>
               </div>
             ) : (
               recentJobs.map((project) => (
