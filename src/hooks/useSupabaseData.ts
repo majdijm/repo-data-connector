@@ -1,113 +1,60 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useSupabaseData = () => {
-  const [jobs, setJobs] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [payments, setPayments] = useState([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   const { userProfile } = useAuth();
 
-  const fetchClientData = async (email) => {
-    console.log('Fetching client data for email:', email);
-    
+  const fetchClientData = async () => {
+    if (!userProfile?.email) return;
+
     try {
-      // First, try to get existing client record
-      const { data: existingClient, error: fetchError } = await supabase
+      console.log(`Fetching client data for email: ${userProfile.email}`);
+      
+      const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
-        .eq('email', email)
-        .maybeSingle();
+        .eq('email', userProfile.email)
+        .single();
 
-      if (fetchError) {
-        console.error('Error fetching client data:', fetchError);
-        
-        // If it's a 406 error, try to create a client record
-        if (fetchError.code === 'PGRST301' || fetchError.message.includes('406')) {
-          console.log('Creating client record for:', email);
-          
-          const { data: newClient, error: createError } = await supabase
-            .from('clients')
-            .insert({
-              email: email,
-              name: userProfile?.name || email.split('@')[0],
-              total_paid: 0,
-              total_due: 0
-            })
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('Error creating client record:', createError);
-            return null;
-          }
-
-          console.log('Client record created successfully:', newClient);
-          return newClient;
-        }
-        
+      if (clientError) {
+        console.error('Error fetching client data:', clientError);
+        console.log(`No client record found for email: ${userProfile.email}`);
         return null;
       }
 
-      if (!existingClient) {
-        console.log('No client record found for email:', email);
-        
-        // Try to create a client record if none exists
-        console.log('Creating client record for:', email);
-        
-        const { data: newClient, error: createError } = await supabase
-          .from('clients')
-          .insert({
-            email: email,
-            name: userProfile?.name || email.split('@')[0],
-            total_paid: 0,
-            total_due: 0
-          })
-          .select()
-          .single();
-
-        if (createError) {
-          console.error('Error creating client record:', createError);
-          return null;
-        }
-
-        console.log('Client record created successfully:', newClient);
-        return newClient;
-      }
-
-      console.log('Found existing client record:', existingClient);
-      return existingClient;
+      console.log('Found existing client record:', clientData);
+      return clientData;
     } catch (err) {
-      console.error('Unexpected error in fetchClientData:', err);
+      console.error('Error in fetchClientData:', err);
       return null;
     }
   };
 
-  const fetchDashboardData = async () => {
-    if (!userProfile?.id) {
-      console.log('No user profile available');
-      return;
-    }
+  const fetchData = async () => {
+    if (!userProfile?.id) return;
 
-    setLoading(true);
-    setError(null);
-
+    console.log(`Fetching dashboard data for user: ${userProfile.role} ${userProfile.email}`);
+    
     try {
-      console.log('Fetching dashboard data for user:', userProfile.role, userProfile.email);
+      setLoading(true);
 
+      // Handle client role differently
       if (userProfile.role === 'client') {
-        // For clients, fetch their own data
-        const clientData = await fetchClientData(userProfile.email);
+        const clientRecord = await fetchClientData();
         
-        if (clientData) {
-          setClients([clientData]);
+        if (clientRecord) {
+          setClients([clientRecord]);
           
           // Fetch jobs for this client
-          const { data: jobsData, error: jobsError } = await supabase
+          console.log('Fetching jobs for client:', clientRecord.id);
+          const { data: clientJobs, error: jobsError } = await supabase
             .from('jobs')
             .select(`
               *,
@@ -116,109 +63,134 @@ export const useSupabaseData = () => {
                 email
               )
             `)
-            .eq('client_id', clientData.id);
+            .eq('client_id', clientRecord.id)
+            .order('created_at', { ascending: false });
 
           if (jobsError) {
             console.error('Error fetching client jobs:', jobsError);
           } else {
-            console.log('Fetched client jobs:', jobsData);
-            setJobs(jobsData || []);
+            console.log('Fetched client jobs:', clientJobs);
+            setJobs(clientJobs || []);
           }
 
           // Fetch payments for this client
-          const { data: paymentsData, error: paymentsError } = await supabase
+          const { data: clientPayments, error: paymentsError } = await supabase
             .from('payments')
             .select('*')
-            .eq('client_id', clientData.id);
+            .eq('client_id', clientRecord.id)
+            .order('created_at', { ascending: false });
 
           if (paymentsError) {
             console.error('Error fetching client payments:', paymentsError);
           } else {
+            setPayments(clientPayments || []);
+          }
+        } else {
+          setJobs([]);
+          setClients([]);
+          setPayments([]);
+        }
+        
+        setUsers([]);
+      } else {
+        // For non-client users, fetch data based on role permissions
+        let jobsQuery = supabase.from('jobs').select(`
+          *,
+          clients (
+            name,
+            email
+          )
+        `);
+
+        // Apply role-based filtering
+        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
+          // Admin and receptionist can see all jobs
+          jobsQuery = jobsQuery.order('created_at', { ascending: false });
+        } else {
+          // Other roles only see jobs assigned to them
+          jobsQuery = jobsQuery.eq('assigned_to', userProfile.id).order('created_at', { ascending: false });
+        }
+
+        const { data: jobsData, error: jobsError } = await jobsQuery;
+
+        if (jobsError) {
+          console.error('Error fetching jobs:', jobsError);
+        } else {
+          setJobs(jobsData || []);
+        }
+
+        // Fetch clients (admin/receptionist only)
+        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
+          const { data: clientsData, error: clientsError } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (clientsError) {
+            console.error('Error fetching clients:', clientsError);
+          } else {
+            setClients(clientsData || []);
+          }
+
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (usersError) {
+            console.error('Error fetching users:', usersError);
+          } else {
+            setUsers(usersData || []);
+          }
+
+          const { data: paymentsData, error: paymentsError } = await supabase
+            .from('payments')
+            .select(`
+              *,
+              clients (
+                name
+              )
+            `)
+            .order('created_at', { ascending: false });
+
+          if (paymentsError) {
+            console.error('Error fetching payments:', paymentsError);
+          } else {
             setPayments(paymentsData || []);
           }
         } else {
-          console.log('No client data available');
-          setJobs([]);
-          setPayments([]);
           setClients([]);
-        }
-      } else {
-        // For other roles, fetch data based on permissions
-        const queries = [];
-
-        // Fetch jobs based on role
-        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
-          queries.push(
-            supabase
-              .from('jobs')
-              .select(`
-                *,
-                clients (
-                  name,
-                  email
-                )
-              `)
-              .order('created_at', { ascending: false })
-          );
-        } else {
-          // Team members only see assigned jobs
-          queries.push(
-            supabase
-              .from('jobs')
-              .select(`
-                *,
-                clients (
-                  name,
-                  email
-                )
-              `)
-              .eq('assigned_to', userProfile.id)
-              .order('created_at', { ascending: false })
-          );
-        }
-
-        // Fetch other data for admin/receptionist
-        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
-          queries.push(
-            supabase.from('clients').select('*').order('created_at', { ascending: false }),
-            supabase.from('users').select('*').order('created_at', { ascending: false }),
-            supabase.from('payments').select('*').order('created_at', { ascending: false })
-          );
-        }
-
-        const results = await Promise.all(queries);
-        
-        setJobs(results[0]?.data || []);
-        
-        if (results.length > 1) {
-          setClients(results[1]?.data || []);
-          setUsers(results[2]?.data || []);
-          setPayments(results[3]?.data || []);
+          setUsers([]);
+          setPayments([]);
         }
       }
+
+      console.log('Dashboard data loaded successfully');
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      setError(err.message);
+      setError(err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchData();
   }, [userProfile?.id, userProfile?.role, userProfile?.email]);
 
-  // Calculate stats from the data
+  // Calculate stats
   const stats = {
-    totalClients: clients.length,
     totalJobs: jobs.length,
-    pendingJobs: jobs.filter(job => job.status === 'pending').length,
-    completedJobs: jobs.filter(job => job.status === 'completed').length,
+    activeJobs: jobs.filter(job => job.status === 'in_progress' || job.status === 'pending').length,
+    completedJobs: jobs.filter(job => job.status === 'completed' || job.status === 'delivered').length,
+    totalClients: clients.length,
+    totalUsers: users.length,
     totalRevenue: payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
-    pendingPayments: jobs.filter(job => job.status === 'completed' && !payments.some(p => p.job_id === job.id)).length
+    pendingPayments: jobs.reduce((sum, job) => sum + (job.price || 0), 0) - payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
   };
 
-  const recentJobs = jobs.slice(0, 10);
+  const recentJobs = jobs.slice(0, 5);
+  const isLoading = loading;
 
   return {
     jobs,
@@ -226,10 +198,10 @@ export const useSupabaseData = () => {
     users,
     payments,
     loading,
-    isLoading: loading, // Alias for compatibility
     error,
-    refetch: fetchDashboardData,
     stats,
-    recentJobs
+    recentJobs,
+    isLoading,
+    refetch: fetchData
   };
 };
