@@ -14,21 +14,11 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/contexts/AuthContext';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  created_at: string;
-}
-
-interface PhotographerDashboardProps {
-  userProfile: UserProfile;
-}
-
-const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ userProfile }) => {
+const PhotographerDashboard: React.FC = () => {
+  const { userProfile } = useAuth();
   const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
 
   if (isLoading) {
@@ -82,16 +72,16 @@ const PhotographerDashboard: React.FC<PhotographerDashboardProps> = ({ userProfi
     return acc;
   }, {} as Record<string, number>);
 
-  const chartData = Object.entries(performanceData).map(([month, count]) => ({
+  const chartData = Object.entries(performanceData).map(([month, sessions]) => ({
     month,
-    sessions: count
+    sessions
   }));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Photographer Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back, {userProfile.name}!</p>
+        <p className="text-gray-600 mt-1">Welcome back, {userProfile?.name}!</p>
       </div>
 
       {/* Stats Cards */}

@@ -14,21 +14,11 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
+import { useAuth } from '@/contexts/AuthContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-interface UserProfile {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  created_at: string;
-}
-
-interface DesignerDashboardProps {
-  userProfile: UserProfile;
-}
-
-const DesignerDashboard: React.FC<DesignerDashboardProps> = ({ userProfile }) => {
+const DesignerDashboard: React.FC = () => {
+  const { userProfile } = useAuth();
   const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
 
   if (isLoading) {
@@ -86,7 +76,7 @@ const DesignerDashboard: React.FC<DesignerDashboardProps> = ({ userProfile }) =>
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Designer Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back, {userProfile.name}!</p>
+        <p className="text-gray-600 mt-1">Welcome back, {userProfile?.name}!</p>
       </div>
 
       {/* Stats Cards */}

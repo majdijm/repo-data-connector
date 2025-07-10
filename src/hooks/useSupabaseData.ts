@@ -208,13 +208,28 @@ export const useSupabaseData = () => {
     fetchDashboardData();
   }, [userProfile?.id, userProfile?.role, userProfile?.email]);
 
+  // Calculate stats from the data
+  const stats = {
+    totalClients: clients.length,
+    totalJobs: jobs.length,
+    pendingJobs: jobs.filter(job => job.status === 'pending').length,
+    completedJobs: jobs.filter(job => job.status === 'completed').length,
+    totalRevenue: payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
+    pendingPayments: jobs.filter(job => job.status === 'completed' && !payments.some(p => p.job_id === job.id)).length
+  };
+
+  const recentJobs = jobs.slice(0, 10);
+
   return {
     jobs,
     clients,
     users,
     payments,
     loading,
+    isLoading: loading, // Alias for compatibility
     error,
-    refetch: fetchDashboardData
+    refetch: fetchDashboardData,
+    stats,
+    recentJobs
   };
 };

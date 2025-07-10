@@ -105,13 +105,13 @@ const Dashboard = () => {
       case 'receptionist':
         return <ReceptionistDashboard />;
       case 'photographer':
-        return <PhotographerDashboard userProfile={userProfile} />;
+        return <PhotographerDashboard />;
       case 'designer':
-        return <DesignerDashboard userProfile={userProfile} />;
+        return <DesignerDashboard />;
       case 'editor':
-        return <EditorDashboard userProfile={userProfile} />;
+        return <EditorDashboard />;
       case 'client':
-        return <ClientDashboard userProfile={userProfile} />;
+        return <ClientDashboard />;
       default:
         return (
           <div className="space-y-6">
