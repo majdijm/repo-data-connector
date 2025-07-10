@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Check, Upload } from 'lucide-react';
 import JobFileUploadSection from './JobFileUploadSection';
 
-interface Job {
+interface JobData {
   id: string;
   title: string;
   status: string;
@@ -19,7 +19,7 @@ interface Job {
 }
 
 interface JobCompletionActionsProps {
-  job: Job;
+  job: JobData;
   onJobUpdated: () => void;
 }
 
