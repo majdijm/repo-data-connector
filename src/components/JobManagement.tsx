@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
-import { TranslationKeys } from '@/lib/i18n';
+import { TranslationKey } from '@/lib/i18n';
 import { 
   Plus, 
   Calendar, 
