@@ -326,10 +326,10 @@ const JobManagement = () => {
     setExpandedJobs(newExpanded);
   };
 
-  const getStatusTranslationKey = (status: string): keyof TranslationKeys => {
-    const statusMap: Record<string, keyof TranslationKeys> = {
+  const getStatusTranslationKey = (status: string): TranslationKey => {
+    const statusMap: Record<string, TranslationKey> = {
       'pending': 'pending',
-      'in_progress': 'inprogress',
+      'in_progress': 'in_progress',
       'review': 'review',
       'completed': 'completed',
       'delivered': 'delivered'
@@ -476,7 +476,7 @@ const JobManagement = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pending">{t('pending')}</SelectItem>
-                          <SelectItem value="in_progress">{t('inprogress')}</SelectItem>
+                          <SelectItem value="in_progress">{t('in_progress')}</SelectItem>
                           <SelectItem value="review">{t('review')}</SelectItem>
                           <SelectItem value="completed">{t('completed')}</SelectItem>
                           <SelectItem value="delivered">{t('delivered')}</SelectItem>
