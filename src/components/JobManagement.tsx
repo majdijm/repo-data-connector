@@ -32,7 +32,7 @@ import JobCompletionActions from './JobCompletionActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
 
-interface Job {
+interface JobData {
   id: string;
   title: string;
   type: string;
@@ -77,10 +77,10 @@ const JobManagement = () => {
   const roleAccess = useRoleAccess();
   const { toast } = useToast();
   const { t } = useTranslation();
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<JobData[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedJob, setSelectedJob] = useState<JobData | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,7 +181,7 @@ const JobManagement = () => {
           clients: client ? { name: client.name, email: client.email } : undefined,
           users: assignedUser ? { name: assignedUser.name } : null
         };
-      }) as Job[];
+      }) as JobData[];
       
       console.log('🔍 Final transformed jobs:', transformedJobs);
       setJobs(transformedJobs);
