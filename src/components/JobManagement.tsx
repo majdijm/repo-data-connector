@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from '@/hooks/useTranslation';
+import { TranslationKeys } from '@/lib/i18n';
 import { 
   Plus, 
   Calendar, 
@@ -325,6 +327,17 @@ const JobManagement = () => {
     setExpandedJobs(newExpanded);
   };
 
+  const getStatusTranslationKey = (status: string): keyof TranslationKeys => {
+    const statusMap: Record<string, keyof TranslationKeys> = {
+      'pending': 'pending',
+      'in_progress': 'inprogress',
+      'review': 'review',
+      'completed': 'completed',
+      'delivered': 'delivered'
+    };
+    return statusMap[status] || 'unknown';
+  };
+
   if (!canViewJobsValue) {
     return (
       <div className="text-center py-8">
@@ -402,7 +415,7 @@ const JobManagement = () => {
                   </div>
                   <div className="flex items-center space-x-2 rtl:space-x-reverse">
                     <Badge className={getStatusColor(job.status)}>
-                      {t(job.status.replace('_', '') as keyof TranslationKeys)}
+                      {t(getStatusTranslationKey(job.status))}
                     </Badge>
                     <Button
                       variant="ghost"
