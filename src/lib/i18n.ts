@@ -1,5 +1,3 @@
-
-
 export type Language = 'en' | 'ar';
 
 export interface TranslationKeys {
@@ -77,6 +75,17 @@ export interface TranslationKeys {
   selectUser: string;
   completeCurrentStage: string;
   markAsComplete: string;
+  
+  // Workflow Actions
+  workflowActions: string;
+  workflowStageCompleted: string;
+  failedToCompleteStage: string;
+  jobMarkedAsCompleted: string;
+  failedToMarkAsCompleted: string;
+  stageNotes: string;
+  addNotesForNextStage: string;
+  moveToNextStage: string;
+  markAsCompleted: string;
   
   // Messages
   success: string;
@@ -216,6 +225,17 @@ export const translations: Record<Language, TranslationKeys> = {
     completeCurrentStage: "Complete Current Stage",
     markAsComplete: "Mark as Complete",
     
+    // Workflow Actions
+    workflowActions: "Workflow Actions",
+    workflowStageCompleted: "Workflow stage completed successfully",
+    failedToCompleteStage: "Failed to complete workflow stage",
+    jobMarkedAsCompleted: "Job marked as completed successfully",
+    failedToMarkAsCompleted: "Failed to mark job as completed",
+    stageNotes: "Stage Notes",
+    addNotesForNextStage: "Add notes for the next stage",
+    moveToNextStage: "Move to Next Stage",
+    markAsCompleted: "Mark as Completed",
+    
     // Messages
     success: "Success",
     error: "Error", 
@@ -349,6 +369,17 @@ export const translations: Record<Language, TranslationKeys> = {
     selectUser: "اختر مستخدم",
     completeCurrentStage: "إكمال المرحلة الحالية",
     markAsComplete: "تعيين كمكتمل",
+    
+    // Workflow Actions
+    workflowActions: "إجراءات سير العمل",
+    workflowStageCompleted: "تم إكمال مرحلة سير العمل بنجاح",
+    failedToCompleteStage: "فشل في إكمال مرحلة سير العمل",
+    jobMarkedAsCompleted: "تم تعيين المشروع كمكتمل بنجاح",
+    failedToMarkAsCompleted: "فشل في تعيين المشروع كمكتمل",
+    stageNotes: "ملاحظات المرحلة",
+    addNotesForNextStage: "أضف ملاحظات للمرحلة التالية",
+    moveToNextStage: "الانتقال للمرحلة التالية",
+    markAsCompleted: "تعيين كمكتمل",
     
     // Messages
     success: "نجح",
