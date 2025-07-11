@@ -3,8 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Clock, CheckCircle, AlertCircle, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Clock, CheckCircle, AlertCircle, Calendar, ThumbsUp, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { useJobWorkflow } from '@/hooks/useJobWorkflow';
+import { useToast } from '@/hooks/use-toast';
 
 interface JobData {
   id: string;
@@ -30,12 +33,15 @@ interface ClientJobProgressProps {
 }
 
 const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
+  const { updateJobProgress, isLoading } = useJobWorkflow();
+  const { toast } = useToast();
+
   const getStatusProgress = (status: string) => {
     const statusMap = {
       'pending': 10,
       'in_progress': 50,
       'review': 75,
-      'completed': 90,
+      'completed': 95, // Not 100% until client accepts
       'delivered': 100
     };
     return statusMap[status as keyof typeof statusMap] || 0;
@@ -64,7 +70,25 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
     }
   };
 
+  const handleClientAcceptance = async () => {
+    try {
+      await updateJobProgress(job.id, 'delivered');
+      toast({
+        title: "Success",
+        description: "Thank you! Work has been accepted and marked as delivered."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to accept work. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const progressPercentage = getStatusProgress(job.status);
+  const canAccept = job.status === 'completed';
+  const isDelivered = job.status === 'delivered';
 
   return (
     <Card className="border-0 shadow-lg">
@@ -85,7 +109,65 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
             <span>{progressPercentage}%</span>
           </div>
           <Progress value={progressPercentage} className="h-2" />
+          
+          {/* Progress Status Text */}
+          <div className="text-sm text-muted-foreground">
+            {job.status === 'completed' && (
+              <span className="text-green-600 font-medium">
+                ✓ Work completed - Awaiting your acceptance
+              </span>
+            )}
+            {job.status === 'delivered' && (
+              <span className="text-gray-600 font-medium">
+                ✓ Delivered and accepted
+              </span>
+            )}
+            {!['completed', 'delivered'].includes(job.status) && (
+              <span>In progress...</span>
+            )}
+          </div>
         </div>
+
+        {/* Client Acceptance Section */}
+        {canAccept && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-green-800 mb-1">Work Ready for Review</h4>
+                <p className="text-sm text-green-700 mb-3">
+                  Your work has been completed and is ready for your review. Please check the final files and accept the delivery when you're satisfied.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleClientAcceptance}
+                    disabled={isLoading}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                  >
+                    <ThumbsUp className="h-4 w-4 mr-1" />
+                    Accept & Complete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delivered Confirmation */}
+        {isDelivered && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-5 w-5 text-gray-600" />
+              <div>
+                <h4 className="font-medium text-gray-800">Work Delivered</h4>
+                <p className="text-sm text-gray-600">
+                  Thank you for your acceptance. This project has been successfully completed.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Job Details */}
         <div className="grid grid-cols-2 gap-4 text-sm">

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, CreditCard, AlertTriangle, CheckCircle } from 'lucide-react';
+import { DollarSign, CreditCard, AlertTriangle, CheckCircle, Package, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PaymentData {
@@ -26,23 +26,41 @@ interface JobData {
   id: string;
   title: string;
   price: number;
+  package_included?: boolean;
+}
+
+interface PackageData {
+  id: string;
+  name: string;
+  price: number;
+  duration_months: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
 }
 
 interface ClientPaymentSummaryProps {
   jobs: JobData[];
   payments: PaymentData[];
   paymentRequests: PaymentRequestData[];
+  clientPackages?: PackageData[];
 }
 
 const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({ 
   jobs, 
   payments, 
-  paymentRequests 
+  paymentRequests,
+  clientPackages = []
 }) => {
   const totalJobValue = jobs.reduce((sum, job) => sum + (job.price || 0), 0);
   const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalRequested = paymentRequests.reduce((sum, request) => sum + request.amount, 0);
   const totalOutstanding = totalJobValue - totalPaid;
+
+  // Calculate package-related values
+  const packageIncludedJobs = jobs.filter(job => job.package_included);
+  const packageIncludedValue = packageIncludedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
+  const activePackage = clientPackages.find(pkg => pkg.is_active);
 
   const pendingRequests = paymentRequests.filter(req => req.status === 'pending');
   const overdueRequests = paymentRequests.filter(req => 
@@ -51,6 +69,45 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Active Package Info */}
+      {activePackage && (
+        <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-50 to-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-purple-600" />
+              Active Package
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Package Name</p>
+                <p className="font-semibold text-purple-700">{activePackage.name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Monthly Fee</p>
+                <p className="font-semibold text-purple-700">${activePackage.price}/month</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Valid Until</p>
+                <p className="font-semibold text-purple-700 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {format(new Date(activePackage.end_date), 'MMM dd, yyyy')}
+                </p>
+              </div>
+            </div>
+            {packageIncludedJobs.length > 0 && (
+              <div className="mt-4 p-3 bg-white rounded-lg border">
+                <p className="text-sm font-medium mb-2">Package Included Services</p>
+                <p className="text-sm text-muted-foreground">
+                  {packageIncludedJobs.length} job(s) worth ${packageIncludedValue} included in your package
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Payment Overview */}
       <Card className="border-0 shadow-lg">
         <CardHeader>
@@ -64,6 +121,11 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-600">${totalJobValue}</p>
               <p className="text-sm text-muted-foreground">Total Value</p>
+              {packageIncludedValue > 0 && (
+                <p className="text-xs text-purple-600 mt-1">
+                  (${packageIncludedValue} package included)
+                </p>
+              )}
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">${totalPaid}</p>

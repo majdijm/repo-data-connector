@@ -55,16 +55,29 @@ const ClientDashboard = () => {
   }
 
   const clientRecord = clients[0];
-  const activeJobs = jobs.filter(job => ['pending', 'in_progress', 'review'].includes(job.status));
-  const completedJobs = jobs.filter(job => ['completed', 'delivered'].includes(job.status));
+  const activeJobs = jobs.filter(job => ['pending', 'in_progress', 'review', 'completed'].includes(job.status));
+  const deliveredJobs = jobs.filter(job => job.status === 'delivered');
 
   // Get payment requests (we'll need to fetch these separately in real implementation)
   const paymentRequests: any[] = []; // This should be fetched from payment_requests table
 
+  // Mock client packages data - in real implementation, this should be fetched
+  const clientPackages = [
+    {
+      id: '1',
+      name: 'Premium Design Package',
+      price: 299,
+      duration_months: 12,
+      start_date: '2024-01-01T00:00:00Z',
+      end_date: '2024-12-31T23:59:59Z',
+      is_active: true
+    }
+  ];
+
   console.log('ClientDashboard metrics:', {
     totalJobs: jobs.length,
     activeJobs: activeJobs.length,
-    completedJobs: completedJobs.length,
+    deliveredJobs: deliveredJobs.length,
     totalPayments: payments.length,
     clientId: clientRecord?.id
   });
@@ -114,8 +127,8 @@ const ClientDashboard = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600 mb-1">Completed</p>
-                <p className="text-2xl font-bold text-green-700">{stats.completedJobs}</p>
+                <p className="text-sm font-medium text-green-600 mb-1">Delivered</p>
+                <p className="text-2xl font-bold text-green-700">{deliveredJobs.length}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
@@ -135,11 +148,12 @@ const ClientDashboard = () => {
         </Card>
       </div>
 
-      {/* Payment Summary */}
+      {/* Payment Summary with Package Info */}
       <ClientPaymentSummary 
         jobs={jobs} 
         payments={payments} 
-        paymentRequests={paymentRequests} 
+        paymentRequests={paymentRequests}
+        clientPackages={clientPackages}
       />
 
       {/* Active Projects */}
@@ -163,8 +177,8 @@ const ClientDashboard = () => {
                     View Details
                   </Button>
                 </div>
-                {/* Show files for completed/delivered jobs */}
-                {['completed', 'delivered'].includes(job.status) && (
+                {/* Show files for completed jobs */}
+                {job.status === 'completed' && (
                   <div className="mt-4">
                     <JobFilesDisplay jobId={job.id} />
                   </div>
@@ -175,18 +189,18 @@ const ClientDashboard = () => {
         </div>
       )}
 
-      {/* Completed Projects */}
-      {completedJobs.length > 0 && (
+      {/* Delivered Projects */}
+      {deliveredJobs.length > 0 && (
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
-              Completed Projects
+              Delivered Projects
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {completedJobs.map((job) => (
+              {deliveredJobs.map((job) => (
                 <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <h4 className="font-medium">{job.title}</h4>
@@ -196,7 +210,7 @@ const ClientDashboard = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge className="bg-green-100 text-green-800">
-                      {job.status.toUpperCase()}
+                      DELIVERED
                     </Badge>
                     <Button
                       variant="outline"
