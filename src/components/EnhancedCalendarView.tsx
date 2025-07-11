@@ -24,6 +24,10 @@ interface Job {
   clients?: {
     name: string;
   };
+  users?: {
+    name: string;
+    role: string;
+  };
 }
 
 interface EnhancedCalendarViewProps {
@@ -35,6 +39,9 @@ const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect
   const { events, jobs, loading } = useCalendarEvents();
   const { t, language } = useTranslation();
   const navigate = useNavigate();
+
+  console.log('EnhancedCalendarView - Jobs:', jobs);
+  console.log('EnhancedCalendarView - Events:', events);
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -98,7 +105,7 @@ const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect
             mode="single"
             selected={selectedDate}
             onSelect={setSelectedDate}
-            className="rounded-lg border-2 shadow-md bg-white"
+            className="rounded-lg border-2 shadow-md bg-white pointer-events-auto"
             locale={language === 'ar' ? ar : undefined}
             modifiers={{
               hasJobs: datesWithJobs
@@ -118,6 +125,9 @@ const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-blue-500 rounded-full shadow-sm"></div>
               <span className="text-sm font-medium text-blue-800">{t('datesWithTasks')}</span>
+            </div>
+            <div className="text-xs text-blue-600 mt-1">
+              {jobs.length} total jobs found
             </div>
           </div>
         </CardContent>
@@ -164,10 +174,12 @@ const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect
                   </div>
                   
                   <div className="space-y-2 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-3 w-3 text-blue-500" />
-                      <span>{t('client')}: {job.clients?.name || 'N/A'}</span>
-                    </div>
+                    {job.clients?.name && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-blue-500" />
+                        <span>{t('client')}: {job.clients.name}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <MapPin className="h-3 w-3 text-green-500" />
                       <span>{t('type')}: {t(job.type.replace('_', '') as any) || job.type}</span>

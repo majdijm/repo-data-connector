@@ -1,14 +1,17 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { DollarSign, FileText, CheckCircle, Clock } from 'lucide-react';
+import { DollarSign, FileText, CheckCircle, Clock, Eye } from 'lucide-react';
 
 const ClientDashboard: React.FC = () => {
   const { t } = useTranslation();
   const { jobs, clients, payments, loading, error } = useSupabaseData();
+  const navigate = useNavigate();
 
   console.log('ClientDashboard render - Jobs:', jobs);
   console.log('ClientDashboard render - Clients:', clients);
@@ -77,6 +80,10 @@ const ClientDashboard: React.FC = () => {
     totalJobsValue,
     accountBalance
   });
+
+  const handleJobClick = (jobId: string) => {
+    navigate(`/jobs/${jobId}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -162,9 +169,14 @@ const ClientDashboard: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {jobs.slice(0, 5).map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex-1">
-                    <h4 className="font-medium">{job.title}</h4>
+                    <button 
+                      onClick={() => handleJobClick(job.id)}
+                      className="text-left hover:text-blue-600 transition-colors"
+                    >
+                      <h4 className="font-medium hover:underline">{job.title}</h4>
+                    </button>
                     <p className="text-sm text-gray-600">{job.description}</p>
                     <p className="text-xs text-gray-500 mt-1">
                       {t('dueDate')}: {job.due_date ? new Date(job.due_date).toLocaleDateString() : 'Not set'}
@@ -177,6 +189,15 @@ const ClientDashboard: React.FC = () => {
                     {job.price && (
                       <span className="font-semibold text-green-600">${job.price}</span>
                     )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleJobClick(job.id)}
+                      className="ml-2"
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      {t('view')}
+                    </Button>
                   </div>
                 </div>
               ))}

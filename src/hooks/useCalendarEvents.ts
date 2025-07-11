@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +29,10 @@ interface Job {
   price: number | null;
   clients?: {
     name: string;
+  };
+  users?: {
+    name: string;
+    role: string;
   };
 }
 
@@ -63,6 +68,10 @@ export const useCalendarEvents = () => {
           *,
           clients (
             name
+          ),
+          users (
+            name,
+            role
           )
         `);
 
@@ -70,6 +79,30 @@ export const useCalendarEvents = () => {
       if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
         // Admin and receptionist can see all jobs
         jobsQuery = jobsQuery.order('created_at', { ascending: false });
+      } else if (userProfile.role === 'client') {
+        // Client users: fetch their client record first, then get jobs
+        console.log('Fetching jobs for client user in calendar:', userProfile.email);
+        
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('email', userProfile.email)
+          .single();
+
+        if (clientError) {
+          console.error('Error fetching client data for calendar:', clientError);
+          setJobs([]);
+          setEvents(eventsData || []);
+          return;
+        }
+
+        if (clientData) {
+          jobsQuery = jobsQuery.eq('client_id', clientData.id).order('created_at', { ascending: false });
+        } else {
+          setJobs([]);
+          setEvents(eventsData || []);
+          return;
+        }
       } else {
         // Other roles only see jobs assigned to them
         jobsQuery = jobsQuery.eq('assigned_to', userProfile.id).order('created_at', { ascending: false });
@@ -94,7 +127,7 @@ export const useCalendarEvents = () => {
 
   useEffect(() => {
     fetchEvents();
-  }, [userProfile?.id, userProfile?.role]);
+  }, [userProfile?.id, userProfile?.role, userProfile?.email]);
 
   const createEvent = async (eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at'>) => {
     try {
