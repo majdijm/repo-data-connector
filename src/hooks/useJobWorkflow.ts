@@ -41,8 +41,23 @@ export const useJobWorkflow = () => {
 
       if (updateError) throw updateError;
 
-      // Create notification for client
-      if (jobData.clients) {
+      // Add client acceptance comment when status changes to delivered
+      if (newStatus === 'delivered' && userProfile?.role === 'client') {
+        const { error: commentError } = await supabase
+          .from('job_comments')
+          .insert({
+            job_id: jobId,
+            user_id: userProfile.id,
+            content: `Client accepted the work and marked it as delivered on ${new Date().toLocaleString()}`
+          });
+
+        if (commentError) {
+          console.error('Error adding acceptance comment:', commentError);
+        }
+      }
+
+      // Create notification for client (if not client updating)
+      if (jobData.clients && userProfile?.role !== 'client') {
         // Find the client's user ID
         const { data: clientUser, error: clientUserError } = await supabase
           .from('users')
@@ -67,30 +82,63 @@ export const useJobWorkflow = () => {
         }
       }
 
-      // Create notification for admin/receptionist
-      const { data: adminUsers, error: adminError } = await supabase
-        .from('users')
-        .select('id')
-        .in('role', ['admin', 'receptionist'])
-        .eq('is_active', true);
+      // Create notification for admin/receptionist (if client accepted)
+      if (newStatus === 'delivered' && userProfile?.role === 'client') {
+        const { data: adminUsers, error: adminError } = await supabase
+          .from('users')
+          .select('id')
+          .in('role', ['admin', 'receptionist'])
+          .eq('is_active', true);
 
-      if (!adminError && adminUsers) {
-        const adminNotifications = adminUsers.map(user => ({
-          user_id: user.id,
-          title: 'Job Status Updated',
-          message: `Job "${jobData.title}" for ${jobData.clients?.name} has been updated to ${newStatus.replace('_', ' ')}`,
-          related_job_id: jobId
-        }));
+        if (!adminError && adminUsers) {
+          const adminNotifications = adminUsers.map(user => ({
+            user_id: user.id,
+            title: 'Job Accepted by Client',
+            message: `Client has accepted and confirmed delivery of job "${jobData.title}"`,
+            related_job_id: jobId
+          }));
 
-        await supabase
-          .from('notifications')
-          .insert(adminNotifications);
+          await supabase
+            .from('notifications')
+            .insert(adminNotifications);
+        }
       }
 
+      // Create notification for admin/receptionist (if team member updated)
+      if (userProfile?.role !== 'client') {
+        const { data: adminUsers, error: adminError } = await supabase
+          .from('users')
+          .select('id')
+          .in('role', ['admin', 'receptionist'])
+          .eq('is_active', true);
+
+        if (!adminError && adminUsers) {
+          const adminNotifications = adminUsers.map(user => ({
+            user_id: user.id,
+            title: 'Job Status Updated',
+            message: `Job "${jobData.title}" for ${jobData.clients?.name} has been updated to ${newStatus.replace('_', ' ')}`,
+            related_job_id: jobId
+          }));
+
+          await supabase
+            .from('notifications')
+            .insert(adminNotifications);
+        }
+      }
+
+      console.log(`Job ${jobId} successfully updated to ${newStatus}`);
       toast({
         title: "Success",
-        description: "Job status updated and notifications sent"
+        description: newStatus === 'delivered' ? "Work accepted and marked as delivered" : "Job status updated successfully"
       });
+      
+      // Force a page refresh to ensure all data is updated
+      if (newStatus === 'delivered') {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      }
+      
     } catch (error) {
       console.error('Error updating job progress:', error);
       toast({

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { FileText, Link as LinkIcon, Download, Clock } from 'lucide-react';
 
 interface JobFile {
@@ -30,10 +31,13 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
   const [files, setFiles] = useState<JobFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { userProfile } = useAuth();
 
   const fetchFiles = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching files for job:', jobId, 'as user role:', userProfile?.role);
+      
+      let query = supabase
         .from('job_files')
         .select(`
           id,
@@ -52,7 +56,19 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // For clients, only show final files
+      if (userProfile?.role === 'client') {
+        query = query.eq('is_final', true);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching files:', error);
+        throw error;
+      }
+      
+      console.log('Files fetched:', data?.length || 0, 'files for job', jobId);
       setFiles(data || []);
     } catch (error) {
       console.error('Error fetching files:', error);
@@ -67,8 +83,10 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
   };
 
   useEffect(() => {
-    fetchFiles();
-  }, [jobId]);
+    if (jobId && userProfile) {
+      fetchFiles();
+    }
+  }, [jobId, userProfile]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -125,7 +143,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Job Files
+            {userProfile?.role === 'client' ? 'Final Files' : 'Job Files'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -139,7 +157,24 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
   }
 
   if (files.length === 0) {
-    return null;
+    return (
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            {userProfile?.role === 'client' ? 'Final Files' : 'Job Files'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">
+            {userProfile?.role === 'client' 
+              ? 'No final files available yet. Files will appear here once the work is completed.'
+              : 'No files uploaded yet.'
+            }
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -147,7 +182,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Job Files ({files.length})
+          {userProfile?.role === 'client' ? 'Final Deliverables' : 'Job Files'} ({files.length})
         </CardTitle>
       </CardHeader>
       <CardContent>

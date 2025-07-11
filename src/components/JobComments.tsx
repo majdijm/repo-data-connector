@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,8 +41,9 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   const [hasPermissionError, setHasPermissionError] = useState(false);
 
   // Check if user has permission to view comments
-  const hasCommentsPermission = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role);
+  const hasCommentsPermission = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'].includes(userProfile.role);
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
+  const canAddComments = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role);
 
   const fetchComments = async () => {
     if (!jobId || !userProfile?.id || !hasCommentsPermission) {
@@ -110,7 +110,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   }, [jobId, userProfile?.id, hasCommentsPermission]);
 
   const handleAddComment = async () => {
-    if (!newComment.trim() || !userProfile || !hasCommentsPermission) return;
+    if (!newComment.trim() || !userProfile || !canAddComments) return;
 
     setIsLoading(true);
     try {
@@ -284,12 +284,12 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5" />
-            Progress Comments
+            {userProfile?.role === 'client' ? 'Handover Notes' : 'Progress Comments'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-500 text-center py-4">
-            Comments are only available to team members.
+            Comments are only available to team members and clients for completed work.
           </p>
         </CardContent>
       </Card>
@@ -303,7 +303,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5" />
-            Progress Comments
+            {userProfile?.role === 'client' ? 'Handover Notes' : 'Progress Comments'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -330,7 +330,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5" />
-            Progress Comments
+            {userProfile?.role === 'client' ? 'Handover Notes' : 'Progress Comments'}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -348,26 +348,29 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <MessageSquare className="h-5 w-5" />
-          Progress Comments ({comments.length})
+          {userProfile?.role === 'client' ? 'Handover Notes' : 'Progress Comments'} ({comments.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Textarea
-            placeholder="Add a comment about the job progress, issues, or updates..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            rows={3}
-          />
-          <Button 
-            onClick={handleAddComment} 
-            disabled={!newComment.trim() || isLoading}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Comment
-          </Button>
-        </div>
+        {/* Add Comment Section - Only for team members */}
+        {canAddComments && (
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Add a comment about the job progress, issues, or updates..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              rows={3}
+            />
+            <Button 
+              onClick={handleAddComment} 
+              disabled={!newComment.trim() || isLoading}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Comment
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-3">
           {comments.map((comment) => (
@@ -458,7 +461,10 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           
           {comments.length === 0 && !isLoading && (
             <p className="text-gray-500 text-center py-4">
-              No comments yet. Add the first comment to track progress.
+              {userProfile?.role === 'client' 
+                ? 'No handover notes available yet.'
+                : 'No comments yet. Add the first comment to track progress.'
+              }
             </p>
           )}
         </div>
