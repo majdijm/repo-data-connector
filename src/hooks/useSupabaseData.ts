@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,8 +53,10 @@ export const useSupabaseData = () => {
         if (clientRecord) {
           setClients([clientRecord]);
           
-          // Fetch jobs for this client
+          // Fetch jobs for this client with more detailed debugging
           console.log('Fetching jobs for client:', clientRecord.id);
+          console.log('Client record details:', clientRecord);
+          
           const { data: clientJobs, error: jobsError } = await supabase
             .from('jobs')
             .select(`
@@ -68,12 +71,33 @@ export const useSupabaseData = () => {
 
           if (jobsError) {
             console.error('Error fetching client jobs:', jobsError);
+            console.error('Jobs error details:', {
+              message: jobsError.message,
+              details: jobsError.details,
+              hint: jobsError.hint
+            });
           } else {
             console.log('Fetched client jobs:', clientJobs);
+            console.log('Number of jobs found:', clientJobs?.length || 0);
+            
+            // Log each job for debugging
+            if (clientJobs && clientJobs.length > 0) {
+              clientJobs.forEach((job, index) => {
+                console.log(`Job ${index + 1}:`, {
+                  id: job.id,
+                  title: job.title,
+                  status: job.status,
+                  client_id: job.client_id,
+                  created_at: job.created_at
+                });
+              });
+            }
+            
             setJobs(clientJobs || []);
           }
 
           // Fetch payments for this client
+          console.log('Fetching payments for client:', clientRecord.id);
           const { data: clientPayments, error: paymentsError } = await supabase
             .from('payments')
             .select('*')
@@ -83,9 +107,11 @@ export const useSupabaseData = () => {
           if (paymentsError) {
             console.error('Error fetching client payments:', paymentsError);
           } else {
+            console.log('Fetched client payments:', clientPayments);
             setPayments(clientPayments || []);
           }
         } else {
+          console.log('No client record found, setting empty arrays');
           setJobs([]);
           setClients([]);
           setPayments([]);

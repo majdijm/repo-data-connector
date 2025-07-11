@@ -13,6 +13,8 @@ const ClientDashboard: React.FC = () => {
   console.log('ClientDashboard render - Jobs:', jobs);
   console.log('ClientDashboard render - Clients:', clients);
   console.log('ClientDashboard render - Payments:', payments);
+  console.log('ClientDashboard render - Loading:', loading);
+  console.log('ClientDashboard render - Error:', error);
 
   if (loading) {
     return (
@@ -28,7 +30,8 @@ const ClientDashboard: React.FC = () => {
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500">Error loading dashboard data</p>
+        <p className="text-red-500">Error loading dashboard data: {error.message || 'Unknown error'}</p>
+        <pre className="text-xs text-gray-600 mt-2">{JSON.stringify(error, null, 2)}</pre>
       </div>
     );
   }
@@ -66,11 +69,23 @@ const ClientDashboard: React.FC = () => {
   const totalJobsValue = jobs.reduce((sum, job) => sum + (job.price || 0), 0);
   const accountBalance = totalJobsValue - totalPaid;
 
+  console.log('ClientDashboard metrics:', {
+    totalJobs,
+    activeJobs,
+    completedJobs,
+    totalPaid,
+    totalJobsValue,
+    accountBalance
+  });
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold">{t('clientPortal')}</h1>
         <p className="text-blue-100 mt-2">{t('clientPortalSubtitle')}</p>
+        <div className="text-sm mt-2 opacity-75">
+          Debug: {totalJobs} total jobs, {completedJobs} completed
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -140,6 +155,9 @@ const ClientDashboard: React.FC = () => {
               <p className="text-sm text-gray-400">
                 {t('contactUsForNewProjects')}
               </p>
+              <div className="text-xs text-gray-400 mt-4">
+                Debug info: Client ID: {clients[0]?.id || 'No client found'}
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
