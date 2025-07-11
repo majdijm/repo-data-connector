@@ -69,7 +69,7 @@ export const useCalendarEvents = () => {
           clients (
             name
           ),
-          users (
+          users!jobs_assigned_to_fkey (
             name,
             role
           )
