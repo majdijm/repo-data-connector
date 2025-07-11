@@ -16,6 +16,7 @@ interface JobData {
   status: string;
   assigned_to: string | null;
   type: string;
+  client_id: string;
 }
 
 interface JobCompletionActionsProps {
@@ -31,18 +32,9 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if user can complete job - must be the assigned team member
   const canCompleteJob = userProfile && 
                          job.assigned_to === userProfile.id && 
                          ['pending', 'in_progress', 'review'].includes(job.status);
-
-  console.log('JobCompletionActions Debug:', {
-    userRole: userProfile?.role,
-    userId: userProfile?.id,
-    jobAssignedTo: job.assigned_to,
-    jobStatus: job.status,
-    canCompleteJob
-  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -66,8 +58,6 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
 
     setIsLoading(true);
     try {
-      console.log('🔄 Starting job completion for job:', job.id);
-      
       // Update job status to completed
       const { data: updatedJob, error: jobError } = await supabase
         .from('jobs')
@@ -79,16 +69,10 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
         .select()
         .single();
 
-      if (jobError) {
-        console.error('❌ Error updating job:', jobError);
-        throw jobError;
-      }
-
-      console.log('✅ Job marked as completed:', updatedJob);
+      if (jobError) throw jobError;
 
       // Add completion notes if provided
       if (completionNotes.trim()) {
-        console.log('💬 Adding completion notes...');
         const { error: commentError } = await supabase
           .from('job_comments')
           .insert({
@@ -97,16 +81,11 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
             content: `Job Completed: ${completionNotes.trim()}`
           });
 
-        if (commentError) {
-          console.error('❌ Error adding completion notes:', commentError);
-          throw commentError;
-        }
-        console.log('✅ Completion notes added successfully');
+        if (commentError) throw commentError;
       }
 
       // Upload file if provided
       if (selectedFile) {
-        console.log('📁 Uploading completion file:', selectedFile.name);
         const fileExt = selectedFile.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
         const filePath = `job-files/${fileName}`;
@@ -115,12 +94,8 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
           .from('job-files')
           .upload(filePath, selectedFile);
 
-        if (uploadError) {
-          console.error('❌ Error uploading file:', uploadError);
-          throw uploadError;
-        }
+        if (uploadError) throw uploadError;
 
-        // Save file record
         const { error: fileError } = await supabase
           .from('job_files')
           .insert({
@@ -133,16 +108,11 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
             is_final: true
           });
 
-        if (fileError) {
-          console.error('❌ Error saving file record:', fileError);
-          throw fileError;
-        }
-        console.log('✅ File uploaded and recorded successfully');
+        if (fileError) throw fileError;
       }
 
       // Add cloud link if provided
       if (fileLink.trim()) {
-        console.log('🔗 Adding cloud link...');
         const { error: linkError } = await supabase
           .from('job_files')
           .insert({
@@ -157,52 +127,71 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
             is_final: true
           });
 
-        if (linkError) {
-          console.error('❌ Error adding cloud link:', linkError);
-          throw linkError;
-        }
-        console.log('✅ Cloud link added successfully');
+        if (linkError) throw linkError;
       }
 
-      // Create notification for job creator/admin
-      if (updatedJob.created_by && updatedJob.created_by !== userProfile?.id) {
-        console.log('📬 Creating completion notification...');
-        const { error: notificationError } = await supabase
+      // Notify client about job completion
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('email, name')
+        .eq('id', job.client_id)
+        .single();
+
+      if (!clientError && clientData) {
+        // Find client user ID
+        const { data: clientUser, error: clientUserError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', clientData.email)
+          .eq('role', 'client')
+          .single();
+
+        if (!clientUserError && clientUser) {
+          await supabase
+            .from('notifications')
+            .insert({
+              user_id: clientUser.id,
+              title: 'Job Completed',
+              message: `Great news! Your job "${job.title}" has been completed and is ready for review. ${selectedFile || fileLink ? 'Final files are now available.' : ''}`,
+              related_job_id: job.id
+            });
+        }
+      }
+
+      // Notify admins/receptionists
+      const { data: adminUsers, error: adminError } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['admin', 'receptionist'])
+        .eq('is_active', true);
+
+      if (!adminError && adminUsers) {
+        const adminNotifications = adminUsers.map(user => ({
+          user_id: user.id,
+          title: 'Job Completed',
+          message: `${userProfile?.name} has completed job "${job.title}" for ${clientData?.name}`,
+          related_job_id: job.id
+        }));
+
+        await supabase
           .from('notifications')
-          .insert({
-            user_id: updatedJob.created_by,
-            title: 'Job Completed',
-            message: `"${job.title}" has been completed by ${userProfile?.name}`,
-            related_job_id: job.id
-          });
-
-        if (notificationError) {
-          console.error('❌ Error creating notification:', notificationError);
-        } else {
-          console.log('✅ Completion notification created successfully');
-        }
+          .insert(adminNotifications);
       }
-
-      console.log('🎉 Job completion process finished successfully');
 
       toast({
         title: "Success",
-        description: "Job marked as completed successfully"
+        description: "Job completed successfully and client has been notified"
       });
 
-      // Call onJobUpdated to refresh the job list
       onJobUpdated();
-      
-      // Reset form
       setCompletionNotes('');
-      setSelectedFile(null);
       setFileLink('');
-      
+      setSelectedFile(null);
     } catch (error) {
-      console.error('💥 Error completing job:', error);
+      console.error('Error completing job:', error);
       toast({
         title: "Error",
-        description: `Failed to complete job: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: "Failed to complete job",
         variant: "destructive"
       });
     } finally {
@@ -210,34 +199,27 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
     }
   };
 
-  // Don't render if user can't complete job
   if (!canCompleteJob) {
-    console.log('🚫 JobCompletionActions: Not rendering - user cannot complete job');
     return null;
   }
 
-  console.log('✅ JobCompletionActions: Rendering completion actions');
-
   return (
-    <Card className="mt-4 border-2 border-green-200">
-      <CardHeader className="bg-green-50">
-        <CardTitle className="flex items-center gap-2 text-green-800">
+    <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+      <CardHeader>
+        <CardTitle className="text-green-700 dark:text-green-300 flex items-center gap-2">
           <Check className="h-5 w-5" />
           Complete Job
         </CardTitle>
-        <p className="text-sm text-green-600">
-          Mark this job as completed and optionally add files or notes.
-        </p>
       </CardHeader>
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="completionNotes">Completion Notes (Optional)</Label>
+          <Label htmlFor="completion-notes">Completion Notes (Optional)</Label>
           <Textarea
-            id="completionNotes"
+            id="completion-notes"
             value={completionNotes}
             onChange={(e) => setCompletionNotes(e.target.value)}
-            rows={3}
-            placeholder="Add any notes about the completed work, deliverables, or important information..."
+            placeholder="Add any notes about the completed work..."
+            className="mt-1"
           />
         </div>
 
@@ -249,18 +231,21 @@ const JobCompletionActions: React.FC<JobCompletionActionsProps> = ({ job, onJobU
           onRemoveFile={removeFile}
         />
 
-        <Button 
-          onClick={handleJobCompletion} 
+        <Button
+          onClick={handleJobCompletion}
           disabled={isLoading}
           className="w-full bg-green-600 hover:bg-green-700"
         >
           {isLoading ? (
-            'Processing...'
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              Completing Job...
+            </>
           ) : (
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4" />
-              Mark Job as Completed
-            </div>
+            <>
+              <Check className="h-4 w-4 mr-2" />
+              Mark as Completed
+            </>
           )}
         </Button>
       </CardContent>

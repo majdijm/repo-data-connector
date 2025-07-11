@@ -1,16 +1,29 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useTranslation } from '@/hooks/useTranslation';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
-import { DollarSign, FileText, CheckCircle, Clock, Eye } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { 
+  Calendar, 
+  DollarSign, 
+  Briefcase, 
+  Clock, 
+  CheckCircle, 
+  AlertCircle,
+  Eye,
+  Bell
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import ClientJobProgress from '@/components/ClientJobProgress';
+import ClientPaymentSummary from '@/components/ClientPaymentSummary';
+import ClientNotifications from '@/components/ClientNotifications';
+import JobFilesDisplay from '@/components/JobFilesDisplay';
 
-const ClientDashboard: React.FC = () => {
+const ClientDashboard = () => {
+  const { jobs, clients, payments, loading, error, stats } = useSupabaseData();
   const { t } = useTranslation();
-  const { jobs, clients, payments, loading, error } = useSupabaseData();
   const navigate = useNavigate();
 
   console.log('ClientDashboard render - Jobs:', jobs);
@@ -21,10 +34,10 @@ const ClientDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">{t('loading')}</p>
         </div>
       </div>
     );
@@ -32,203 +45,184 @@ const ClientDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-500">Error loading dashboard data: {error.message || 'Unknown error'}</p>
-        <pre className="text-xs text-gray-600 mt-2">{JSON.stringify(error, null, 2)}</pre>
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <p className="text-destructive">{t('errorLoadingData')}</p>
+        </div>
       </div>
     );
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'review':
-        return 'bg-purple-100 text-purple-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const clientRecord = clients[0];
+  const activeJobs = jobs.filter(job => ['pending', 'in_progress', 'review'].includes(job.status));
+  const completedJobs = jobs.filter(job => ['completed', 'delivered'].includes(job.status));
 
-  // Calculate metrics
-  const totalJobs = jobs.length;
-  const activeJobs = jobs.filter(job => 
-    job.status === 'pending' || 
-    job.status === 'in_progress' || 
-    job.status === 'review'
-  ).length;
-  const completedJobs = jobs.filter(job => 
-    job.status === 'completed' || 
-    job.status === 'delivered'
-  ).length;
-  const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-  const totalJobsValue = jobs.reduce((sum, job) => sum + (job.price || 0), 0);
-  const accountBalance = totalJobsValue - totalPaid;
+  // Get payment requests (we'll need to fetch these separately in real implementation)
+  const paymentRequests: any[] = []; // This should be fetched from payment_requests table
 
   console.log('ClientDashboard metrics:', {
-    totalJobs,
-    activeJobs,
-    completedJobs,
-    totalPaid,
-    totalJobsValue,
-    accountBalance
+    totalJobs: jobs.length,
+    activeJobs: activeJobs.length,
+    completedJobs: completedJobs.length,
+    totalPayments: payments.length,
+    clientId: clientRecord?.id
   });
-
-  const handleJobClick = (jobId: string) => {
-    navigate(`/jobs/${jobId}`);
-  };
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold">{t('clientPortal')}</h1>
-        <p className="text-blue-100 mt-2">{t('clientPortalSubtitle')}</p>
-        <div className="text-sm mt-2 opacity-75">
-          Debug: {totalJobs} total jobs, {completedJobs} completed
-        </div>
+      {/* Welcome Section */}
+      <div className="bg-gradient-to-r from-primary/10 to-purple-600/10 p-6 rounded-lg border">
+        <h1 className="text-2xl font-bold mb-2">
+          Welcome back, {clientRecord?.name || 'Valued Client'}!
+        </h1>
+        <p className="text-muted-foreground">
+          Here's an overview of your projects and account status.
+        </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('totalJobs')}</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              {activeJobs} {t('active')}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Notifications */}
+      <ClientNotifications />
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('completedJobs')}</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedJobs}</div>
-            <p className="text-xs text-muted-foreground">
-              {((completedJobs / (totalJobs || 1)) * 100).toFixed(1)}% completion rate
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('totalPaid')}</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalPaid}</div>
-            <p className="text-xs text-muted-foreground">
-              From {payments.length} payments
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('accountBalance')}</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${accountBalance}</div>
-            <p className="text-xs text-muted-foreground">
-              {accountBalance > 0 ? t('outstanding') : t('paid')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Jobs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('recentJobs')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {jobs.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500 mb-2">{t('noJobsFound')}</p>
-              <p className="text-sm text-gray-400">
-                {t('contactUsForNewProjects')}
-              </p>
-              <div className="text-xs text-gray-400 mt-4">
-                Debug info: Client ID: {clients[0]?.id || 'No client found'}
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600 mb-1">Total Projects</p>
+                <p className="text-2xl font-bold text-blue-700">{stats.totalJobs}</p>
               </div>
+              <Briefcase className="h-8 w-8 text-blue-500" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {jobs.slice(0, 5).map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-yellow-600 mb-1">Active Projects</p>
+                <p className="text-2xl font-bold text-yellow-700">{stats.activeJobs}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600 mb-1">Completed</p>
+                <p className="text-2xl font-bold text-green-700">{stats.completedJobs}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-purple-100">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600 mb-1">Total Paid</p>
+                <p className="text-2xl font-bold text-purple-700">${stats.totalRevenue}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payment Summary */}
+      <ClientPaymentSummary 
+        jobs={jobs} 
+        payments={payments} 
+        paymentRequests={paymentRequests} 
+      />
+
+      {/* Active Projects */}
+      {activeJobs.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            Active Projects
+          </h2>
+          <div className="grid gap-4">
+            {activeJobs.map((job) => (
+              <div key={job.id} className="relative">
+                <ClientJobProgress job={job} />
+                <div className="absolute top-4 right-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/jobs/${job.id}`)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
+                  </Button>
+                </div>
+                {/* Show files for completed/delivered jobs */}
+                {['completed', 'delivered'].includes(job.status) && (
+                  <div className="mt-4">
+                    <JobFilesDisplay jobId={job.id} />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Completed Projects */}
+      {completedJobs.length > 0 && (
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5" />
+              Completed Projects
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {completedJobs.map((job) => (
+                <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
-                    <button 
-                      onClick={() => handleJobClick(job.id)}
-                      className="text-left hover:text-blue-600 transition-colors"
-                    >
-                      <h4 className="font-medium hover:underline">{job.title}</h4>
-                    </button>
-                    <p className="text-sm text-gray-600">{job.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {t('dueDate')}: {job.due_date ? new Date(job.due_date).toLocaleDateString() : 'Not set'}
+                    <h4 className="font-medium">{job.title}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {job.type.replace('_', ' ')} • ${job.price}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={getStatusColor(job.status)}>
-                      {t(job.status as any)}
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-800">
+                      {job.status.toUpperCase()}
                     </Badge>
-                    {job.price && (
-                      <span className="font-semibold text-green-600">${job.price}</span>
-                    )}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleJobClick(job.id)}
-                      className="ml-2"
+                      onClick={() => navigate(`/jobs/${job.id}`)}
                     >
-                      <Eye className="h-3 w-3 mr-1" />
-                      {t('view')}
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Recent Payments */}
-      {payments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('recentPayments')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {payments.slice(0, 5).map((payment) => (
-                <div key={payment.id} className="flex items-center justify-between p-3 border rounded">
-                  <div>
-                    <p className="font-medium">${payment.amount}</p>
-                    <p className="text-sm text-gray-600">{payment.payment_method}</p>
-                  </div>
-                  <div className="text-right">
-                    <Badge className="bg-green-100 text-green-800">{t('paid')}</Badge>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(payment.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
+      {/* No Projects Message */}
+      {jobs.length === 0 && (
+        <Card className="border-0 shadow-lg">
+          <CardContent className="text-center py-12">
+            <Briefcase className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-lg font-medium mb-2">No Projects Yet</h3>
+            <p className="text-muted-foreground">
+              Your projects will appear here once they are created by our team.
+            </p>
           </CardContent>
         </Card>
       )}
