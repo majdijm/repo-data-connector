@@ -4,6 +4,7 @@ export type TranslationKey =
   | 'welcome'
   | 'loading'
   | 'error'
+  | 'errorLoadingData'
   | 'dashboard'
   | 'jobs'
   | 'clients'
@@ -262,6 +263,7 @@ const translations: Record<string, TranslationKeys> = {
     welcome: 'Welcome',
     loading: 'Loading...',
     error: 'Error',
+    errorLoadingData: 'Error loading data',
     dashboard: 'Dashboard',
     jobs: 'Jobs',
     clients: 'Clients',
@@ -515,6 +517,7 @@ const translations: Record<string, TranslationKeys> = {
     welcome: 'أهلاً وسهلاً',
     loading: 'جارٍ التحميل...',
     error: 'خطأ',
+    errorLoadingData: 'خطأ في تحميل البيانات',
     dashboard: 'لوحة التحكم',
     jobs: 'المهام',
     clients: 'العملاء',
