@@ -99,7 +99,38 @@ export const translations = {
     delete: 'Delete',
     workflow: 'Workflow',
     step: 'Step',
-    unknown: 'Unknown'
+    unknown: 'Unknown',
+    editJob: 'Edit Job',
+
+    // Navigation translations
+    dashboard: 'Dashboard',
+    tasks: 'Tasks',
+    jobs: 'Jobs',
+    clients: 'Clients',
+    calendar: 'Calendar',
+    files: 'Files',
+    financial: 'Financial',
+    payments: 'Payments',
+    users: 'Users',
+    settings: 'Settings',
+    signOut: 'Sign Out',
+
+    // Settings translations
+    profileInformation: 'Profile Information',
+    name: 'Name',
+    email: 'Email',
+    role: 'Role',
+    languageSettings: 'Language Settings',
+    selectLanguage: 'Select Language',
+
+    // Error messages
+    errorLoadingData: 'Error loading data',
+
+    // Task scheduling
+    taskScheduling: 'Task Scheduling',
+
+    // Search
+    search: 'Search'
   },
   ar: {
     // General translations
@@ -199,7 +230,38 @@ export const translations = {
     delete: 'حذف',
     workflow: 'سير العمل',
     step: 'الخطوة',
-    unknown: 'غير معروف'
+    unknown: 'غير معروف',
+    editJob: 'تعديل الوظيفة',
+
+    // Navigation translations
+    dashboard: 'لوحة التحكم',
+    tasks: 'المهام',
+    jobs: 'الوظائف',
+    clients: 'العملاء',
+    calendar: 'التقويم',
+    files: 'الملفات',
+    financial: 'المالية',
+    payments: 'المدفوعات',
+    users: 'المستخدمون',
+    settings: 'الإعدادات',
+    signOut: 'تسجيل الخروج',
+
+    // Settings translations
+    profileInformation: 'معلومات الملف الشخصي',
+    name: 'الاسم',
+    email: 'البريد الإلكتروني',
+    role: 'الدور',
+    languageSettings: 'إعدادات اللغة',
+    selectLanguage: 'اختر اللغة',
+
+    // Error messages
+    errorLoadingData: 'خطأ في تحميل البيانات',
+
+    // Task scheduling
+    taskScheduling: 'جدولة المهام',
+
+    // Search
+    search: 'بحث'
   }
 };
 
@@ -213,4 +275,3 @@ export const getTranslation = (key: TranslationKey, language: Language): string 
 export const isRTL = (language: Language): boolean => {
   return language === 'ar';
 };
-
