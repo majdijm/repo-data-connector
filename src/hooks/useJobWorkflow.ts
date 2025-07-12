@@ -146,12 +146,7 @@ export const useJobWorkflow = () => {
                     "Job status updated successfully"
       });
       
-      // Force a page refresh to ensure all data is updated
-      if (newStatus === 'delivered') {
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
+      return true; // Return success indicator instead of forcing page reload
       
     } catch (error) {
       console.error('Error updating job progress:', error);
@@ -160,6 +155,7 @@ export const useJobWorkflow = () => {
         description: "Failed to update job progress",
         variant: "destructive"
       });
+      return false;
     } finally {
       setIsLoading(false);
     }

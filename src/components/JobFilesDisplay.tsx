@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FileText, Link as LinkIcon, Download, Clock } from 'lucide-react';
 
 interface JobFile {
@@ -32,6 +32,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { userProfile } = useAuth();
+  const { t } = useTranslation();
 
   const fetchFiles = async () => {
     try {
@@ -145,13 +146,13 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {userProfile?.role === 'client' ? 'Final Deliverables' : 'Job Files'}
+            {userProfile?.role === 'client' ? t('finalDeliverables') || 'التسليمات النهائية' : t('jobFiles') || 'ملفات الوظيفة'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="ml-2">Loading files...</span>
+            <span className="ml-2">{t('loadingFiles') || 'جاري تحميل الملفات...'}</span>
           </div>
         </CardContent>
       </Card>
@@ -164,14 +165,14 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            {userProfile?.role === 'client' ? 'Final Deliverables' : 'Job Files'}
+            {userProfile?.role === 'client' ? t('finalDeliverables') || 'التسليمات النهائية' : t('jobFiles') || 'ملفات الوظيفة'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-500 text-center py-4">
             {userProfile?.role === 'client' 
-              ? 'No final deliverables available yet. Files will appear here once the work is completed.'
-              : 'No files uploaded yet.'
+              ? t('noFinalDeliverablesYet') || 'لا توجد تسليمات نهائية متاحة بعد. ستظهر الملفات هنا بمجرد اكتمال العمل.'
+              : t('noFilesUploaded') || 'لم يتم رفع ملفات بعد.'
             }
           </p>
         </CardContent>
@@ -184,7 +185,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          {userProfile?.role === 'client' ? 'Final Deliverables' : 'Job Files'} ({files.length})
+          {userProfile?.role === 'client' ? t('finalDeliverables') || 'التسليمات النهائية' : t('jobFiles') || 'ملفات الوظيفة'} ({files.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -205,7 +206,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
                     </Badge>
                     {file.is_final && (
                       <Badge className="bg-green-100 text-green-800" variant="outline">
-                        Final
+                        {t('final') || 'نهائي'}
                       </Badge>
                     )}
                     <div className="flex items-center text-xs text-gray-500">
@@ -217,7 +218,9 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
                     <p className="text-xs text-gray-500">{formatFileSize(file.file_size)}</p>
                   )}
                   {file.users?.name && (
-                    <p className="text-xs text-gray-500">Uploaded by: {file.users.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {t('uploadedBy') || 'تم رفعه بواسطة'}: {file.users.name}
+                    </p>
                   )}
                 </div>
               </div>
@@ -228,7 +231,7 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
                 className="flex items-center gap-1"
               >
                 <Download className="h-4 w-4" />
-                {file.is_cloud_link ? 'Open' : 'Download'}
+                {file.is_cloud_link ? t('open') || 'فتح' : t('download') || 'تحميل'}
               </Button>
             </div>
           ))}

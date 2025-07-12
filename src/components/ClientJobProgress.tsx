@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, AlertCircle, Star } from 'lucide-react';
 import { useJobWorkflow } from '@/hooks/useJobWorkflow';
+import { useTranslation } from '@/hooks/useTranslation';
 import JobFilesDisplay from './JobFilesDisplay';
 import JobComments from './JobComments';
 
@@ -22,10 +23,12 @@ interface Job {
 
 interface ClientJobProgressProps {
   job: Job;
+  onJobUpdate?: () => void;
 }
 
-const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
+const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate }) => {
   const { updateJobProgress, isLoading } = useJobWorkflow();
+  const { t } = useTranslation();
 
   const getProgressPercentage = (status: string) => {
     switch (status) {
@@ -62,10 +65,23 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
     }
   };
 
+  const getStatusText = (status: string) => {
+    const statusMap = {
+      pending: t('pending') || 'معلق',
+      in_progress: t('inProgress') || 'قيد التنفيذ',
+      review: t('review') || 'مراجعة',
+      completed: t('completed') || 'مكتمل',
+      delivered: t('delivered') || 'تم التسليم'
+    };
+    return statusMap[status as keyof typeof statusMap] || status;
+  };
+
   const handleAcceptJob = async () => {
     try {
-      await updateJobProgress(job.id, 'delivered');
-      // The updateJobProgress function handles the page reload
+      const success = await updateJobProgress(job.id, 'delivered');
+      if (success && onJobUpdate) {
+        onJobUpdate(); // Trigger parent component to refresh data
+      }
     } catch (error) {
       console.error('Error accepting job:', error);
     }
@@ -84,7 +100,7 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
             {getStatusIcon(job.status)}
             <div>
               <h2 className="text-xl font-bold">{job.title}</h2>
-              <p className="text-blue-100 text-sm">Job Progress</p>
+              <p className="text-blue-100 text-sm">{t('jobProgress') || 'تقدم الوظيفة'}</p>
             </div>
           </CardTitle>
         </CardHeader>
@@ -93,9 +109,11 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
             {/* Status Badge */}
             <div className="flex items-center justify-between">
               <Badge className={`${getStatusColor(job.status)} text-sm px-3 py-1`}>
-                {job.status.replace('_', ' ').toUpperCase()}
+                {getStatusText(job.status)}
               </Badge>
-              <span className="text-sm text-gray-600">{progress}% Complete</span>
+              <span className="text-sm text-gray-600">
+                {progress}% {t('complete') || 'مكتمل'}
+              </span>
             </div>
 
             {/* Progress Bar */}
@@ -110,13 +128,13 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
             <div className="grid grid-cols-2 gap-4 mt-4">
               {job.price && (
                 <div>
-                  <p className="text-sm text-gray-600">Project Value</p>
+                  <p className="text-sm text-gray-600">{t('projectValue') || 'قيمة المشروع'}</p>
                   <p className="font-semibold text-lg text-green-600">${job.price}</p>
                 </div>
               )}
               {job.due_date && (
                 <div>
-                  <p className="text-sm text-gray-600">Due Date</p>
+                  <p className="text-sm text-gray-600">{t('dueDate') || 'تاريخ الاستحقاق'}</p>
                   <p className="font-semibold">{new Date(job.due_date).toLocaleDateString()}</p>
                 </div>
               )}
@@ -133,18 +151,35 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
               <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-3 mb-3">
                   <Star className="h-5 w-5 text-green-600" />
-                  <h3 className="font-semibold text-green-800">Your project is ready for review!</h3>
+                  <h3 className="font-semibold text-green-800">
+                    {t('projectReadyForReview') || 'مشروعك جاهز للمراجعة!'}
+                  </h3>
                 </div>
                 <p className="text-sm text-green-700 mb-4">
-                  Please review the final deliverables below. Once you're satisfied with the work, click "Accept & Complete" to finalize the project.
+                  {t('reviewFinalDeliverables') || 'يرجى مراجعة التسليمات النهائية أدناه. بمجرد أن تصبح راضيًا عن العمل، انقر على "قبول وإكمال" لإنهاء المشروع.'}
                 </p>
                 <Button
                   onClick={handleAcceptJob}
                   disabled={isLoading}
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
-                  {isLoading ? 'Processing...' : 'Accept & Complete Project'}
+                  {isLoading ? (t('processing') || 'جاري المعالجة...') : (t('acceptCompleteProject') || 'قبول وإكمال المشروع')}
                 </Button>
+              </div>
+            )}
+
+            {/* Project Completed Message */}
+            {job.status === 'delivered' && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-3 mb-2">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-blue-800">
+                    {t('projectCompleted') || 'تم إكمال المشروع!'}
+                  </h3>
+                </div>
+                <p className="text-sm text-blue-700">
+                  {t('projectDeliveredSuccessfully') || 'تم تسليم مشروعك بنجاح. يمكنك الوصول إلى جميع الملفات النهائية أدناه.'}
+                </p>
               </div>
             )}
           </div>

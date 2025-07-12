@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -24,7 +23,7 @@ import { useUsers } from '@/hooks/useUsers';
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { jobs, loading } = useCalendarEvents();
+  const { jobs, loading, refetch } = useCalendarEvents();
   const { userProfile } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -40,6 +39,18 @@ const JobDetails = () => {
     due_date: '',
     assigned_to: ''
   });
+
+  const handleJobUpdate = () => {
+    // Refresh the jobs data
+    if (refetch) {
+      refetch();
+    }
+    // Also refetch the specific job data
+    const foundJob = jobs.find(j => j.id === id);
+    if (foundJob) {
+      setJob(foundJob);
+    }
+  };
 
   useEffect(() => {
     const foundJob = jobs.find(j => j.id === id);
@@ -179,7 +190,7 @@ const JobDetails = () => {
 
         {/* Client Progress View */}
         {isClient && (
-          <ClientJobProgress job={job} />
+          <ClientJobProgress job={job} onJobUpdate={handleJobUpdate} />
         )}
 
         {/* Job Details Card - for non-clients or editing mode */}
@@ -345,9 +356,7 @@ const JobDetails = () => {
         {!isClient && job && (
           <JobWorkflowActions
             job={job}
-            onJobUpdated={() => {
-              window.location.reload();
-            }}
+            onJobUpdated={handleJobUpdate}
           />
         )}
 
