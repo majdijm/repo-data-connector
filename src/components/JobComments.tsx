@@ -57,7 +57,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
       
       console.log('Fetching comments for job:', jobId, 'as user:', userProfile.role);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('job_comments')
         .select(`
           id,
@@ -74,8 +74,48 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         .eq('job_id', jobId)
         .order('created_at', { ascending: false });
 
+      const { data, error } = await query;
+
       if (error) {
         console.error('Error fetching comments:', error);
+        
+        // If it's a permission error for client, try alternative approach
+        if (userProfile?.role === 'client' && (error.code === 'PGRST301' || error.message.includes('permission'))) {
+          console.log('Permission error for client, trying alternative query...');
+          
+          // Try to get comments through the job relationship for clients
+          const { data: jobData, error: jobError } = await supabase
+            .from('jobs')
+            .select(`
+              id,
+              client_id,
+              job_comments!inner(
+                id,
+                job_id,
+                user_id,
+                content,
+                created_at,
+                updated_at,
+                users (
+                  name,
+                  role
+                )
+              )
+            `)
+            .eq('id', jobId);
+
+          if (jobError) {
+            console.error('Alternative query also failed:', jobError);
+            setHasPermissionError(true);
+            return;
+          }
+
+          const commentsFromJob = jobData?.[0]?.job_comments || [];
+          console.log('Comments from alternative query:', commentsFromJob.length);
+          setComments(commentsFromJob);
+          return;
+        }
+        
         if (error.code === 'PGRST301' || error.message.includes('permission')) {
           setHasPermissionError(true);
         } else {
@@ -356,7 +396,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         {canAddComments && (
           <div className="space-y-2">
             <Textarea
-              placeholder="Add a comment about the job progress, issues, or updates..."
+              placeholder="Add a comment about the job progress, handover notes, or updates..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               rows={3}

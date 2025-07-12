@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -59,12 +58,53 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
       // For clients, only show final files
       if (userProfile?.role === 'client') {
         query = query.eq('is_final', true);
+        console.log('Client user - filtering for final files only');
       }
 
       const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching files:', error);
+        
+        // If it's a permission error and user is client, try a different approach
+        if (userProfile?.role === 'client' && (error.code === 'PGRST301' || error.message.includes('permission'))) {
+          console.log('Permission error for client, trying alternative query...');
+          
+          // Try to get files through the job relationship
+          const { data: jobData, error: jobError } = await supabase
+            .from('jobs')
+            .select(`
+              id,
+              client_id,
+              job_files!inner(
+                id,
+                file_name,
+                file_path,
+                file_size,
+                file_type,
+                created_at,
+                is_cloud_link,
+                cloud_link,
+                is_final,
+                users (
+                  name
+                )
+              )
+            `)
+            .eq('id', jobId)
+            .eq('job_files.is_final', true);
+
+          if (jobError) {
+            console.error('Alternative query also failed:', jobError);
+            throw jobError;
+          }
+
+          const filesFromJob = jobData?.[0]?.job_files || [];
+          console.log('Files from alternative query:', filesFromJob.length);
+          setFiles(filesFromJob);
+          return;
+        }
+        
         throw error;
       }
       
@@ -77,6 +117,8 @@ const JobFilesDisplay: React.FC<JobFilesDisplayProps> = ({ jobId }) => {
         description: "Failed to load files",
         variant: "destructive"
       });
+      // Set empty array on error to prevent infinite loading
+      setFiles([]);
     } finally {
       setIsLoading(false);
     }

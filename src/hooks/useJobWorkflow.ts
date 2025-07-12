@@ -48,7 +48,7 @@ export const useJobWorkflow = () => {
           .insert({
             job_id: jobId,
             user_id: userProfile.id,
-            content: `Client accepted the work and marked it as delivered on ${new Date().toLocaleString()}`
+            content: `Work accepted and marked as delivered by client on ${new Date().toLocaleString()}`
           });
 
         if (commentError) {
@@ -56,8 +56,10 @@ export const useJobWorkflow = () => {
         }
       }
 
-      // Create notification for client (if not client updating)
-      if (jobData.clients && userProfile?.role !== 'client') {
+      // Create notification for client when team member marks as completed
+      if (newStatus === 'completed' && userProfile?.role !== 'client' && jobData.clients) {
+        console.log('Sending completion notification to client');
+        
         // Find the client's user ID
         const { data: clientUser, error: clientUserError } = await supabase
           .from('users')
@@ -71,19 +73,23 @@ export const useJobWorkflow = () => {
             .from('notifications')
             .insert({
               user_id: clientUser.id,
-              title: 'Job Status Updated',
-              message: `Your job "${jobData.title}" status has been updated to ${newStatus.replace('_', ' ')}`,
+              title: 'Work Completed - Ready for Review',
+              message: `Your job "${jobData.title}" has been completed and is ready for your review and acceptance. Please check the final deliverables.`,
               related_job_id: jobId
             });
 
           if (notificationError) {
-            console.error('Error creating notification:', notificationError);
+            console.error('Error creating client notification:', notificationError);
+          } else {
+            console.log('Client notification created successfully');
           }
         }
       }
 
-      // Create notification for admin/receptionist (if client accepted)
+      // Create notification for admin/receptionist when client accepts
       if (newStatus === 'delivered' && userProfile?.role === 'client') {
+        console.log('Sending acceptance notification to admin/receptionist');
+        
         const { data: adminUsers, error: adminError } = await supabase
           .from('users')
           .select('id')
@@ -94,18 +100,24 @@ export const useJobWorkflow = () => {
           const adminNotifications = adminUsers.map(user => ({
             user_id: user.id,
             title: 'Job Accepted by Client',
-            message: `Client has accepted and confirmed delivery of job "${jobData.title}"`,
+            message: `Client "${jobData.clients?.name}" has accepted and confirmed delivery of job "${jobData.title}"`,
             related_job_id: jobId
           }));
 
-          await supabase
+          const { error: notifError } = await supabase
             .from('notifications')
             .insert(adminNotifications);
+
+          if (notifError) {
+            console.error('Error creating admin notifications:', notifError);
+          } else {
+            console.log('Admin notifications created successfully');
+          }
         }
       }
 
-      // Create notification for admin/receptionist (if team member updated)
-      if (userProfile?.role !== 'client') {
+      // Create notification for admin/receptionist when team member updates status
+      if (userProfile?.role && ['photographer', 'designer', 'editor'].includes(userProfile.role)) {
         const { data: adminUsers, error: adminError } = await supabase
           .from('users')
           .select('id')
@@ -116,7 +128,7 @@ export const useJobWorkflow = () => {
           const adminNotifications = adminUsers.map(user => ({
             user_id: user.id,
             title: 'Job Status Updated',
-            message: `Job "${jobData.title}" for ${jobData.clients?.name} has been updated to ${newStatus.replace('_', ' ')}`,
+            message: `Job "${jobData.title}" for ${jobData.clients?.name} has been updated to ${newStatus.replace('_', ' ')} by ${userProfile.name}`,
             related_job_id: jobId
           }));
 
@@ -129,7 +141,9 @@ export const useJobWorkflow = () => {
       console.log(`Job ${jobId} successfully updated to ${newStatus}`);
       toast({
         title: "Success",
-        description: newStatus === 'delivered' ? "Work accepted and marked as delivered" : "Job status updated successfully"
+        description: newStatus === 'delivered' ? "Work accepted and marked as delivered" : 
+                    newStatus === 'completed' ? "Job marked as completed - client will be notified" :
+                    "Job status updated successfully"
       });
       
       // Force a page refresh to ensure all data is updated
