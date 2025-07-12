@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Clock, AlertCircle, Star } from 'lucide-react';
 import { useJobWorkflow } from '@/hooks/useJobWorkflow';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useToast } from '@/hooks/use-toast';
 import JobFilesDisplay from './JobFilesDisplay';
 import JobComments from './JobComments';
 
@@ -29,6 +30,7 @@ interface ClientJobProgressProps {
 const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate }) => {
   const { updateJobProgress, isLoading } = useJobWorkflow();
   const { t } = useTranslation();
+  const { toast } = useToast();
 
   const getProgressPercentage = (status: string) => {
     switch (status) {
@@ -78,12 +80,35 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
 
   const handleAcceptJob = async () => {
     try {
+      console.log('Starting job acceptance process for job:', job.id);
       const success = await updateJobProgress(job.id, 'delivered');
-      if (success && onJobUpdate) {
-        onJobUpdate(); // Trigger parent component to refresh data
+      
+      if (success) {
+        console.log('Job acceptance successful, calling onJobUpdate');
+        toast({
+          title: "Success",
+          description: "Work accepted and marked as delivered"
+        });
+        
+        // Force a refresh of the parent component data
+        if (onJobUpdate) {
+          onJobUpdate();
+        }
+        
+        // Also force a page reload to ensure fresh data after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        throw new Error('Failed to update job status');
       }
     } catch (error) {
       console.error('Error accepting job:', error);
+      toast({
+        title: "Error",
+        description: "Failed to accept job. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 

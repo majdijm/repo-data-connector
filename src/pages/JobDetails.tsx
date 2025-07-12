@@ -40,21 +40,49 @@ const JobDetails = () => {
     assigned_to: ''
   });
 
-  const handleJobUpdate = () => {
+  const handleJobUpdate = async () => {
+    console.log('JobDetails: handleJobUpdate called');
+    
     // Refresh the jobs data
     if (refreshEvents) {
-      refreshEvents();
+      await refreshEvents();
     }
-    // Also refetch the specific job data
-    const foundJob = jobs.find(j => j.id === id);
-    if (foundJob) {
-      setJob(foundJob);
+    
+    // Force refetch the specific job data from database
+    try {
+      const { data: updatedJob, error } = await supabase
+        .from('jobs')
+        .select(`
+          *,
+          clients(name, email),
+          users(name, role)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching updated job:', error);
+      } else if (updatedJob) {
+        console.log('Job updated successfully, new status:', updatedJob.status);
+        setJob(updatedJob);
+        setEditForm({
+          title: updatedJob.title || '',
+          description: updatedJob.description || '',
+          status: updatedJob.status || '',
+          price: updatedJob.price?.toString() || '',
+          due_date: updatedJob.due_date ? format(new Date(updatedJob.due_date), 'yyyy-MM-dd') : '',
+          assigned_to: updatedJob.assigned_to || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleJobUpdate:', error);
     }
   };
 
   useEffect(() => {
     const foundJob = jobs.find(j => j.id === id);
     if (foundJob) {
+      console.log('Job found in jobs list, status:', foundJob.status);
       setJob(foundJob);
       setEditForm({
         title: foundJob.title || '',
@@ -66,6 +94,44 @@ const JobDetails = () => {
       });
     }
   }, [jobs, id]);
+
+  // Also fetch job directly if not found in jobs list
+  useEffect(() => {
+    if (!job && id && !loading) {
+      console.log('Job not found in list, fetching directly from database');
+      const fetchJobDirectly = async () => {
+        try {
+          const { data: directJob, error } = await supabase
+            .from('jobs')
+            .select(`
+              *,
+              clients(name, email),
+              users(name, role)
+            `)
+            .eq('id', id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching job directly:', error);
+          } else if (directJob) {
+            console.log('Job fetched directly, status:', directJob.status);
+            setJob(directJob);
+            setEditForm({
+              title: directJob.title || '',
+              description: directJob.description || '',
+              status: directJob.status || '',
+              price: directJob.price?.toString() || '',
+              due_date: directJob.due_date ? format(new Date(directJob.due_date), 'yyyy-MM-dd') : '',
+              assigned_to: directJob.assigned_to || ''
+            });
+          }
+        } catch (error) {
+          console.error('Error in fetchJobDirectly:', error);
+        }
+      };
+      fetchJobDirectly();
+    }
+  }, [job, id, loading]);
 
   const canEdit = userProfile?.role === 'admin' || 
                  userProfile?.role === 'receptionist' || 
