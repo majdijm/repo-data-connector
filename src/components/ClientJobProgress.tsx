@@ -25,7 +25,7 @@ interface ClientJobProgressProps {
 }
 
 const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
-  const { acceptJob, isLoading } = useJobWorkflow();
+  const { updateJobProgress, isLoading } = useJobWorkflow();
 
   const getProgressPercentage = (status: string) => {
     switch (status) {
@@ -64,8 +64,8 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job }) => {
 
   const handleAcceptJob = async () => {
     try {
-      await acceptJob(job.id);
-      // The acceptJob function handles the page reload
+      await updateJobProgress(job.id, 'delivered');
+      // The updateJobProgress function handles the page reload
     } catch (error) {
       console.error('Error accepting job:', error);
     }
