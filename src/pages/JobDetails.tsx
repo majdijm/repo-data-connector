@@ -23,7 +23,7 @@ import { useUsers } from '@/hooks/useUsers';
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { jobs, loading, refetch } = useCalendarEvents();
+  const { jobs, loading, refreshEvents } = useCalendarEvents();
   const { userProfile } = useAuth();
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -42,8 +42,8 @@ const JobDetails = () => {
 
   const handleJobUpdate = () => {
     // Refresh the jobs data
-    if (refetch) {
-      refetch();
+    if (refreshEvents) {
+      refreshEvents();
     }
     // Also refetch the specific job data
     const foundJob = jobs.find(j => j.id === id);

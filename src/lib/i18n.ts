@@ -1,3 +1,4 @@
+
 export const translations = {
   en: {
     // General translations
@@ -29,6 +30,8 @@ export const translations = {
     processing: 'Processing...',
     projectCompleted: 'Project Completed!',
     projectDeliveredSuccessfully: 'Your project has been delivered successfully. You can access all final files below.',
+    projectAcceptedSuccessfully: 'Project accepted and completed successfully!',
+    failedToAcceptProject: 'Failed to accept project. Please try again.',
     
     // Status translations
     pending: 'Pending',
@@ -77,6 +80,8 @@ export const translations = {
     processing: 'جاري المعالجة...',
     projectCompleted: 'تم إكمال المشروع!',
     projectDeliveredSuccessfully: 'تم تسليم مشروعك بنجاح. يمكنك الوصول إلى جميع الملفات النهائية أدناه.',
+    projectAcceptedSuccessfully: 'تم قبول المشروع وإكماله بنجاح!',
+    failedToAcceptProject: 'فشل في قبول المشروع. يرجى المحاولة مرة أخرى.',
     
     // Status translations
     pending: 'معلق',
@@ -95,4 +100,15 @@ export const translations = {
     final: 'نهائي',
     loadingFiles: 'جارٍ تحميل الملفات...'
   }
+};
+
+export type Language = 'en' | 'ar';
+export type TranslationKey = keyof typeof translations.en;
+
+export const getTranslation = (key: TranslationKey, language: Language): string => {
+  return translations[language][key] || translations.en[key];
+};
+
+export const isRTL = (language: Language): boolean => {
+  return language === 'ar';
 };
