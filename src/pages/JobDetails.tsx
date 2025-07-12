@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -335,8 +336,10 @@ const JobDetails = () => {
           </Card>
         )}
 
-        {/* Job Files Display - Show for all users */}
-        <JobFilesDisplay jobId={job.id} />
+        {/* Job Files Display - Only show for non-clients */}
+        {!isClient && (
+          <JobFilesDisplay jobId={job.id} />
+        )}
 
         {/* Workflow Actions - Only for team members */}
         {!isClient && job && (
@@ -348,8 +351,8 @@ const JobDetails = () => {
           />
         )}
 
-        {/* Job Comments */}
-        {job && (
+        {/* Job Comments - Only show for non-clients */}
+        {!isClient && job && (
           <JobComments
             jobId={job.id}
             jobTitle={job.title}
