@@ -55,7 +55,7 @@ const JobDetails = () => {
         .select(`
           *,
           clients(name, email),
-          users(name, role)
+          users!jobs_assigned_to_fkey(name, role)
         `)
         .eq('id', id)
         .single();
@@ -106,7 +106,7 @@ const JobDetails = () => {
             .select(`
               *,
               clients(name, email),
-              users(name, role)
+              users!jobs_assigned_to_fkey(name, role)
             `)
             .eq('id', id)
             .single();
