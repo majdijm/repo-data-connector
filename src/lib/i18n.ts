@@ -1,3 +1,4 @@
+
 export type Language = 'en' | 'ar';
 
 export type TranslationKey = keyof typeof translations.en;
@@ -39,6 +40,7 @@ export const translations = {
     download: 'Download',
     pending: 'Pending',
     inProgress: 'In Progress',
+    in_progress: 'In Progress',
     review: 'Review',
     completed: 'Completed',
     delivered: 'Delivered',
@@ -110,7 +112,19 @@ export const translations = {
     selectLanguage: 'Select Language',
     errorLoadingData: 'Error loading data',
     taskScheduling: 'Task Scheduling',
-    search: 'Search'
+    search: 'Search',
+    noPermissionToViewJobs: 'You do not have permission to view jobs',
+    loadingJobs: 'Loading jobs...',
+    myJobs: 'My Jobs',
+    jobManagement: 'Job Management',
+    createJob: 'Create Job',
+    createNewJob: 'Create New Job',
+    noJobsAssignedYet: 'No jobs assigned to you yet',
+    noJobsCreatedYet: 'No jobs created yet',
+    assigned: 'Assigned',
+    unassigned: 'Unassigned',
+    due: 'Due',
+    noDueDate: 'No due date'
   },
   ar: {
     loading: 'جاري التحميل...',
@@ -148,6 +162,7 @@ export const translations = {
     download: 'تحميل',
     pending: 'معلق',
     inProgress: 'قيد التنفيذ',
+    in_progress: 'قيد التنفيذ',
     review: 'مراجعة',
     completed: 'مكتمل',
     delivered: 'تم التسليم',
@@ -219,7 +234,19 @@ export const translations = {
     selectLanguage: 'اختر اللغة',
     errorLoadingData: 'خطأ في تحميل البيانات',
     taskScheduling: 'جدولة المهام',
-    search: 'بحث'
+    search: 'بحث',
+    noPermissionToViewJobs: 'ليس لديك صلاحية لعرض الوظائف',
+    loadingJobs: 'جاري تحميل الوظائف...',
+    myJobs: 'وظائفي',
+    jobManagement: 'إدارة الوظائف',
+    createJob: 'إنشاء وظيفة',
+    createNewJob: 'إنشاء وظيفة جديدة',
+    noJobsAssignedYet: 'لا توجد وظائف مخصصة لك بعد',
+    noJobsCreatedYet: 'لم يتم إنشاء وظائف بعد',
+    assigned: 'مخصص',
+    unassigned: 'غير مخصص',
+    due: 'مستحق',
+    noDueDate: 'لا يوجد تاريخ استحقاق'
   }
 };
 
