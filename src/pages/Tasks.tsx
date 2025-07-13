@@ -215,10 +215,10 @@ const Tasks = () => {
         )}
 
         {/* Main Content */}
-        {clients.length === 0 ? (
+        {filteredJobs.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
-              <p className="text-gray-500">No clients found. Add clients to see tasks.</p>
+              <p className="text-gray-500">No tasks found matching the current filters.</p>
             </CardContent>
           </Card>
         ) : (
