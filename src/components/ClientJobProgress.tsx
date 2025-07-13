@@ -38,7 +38,8 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
       case 'in_progress': return 50;
       case 'review': return 80;
       case 'completed': return 95;
-      case 'delivered': return 100;
+      case 'delivered': return 98;
+      case 'handovered': return 100;
       default: return 0;
     }
   };
@@ -47,6 +48,7 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
     switch (status) {
       case 'completed':
       case 'delivered':
+      case 'handovered':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case 'in_progress':
       case 'review':
@@ -62,7 +64,8 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
       case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'review': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'delivered': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'delivered': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'handovered': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -73,7 +76,8 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
       in_progress: t('inProgress') || 'قيد التنفيذ',
       review: t('review') || 'مراجعة',
       completed: t('completed') || 'مكتمل',
-      delivered: t('delivered') || 'تم التسليم'
+      delivered: t('delivered') || 'تم التسليم',
+      handovered: t('handovered') || 'تم التسليم النهائي'
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
