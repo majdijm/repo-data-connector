@@ -121,8 +121,15 @@ export const useSupabaseData = () => {
             setClientPackages(clientPackagesData || []);
           }
 
-          // Fetch payments for this client
+          // Fetch payments for this client with auth debugging
           console.log('Fetching payments for client:', clientRecord.id);
+          console.log('Current user ID from auth:', userProfile.id);
+          console.log('Current user email:', userProfile.email);
+          
+          // Test the auth state
+          const { data: authUser } = await supabase.auth.getUser();
+          console.log('Auth user from supabase:', authUser?.user?.id, authUser?.user?.email);
+          
           const { data: clientPayments, error: paymentsError } = await supabase
             .from('payments')
             .select('*')
