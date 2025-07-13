@@ -8,6 +8,7 @@ export const useSupabaseData = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
+  const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const { userProfile } = useAuth();
@@ -110,11 +111,27 @@ export const useSupabaseData = () => {
             console.log('Fetched client payments:', clientPayments);
             setPayments(clientPayments || []);
           }
+
+          // Fetch payment requests for this client
+          console.log('Fetching payment requests for client:', clientRecord.id);
+          const { data: clientPaymentRequests, error: paymentRequestsError } = await supabase
+            .from('payment_requests')
+            .select('*')
+            .eq('client_id', clientRecord.id)
+            .order('created_at', { ascending: false });
+
+          if (paymentRequestsError) {
+            console.error('Error fetching client payment requests:', paymentRequestsError);
+          } else {
+            console.log('Fetched client payment requests:', clientPaymentRequests);
+            setPaymentRequests(clientPaymentRequests || []);
+          }
         } else {
           console.log('No client record found, setting empty arrays');
           setJobs([]);
           setClients([]);
           setPayments([]);
+          setPaymentRequests([]);
         }
         
         setUsers([]);
@@ -188,6 +205,7 @@ export const useSupabaseData = () => {
           setClients([]);
           setUsers([]);
           setPayments([]);
+          setPaymentRequests([]);
         }
       }
 
@@ -224,6 +242,7 @@ export const useSupabaseData = () => {
     clients,
     users,
     payments,
+    paymentRequests,
     loading,
     error,
     stats,

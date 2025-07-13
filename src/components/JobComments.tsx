@@ -43,7 +43,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
   // Check if user has permission to view comments
   const hasCommentsPermission = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'].includes(userProfile.role);
   const canManageComments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
-  const canAddComments = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor'].includes(userProfile.role);
+  const canAddComments = userProfile?.role && ['admin', 'receptionist', 'photographer', 'designer', 'editor', 'client'].includes(userProfile.role);
 
   const fetchComments = async () => {
     if (!jobId || !userProfile?.id || !hasCommentsPermission) {
@@ -392,11 +392,14 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Add Comment Section - Only for team members */}
+        {/* Add Comment Section - For team members and handover notes */}
         {canAddComments && (
           <div className="space-y-2">
             <Textarea
-              placeholder="Add a comment about the job progress, handover notes, or updates..."
+              placeholder={userProfile?.role === 'client' 
+                ? "Add feedback or questions about the handover..." 
+                : "Add a comment about the job progress, handover notes, or updates..."
+              }
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               rows={3}
@@ -407,8 +410,19 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add Comment
+              {userProfile?.role === 'client' ? 'Add Feedback' : 'Add Comment'}
             </Button>
+          </div>
+        )}
+
+        {/* Special note for handover instructions */}
+        {userProfile?.role === 'client' && comments.length === 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-800 mb-2">About Handover Notes</h4>
+            <p className="text-sm text-blue-700">
+              This section contains important handover notes from our team about your completed project. 
+              You can also add your own feedback or questions here.
+            </p>
           </div>
         )}
 

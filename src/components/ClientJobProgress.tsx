@@ -38,7 +38,7 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
       case 'in_progress': return 50;
       case 'review': return 80;
       case 'completed': return 95;
-      case 'delivered': return 98;
+      case 'delivered': return 100;
       case 'handovered': return 100;
       default: return 0;
     }

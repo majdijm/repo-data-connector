@@ -22,7 +22,7 @@ import ClientNotifications from '@/components/ClientNotifications';
 import JobFilesDisplay from '@/components/JobFilesDisplay';
 
 const ClientDashboard = () => {
-  const { jobs, clients, payments, loading, error, stats } = useSupabaseData();
+  const { jobs, clients, payments, paymentRequests, loading, error, stats } = useSupabaseData();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -58,8 +58,7 @@ const ClientDashboard = () => {
   const activeJobs = jobs.filter(job => ['pending', 'in_progress', 'review', 'completed'].includes(job.status));
   const deliveredJobs = jobs.filter(job => job.status === 'delivered');
 
-  // Get payment requests (we'll need to fetch these separately in real implementation)
-  const paymentRequests: any[] = []; // This should be fetched from payment_requests table
+  // Payment requests are now fetched from the hook
 
   // Mock client packages data - in real implementation, this should be fetched
   const clientPackages = [
