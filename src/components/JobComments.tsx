@@ -66,7 +66,7 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           content,
           created_at,
           updated_at,
-          users (
+          users!job_comments_user_id_fkey (
             name,
             role
           )

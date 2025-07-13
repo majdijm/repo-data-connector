@@ -24,8 +24,8 @@ const Tasks = () => {
     pending: true,
     in_progress: true,
     review: true,
-    completed: false,
-    delivered: false
+    completed: true,
+    delivered: true
   });
 
   const handleStatusFilterChange = (status: keyof typeof statusFilters, checked: boolean) => {

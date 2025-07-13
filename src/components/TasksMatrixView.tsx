@@ -83,7 +83,7 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
         {/* Header Row */}
         <div className="grid grid-cols-[200px_repeat(var(--client-count),_300px)] gap-4 mb-4" style={{'--client-count': clients.length} as any}>
           <div className="font-semibold text-gray-700 flex items-center">
-            Job Types
+            Tasks & Projects
           </div>
           {clients.map(client => (
             <div key={client.id} className="font-semibold text-gray-700 text-center">
