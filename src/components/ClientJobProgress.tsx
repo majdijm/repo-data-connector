@@ -78,7 +78,11 @@ const ClientJobProgress: React.FC<ClientJobProgressProps> = ({ job, onJobUpdate 
     return statusMap[status as keyof typeof statusMap] || status;
   };
 
-  const handleAcceptJob = async () => {
+  const handleAcceptJob = async (event: React.MouseEvent) => {
+    // Prevent any default behavior and stop propagation
+    event.preventDefault();
+    event.stopPropagation();
+    
     try {
       console.log('Starting job acceptance process for job:', job.id);
       const success = await updateJobProgress(job.id, 'delivered');
