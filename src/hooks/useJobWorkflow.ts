@@ -28,7 +28,7 @@ export const useJobWorkflow = () => {
 
       // If the status is being set to "delivered", create notifications for admin/receptionist
       if (newStatus === 'delivered') {
-        console.log('Sending acceptance notification to admin/receptionist');
+        console.log('Job accepted by client, sending notification to admin/receptionist for handover');
         
         // Get all admin and receptionist users
         const { data: adminUsers, error: adminError } = await supabase
@@ -43,8 +43,9 @@ export const useJobWorkflow = () => {
           // Create notifications for all admin/receptionist users
           const notifications = adminUsers.map(user => ({
             user_id: user.id,
-            title: 'Job Completed and Accepted',
-            message: `A job has been completed and accepted by the client. Job ID: ${jobId}`,
+            title: 'Job Accepted - Ready for Handover',
+            message: `Job "${jobId}" has been accepted by the client and is ready for handover. Please mark as handovered to complete the workflow.`,
+            related_job_id: jobId,
             created_at: new Date().toISOString()
           }));
 
@@ -76,8 +77,48 @@ export const useJobWorkflow = () => {
     }
   };
 
+  const markAsHandovered = async (jobId: string) => {
+    try {
+      setIsLoading(true);
+      console.log(`Marking job ${jobId} as handovered`);
+
+      // Update the job status to handovered
+      const { error: updateError } = await supabase
+        .from('jobs')
+        .update({ 
+          status: 'handovered',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', jobId);
+
+      if (updateError) {
+        console.error('Error marking job as handovered:', updateError);
+        throw updateError;
+      }
+
+      console.log(`Job ${jobId} successfully marked as handovered`);
+      toast({
+        title: "Success",
+        description: "Job has been marked as handovered and completed."
+      });
+      return true;
+
+    } catch (error) {
+      console.error('Error marking job as handovered:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark job as handovered. Please try again.",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     updateJobProgress,
+    markAsHandovered,
     isLoading
   };
 };
