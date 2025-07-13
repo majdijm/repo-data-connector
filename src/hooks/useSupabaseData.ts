@@ -131,8 +131,15 @@ export const useSupabaseData = () => {
 
           if (paymentsError) {
             console.error('Error fetching client payments:', paymentsError);
+            console.error('Payments error details:', {
+              message: paymentsError.message,
+              details: paymentsError.details,
+              hint: paymentsError.hint,
+              code: paymentsError.code
+            });
           } else {
             console.log('Fetched client payments:', clientPayments);
+            console.log('Number of payments found:', clientPayments?.length || 0);
             setPayments(clientPayments || []);
           }
 
@@ -146,8 +153,15 @@ export const useSupabaseData = () => {
 
           if (paymentRequestsError) {
             console.error('Error fetching client payment requests:', paymentRequestsError);
+            console.error('Payment requests error details:', {
+              message: paymentRequestsError.message,
+              details: paymentRequestsError.details,
+              hint: paymentRequestsError.hint,
+              code: paymentRequestsError.code
+            });
           } else {
             console.log('Fetched client payment requests:', clientPaymentRequests);
+            console.log('Number of payment requests found:', clientPaymentRequests?.length || 0);
             setPaymentRequests(clientPaymentRequests || []);
           }
         } else {

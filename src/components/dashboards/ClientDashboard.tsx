@@ -29,6 +29,8 @@ const ClientDashboard = () => {
   console.log('ClientDashboard render - Jobs:', jobs);
   console.log('ClientDashboard render - Clients:', clients);
   console.log('ClientDashboard render - Payments:', payments);
+  console.log('ClientDashboard render - Payment Requests:', paymentRequests);
+  console.log('ClientDashboard render - Client Packages:', clientPackages);
   console.log('ClientDashboard render - Loading:', loading);
   console.log('ClientDashboard render - Error:', error);
 
