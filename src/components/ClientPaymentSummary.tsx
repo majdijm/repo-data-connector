@@ -52,15 +52,28 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   paymentRequests,
   clientPackages = []
 }) => {
-  const totalJobValue = jobs.reduce((sum, job) => sum + (job.price || 0), 0);
+  // Calculate individual job values (excluding package-included jobs)
+  const individualJobs = jobs.filter(job => !job.package_included);
+  const packageIncludedJobs = jobs.filter(job => job.package_included);
+  
+  const totalIndividualJobValue = individualJobs.reduce((sum, job) => sum + (job.price || 0), 0);
   const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   const totalRequested = paymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
+  
+  // Calculate package values
+  const activePackages = clientPackages.filter(pkg => pkg.is_active);
+  const totalPackageValue = activePackages.reduce((sum, pkg) => {
+    const monthsActive = Math.max(1, pkg.duration_months || 1);
+    return sum + (pkg.price * monthsActive);
+  }, 0);
+  
+  // Total value includes both individual jobs and package subscriptions
+  const totalJobValue = totalIndividualJobValue + totalPackageValue;
   const totalOutstanding = Math.max(0, totalJobValue - totalPaid);
 
-  // Calculate package-related values
-  const packageIncludedJobs = jobs.filter(job => job.package_included);
+  // Calculate package-related values for display
   const packageIncludedValue = packageIncludedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
-  const activePackage = clientPackages.find(pkg => pkg.is_active);
+  const activePackage = activePackages[0]; // Show the first active package
 
   const pendingRequests = paymentRequests.filter(req => req.status === 'pending');
   const overdueRequests = paymentRequests.filter(req => 
@@ -117,15 +130,13 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-600">${totalJobValue}</p>
               <p className="text-sm text-muted-foreground">Total Value</p>
-              {packageIncludedValue > 0 && (
-                <p className="text-xs text-purple-600 mt-1">
-                  (${packageIncludedValue} package included)
-                </p>
-              )}
+              <p className="text-xs text-gray-500 mt-1">
+                Jobs: ${totalIndividualJobValue} + Packages: ${totalPackageValue}
+              </p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">${totalPaid}</p>
@@ -138,6 +149,10 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <p className="text-2xl font-bold text-red-600">${totalOutstanding}</p>
               <p className="text-sm text-muted-foreground">Outstanding</p>
+            </div>
+            <div className="text-center p-4 bg-purple-50 rounded-lg">
+              <p className="text-2xl font-bold text-purple-600">{packageIncludedJobs.length}</p>
+              <p className="text-sm text-muted-foreground">Package Jobs</p>
             </div>
           </div>
         </CardContent>

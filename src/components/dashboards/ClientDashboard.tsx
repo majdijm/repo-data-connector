@@ -22,7 +22,7 @@ import ClientNotifications from '@/components/ClientNotifications';
 import JobFilesDisplay from '@/components/JobFilesDisplay';
 
 const ClientDashboard = () => {
-  const { jobs, clients, payments, paymentRequests, loading, error, stats } = useSupabaseData();
+  const { jobs, clients, payments, paymentRequests, clientPackages, loading, error, stats } = useSupabaseData();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -60,18 +60,17 @@ const ClientDashboard = () => {
 
   // Payment requests are now fetched from the hook
 
-  // Mock client packages data - in real implementation, this should be fetched
-  const clientPackages = [
-    {
-      id: '1',
-      name: 'Premium Design Package',
-      price: 299,
-      duration_months: 12,
-      start_date: '2024-01-01T00:00:00Z',
-      end_date: '2024-12-31T23:59:59Z',
-      is_active: true
-    }
-  ];
+  // Transform clientPackages data to match the expected format
+  const transformedClientPackages = clientPackages.map(cp => ({
+    id: cp.id,
+    name: cp.packages?.name || 'Unknown Package',
+    price: cp.packages?.price || 0,
+    duration_months: cp.packages?.duration_months || 1,
+    start_date: cp.start_date,
+    end_date: cp.end_date,
+    is_active: cp.is_active,
+    description: cp.packages?.description
+  }));
 
   console.log('ClientDashboard metrics:', {
     totalJobs: jobs.length,
@@ -152,7 +151,7 @@ const ClientDashboard = () => {
         jobs={jobs} 
         payments={payments} 
         paymentRequests={paymentRequests}
-        clientPackages={clientPackages}
+        clientPackages={transformedClientPackages}
       />
 
       {/* Active Projects */}

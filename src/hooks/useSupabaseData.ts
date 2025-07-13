@@ -9,6 +9,7 @@ export const useSupabaseData = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentRequests, setPaymentRequests] = useState<any[]>([]);
+  const [clientPackages, setClientPackages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
   const { userProfile } = useAuth();
@@ -97,6 +98,29 @@ export const useSupabaseData = () => {
             setJobs(clientJobs || []);
           }
 
+          // Fetch client packages for this client
+          console.log('Fetching client packages for client:', clientRecord.id);
+          const { data: clientPackagesData, error: packagesError } = await supabase
+            .from('client_packages')
+            .select(`
+              *,
+              packages (
+                name,
+                price,
+                duration_months,
+                description
+              )
+            `)
+            .eq('client_id', clientRecord.id)
+            .order('created_at', { ascending: false });
+
+          if (packagesError) {
+            console.error('Error fetching client packages:', packagesError);
+          } else {
+            console.log('Fetched client packages:', clientPackagesData);
+            setClientPackages(clientPackagesData || []);
+          }
+
           // Fetch payments for this client
           console.log('Fetching payments for client:', clientRecord.id);
           const { data: clientPayments, error: paymentsError } = await supabase
@@ -132,6 +156,7 @@ export const useSupabaseData = () => {
           setClients([]);
           setPayments([]);
           setPaymentRequests([]);
+          setClientPackages([]);
         }
         
         setUsers([]);
@@ -206,6 +231,7 @@ export const useSupabaseData = () => {
           setUsers([]);
           setPayments([]);
           setPaymentRequests([]);
+          setClientPackages([]);
         }
       }
 
@@ -243,6 +269,7 @@ export const useSupabaseData = () => {
     users,
     payments,
     paymentRequests,
+    clientPackages,
     loading,
     error,
     stats,
