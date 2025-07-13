@@ -53,9 +53,9 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   clientPackages = []
 }) => {
   const totalJobValue = jobs.reduce((sum, job) => sum + (job.price || 0), 0);
-  const totalPaid = payments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalRequested = paymentRequests.reduce((sum, request) => sum + request.amount, 0);
-  const totalOutstanding = totalJobValue - totalPaid;
+  const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  const totalRequested = paymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
+  const totalOutstanding = Math.max(0, totalJobValue - totalPaid);
 
   // Calculate package-related values
   const packageIncludedJobs = jobs.filter(job => job.package_included);

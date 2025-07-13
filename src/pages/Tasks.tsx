@@ -16,7 +16,7 @@ import TasksCalendarView from '@/components/TasksCalendarView';
 import TasksMatrixView from '@/components/TasksMatrixView';
 
 const Tasks = () => {
-  const { recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
+  const { jobs, clients, isLoading, error, refetch } = useSupabaseData();
   const { users } = useUsers();
   const { isAdmin, isReceptionist } = useRoleAccess();
   const [viewMode, setViewMode] = useState<'matrix' | 'calendar'>('matrix');
@@ -36,7 +36,7 @@ const Tasks = () => {
   };
 
   // Filter jobs based on selected statuses
-  const filteredJobs = recentJobs.filter(job => 
+  const filteredJobs = jobs.filter(job => 
     statusFilters[job.status as keyof typeof statusFilters]
   );
 

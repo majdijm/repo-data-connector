@@ -21,7 +21,6 @@ export const useNotifications = () => {
           user_id: notificationData.user_id,
           title: notificationData.title,
           message: notificationData.message,
-          type: notificationData.type || 'info',
           related_job_id: notificationData.related_job_id
         }]);
 
@@ -46,7 +45,6 @@ export const useNotifications = () => {
           user_id: n.user_id,
           title: n.title,
           message: n.message,
-          type: n.type || 'info',
           related_job_id: n.related_job_id
         })));
 

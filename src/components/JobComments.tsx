@@ -265,7 +265,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           user_id: jobData.assigned_to,
           title: 'New Comment on Your Job',
           message: `${userProfile?.name} added a comment on "${jobTitle}"${clientName ? ` for ${clientName}` : ''}`,
-          type: 'info' as const,
           related_job_id: jobId
         });
       }
@@ -275,7 +274,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
           user_id: jobData.created_by,
           title: 'New Comment on Job',
           message: `${userProfile?.name} added a comment on "${jobTitle}"${clientName ? ` for ${clientName}` : ''}`,
-          type: 'info' as const,
           related_job_id: jobId
         });
       }
@@ -294,7 +292,6 @@ const JobComments: React.FC<JobCommentsProps> = ({ jobId, jobTitle, clientName }
               user_id: user.id,
               title: 'New Job Comment',
               message: `${userProfile?.name} added a comment on "${jobTitle}"${clientName ? ` for ${clientName}` : ''}`,
-              type: 'info' as const,
               related_job_id: jobId
             });
           }
