@@ -32,6 +32,14 @@ import JobCompletionActions from './JobCompletionActions';
 import FileUpload from './FileUpload';
 import JobFilesDisplay from './JobFilesDisplay';
 
+interface WorkflowHistoryEntry {
+  previous_stage?: string;
+  new_stage?: string;
+  transitioned_at?: string;
+  notes?: string;
+  transitioned_by?: string;
+}
+
 interface JobData {
   id: string;
   title: string;
@@ -51,6 +59,7 @@ interface JobData {
   workflow_order: number | null;
   depends_on_job_id: string | null;
   created_by: string | null;
+  workflow_history?: WorkflowHistoryEntry[] | null;
   clients?: {
     name: string;
     email: string;
@@ -397,7 +406,7 @@ const JobManagement = () => {
           {jobs.map((job) => {
             // Check if this is a workflow job and determine user's involvement
             const isWorkflowJob = job.workflow_history && Array.isArray(job.workflow_history) && job.workflow_history.length > 0;
-            const userWorkedOnJob = isWorkflowJob && job.workflow_history.some((entry: any) => entry.transitioned_by === user?.id);
+            const userWorkedOnJob = isWorkflowJob && job.workflow_history.some((entry: WorkflowHistoryEntry) => entry.transitioned_by === user?.id);
             const isCurrentlyAssigned = job.assigned_to === user?.id;
 
             return (
@@ -487,7 +496,7 @@ const JobManagement = () => {
                       <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-lg">
                         <h4 className="font-semibold mb-2 text-purple-700 dark:text-purple-300">Workflow History</h4>
                         <div className="space-y-2">
-                          {job.workflow_history.map((entry: any, index: number) => (
+                          {job.workflow_history.map((entry: WorkflowHistoryEntry, index: number) => (
                             <div key={index} className="text-sm border-l-2 border-purple-300 pl-3">
                               <div className="font-medium">
                                 {entry.previous_stage?.replace('_', ' ')} → {entry.new_stage?.replace('_', ' ')}

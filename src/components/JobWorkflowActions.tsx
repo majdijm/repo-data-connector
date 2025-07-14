@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +11,14 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { useJobNotifications } from '@/hooks/useJobNotifications';
 import { Check, ArrowRight } from 'lucide-react';
 
+interface WorkflowHistoryEntry {
+  previous_stage?: string;
+  new_stage?: string;
+  transitioned_at?: string;
+  notes?: string;
+  transitioned_by?: string;
+}
+
 interface JobData {
   id: string;
   title: string;
@@ -18,6 +27,7 @@ interface JobData {
   workflow_stage: string | null;
   workflow_order: number | null;
   assigned_to: string | null;
+  workflow_history?: WorkflowHistoryEntry[] | null;
 }
 
 interface JobWorkflowActionsProps {
@@ -143,12 +153,12 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         updateData.assigned_to = selectedUserId || null;
         
         // Add workflow history
-        const workflowEntry = {
+        const workflowEntry: WorkflowHistoryEntry = {
           previous_stage: job.type,
           new_stage: nextStep,
           transitioned_at: new Date().toISOString(),
-          notes: notes || null,
-          transitioned_by: job.assigned_to
+          notes: notes || undefined,
+          transitioned_by: job.assigned_to || undefined
         };
         
         // Get current workflow history and append new entry
@@ -158,7 +168,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
           .eq('id', job.id)
           .single();
 
-        const currentHistory = currentJob?.workflow_history || [];
+        const currentHistory = Array.isArray(currentJob?.workflow_history) ? currentJob.workflow_history : [];
         updateData.workflow_history = [...currentHistory, workflowEntry];
       }
 

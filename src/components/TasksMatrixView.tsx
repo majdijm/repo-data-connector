@@ -5,6 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
+interface WorkflowHistoryEntry {
+  previous_stage?: string;
+  new_stage?: string;
+  transitioned_at?: string;
+  notes?: string;
+  transitioned_by?: string;
+}
+
 interface Job {
   id: string;
   title: string;
@@ -13,7 +21,7 @@ interface Job {
   due_date: string | null;
   client_id: string | null;
   assigned_to: string | null;
-  workflow_history?: any[];
+  workflow_history?: WorkflowHistoryEntry[] | null;
   clients?: {
     name: string;
   };
@@ -82,7 +90,7 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
       
       // Check if this job has workflow history that shows it went through this stage
       if (job.workflow_history && Array.isArray(job.workflow_history)) {
-        return job.workflow_history.some((entry: any) => 
+        return job.workflow_history.some((entry: WorkflowHistoryEntry) => 
           entry.previous_stage === jobType || entry.new_stage === jobType
         );
       }
@@ -112,7 +120,7 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
 
     // Check workflow history to see if this stage was completed
     if (job.workflow_history && Array.isArray(job.workflow_history)) {
-      const wasInThisStage = job.workflow_history.some((entry: any) => 
+      const wasInThisStage = job.workflow_history.some((entry: WorkflowHistoryEntry) => 
         entry.previous_stage === currentType
       );
       
