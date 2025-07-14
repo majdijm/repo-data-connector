@@ -62,44 +62,28 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   // Calculate total payments received
   const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   
-  // Calculate total payment requests amount
-  const totalRequested = paymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
+  // Calculate active payment requests (excluding cancelled ones)
+  const activePaymentRequests = paymentRequests.filter(req => req.status !== 'cancelled');
+  const totalActiveRequested = activePaymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
   
-  // Calculate package values - use payment requests and monthly fees for active packages
+  // Calculate package values - monthly fee * duration for active packages
   const activePackages = clientPackages.filter(pkg => pkg.is_active);
-  let totalPackageValue = 0;
+  const totalPackageValue = activePackages.reduce((sum, pkg) => {
+    // Calculate total package value: monthly fee * duration
+    const monthlyFee = pkg.price || 0;
+    const durationMonths = pkg.duration_months || 1;
+    return sum + (monthlyFee * durationMonths);
+  }, 0);
   
-  // If there are active packages, calculate based on their monthly fees
-  if (activePackages.length > 0) {
-    totalPackageValue = activePackages.reduce((sum, pkg) => {
-      // Calculate months between start and end date
-      const startDate = new Date(pkg.start_date);
-      const endDate = new Date(pkg.end_date);
-      const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
-      const totalMonths = Math.max(1, monthsDiff);
-      return sum + (pkg.price * totalMonths);
-    }, 0);
-  } else {
-    // If no active packages but have payment requests, use those to estimate package value
-    // This handles cases where package info might not be properly loaded
-    const packageRelatedRequests = paymentRequests.filter(req => 
-      req.description?.toLowerCase().includes('package') || 
-      req.description?.toLowerCase().includes('subscription') ||
-      req.amount >= 500 // Assume larger amounts might be package-related
-    );
-    totalPackageValue = packageRelatedRequests.reduce((sum, req) => sum + req.amount, 0);
-  }
+  // Total expected value: individual jobs + package subscriptions
+  const totalExpectedValue = totalIndividualJobValue + totalPackageValue;
   
-  // Total value includes both individual jobs and package subscriptions
-  const totalJobValue = totalIndividualJobValue + totalPackageValue;
+  // Calculate outstanding amount: total expected value minus payments made
+  const totalOutstanding = Math.max(0, totalExpectedValue - totalPaid);
   
-  // Calculate outstanding amount: total value minus payments made
-  const totalOutstanding = Math.max(0, totalJobValue - totalPaid);
+  // Calculate overpayment (if any)
+  const overpayment = totalPaid > totalExpectedValue ? totalPaid - totalExpectedValue : 0;
   
-  // If we have payment requests but no calculated total value, use payment requests as minimum
-  const adjustedTotalValue = totalJobValue > 0 ? totalJobValue : totalRequested;
-  const adjustedOutstanding = Math.max(0, adjustedTotalValue - totalPaid);
-
   // Calculate package-related values for display
   const packageIncludedValue = packageIncludedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
   const activePackage = activePackages[0]; // Show the first active package
@@ -108,6 +92,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   const overdueRequests = paymentRequests.filter(req => 
     req.status === 'pending' && req.due_date && new Date(req.due_date) < new Date()
   );
+  const cancelledRequests = paymentRequests.filter(req => req.status === 'cancelled');
 
   // Debug logging
   console.log('Payment Summary Debug:', {
@@ -115,12 +100,14 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
     packageIncludedJobs,
     totalIndividualJobValue,
     totalPackageValue,
-    totalJobValue: adjustedTotalValue,
+    totalExpectedValue,
     totalPaid,
-    totalRequested,
-    outstanding: adjustedOutstanding,
+    totalActiveRequested,
+    totalOutstanding,
+    overpayment,
     activePackages,
-    paymentRequests
+    activePaymentRequests,
+    cancelledRequests: cancelledRequests.length
   });
 
   return (
@@ -135,7 +122,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Package Name</p>
                 <p className="font-semibold text-purple-700">{activePackage.name}</p>
@@ -145,12 +132,20 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
                 <p className="font-semibold text-purple-700">${activePackage.price}/month</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Valid Until</p>
-                <p className="font-semibold text-purple-700 flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {format(new Date(activePackage.end_date), 'MMM dd, yyyy')}
-                </p>
+                <p className="text-sm text-muted-foreground mb-1">Duration</p>
+                <p className="font-semibold text-purple-700">{activePackage.duration_months} months</p>
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Total Package Value</p>
+                <p className="font-semibold text-purple-700">${totalPackageValue}</p>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-muted-foreground mb-1">Valid Until</p>
+              <p className="font-semibold text-purple-700 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {format(new Date(activePackage.end_date), 'MMM dd, yyyy')}
+              </p>
             </div>
             {packageIncludedJobs.length > 0 && (
               <div className="mt-4 p-3 bg-white rounded-lg border">
@@ -173,25 +168,33 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">${adjustedTotalValue}</p>
-              <p className="text-sm text-muted-foreground">Total Value</p>
+              <p className="text-2xl font-bold text-blue-600">${totalExpectedValue}</p>
+              <p className="text-sm text-muted-foreground">Total Expected</p>
               <p className="text-xs text-gray-500 mt-1">
-                Jobs: ${totalIndividualJobValue} + Packages: ${totalPackageValue}
+                Jobs: ${totalIndividualJobValue} + Package: ${totalPackageValue}
               </p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <p className="text-2xl font-bold text-green-600">${totalPaid}</p>
-              <p className="text-sm text-muted-foreground">Paid</p>
+              <p className="text-sm text-muted-foreground">Total Paid</p>
             </div>
             <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-2xl font-bold text-yellow-600">${totalRequested}</p>
-              <p className="text-sm text-muted-foreground">Requested</p>
+              <p className="text-2xl font-bold text-yellow-600">${totalActiveRequested}</p>
+              <p className="text-sm text-muted-foreground">Active Requests</p>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-600">${adjustedOutstanding}</p>
+            <div className={`text-center p-4 rounded-lg ${totalOutstanding > 0 ? 'bg-red-50' : 'bg-gray-50'}`}>
+              <p className={`text-2xl font-bold ${totalOutstanding > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                ${totalOutstanding}
+              </p>
               <p className="text-sm text-muted-foreground">Outstanding</p>
+            </div>
+            <div className={`text-center p-4 rounded-lg ${overpayment > 0 ? 'bg-emerald-50' : 'bg-gray-50'}`}>
+              <p className={`text-2xl font-bold ${overpayment > 0 ? 'text-emerald-600' : 'text-gray-600'}`}>
+                ${overpayment}
+              </p>
+              <p className="text-sm text-muted-foreground">Overpaid</p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
               <p className="text-2xl font-bold text-purple-600">{packageIncludedJobs.length}</p>
@@ -207,11 +210,18 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Payment Requests</span>
-              {overdueRequests.length > 0 && (
-                <Badge className="bg-red-100 text-red-800">
-                  {overdueRequests.length} Overdue
-                </Badge>
-              )}
+              <div className="flex gap-2">
+                {overdueRequests.length > 0 && (
+                  <Badge className="bg-red-100 text-red-800">
+                    {overdueRequests.length} Overdue
+                  </Badge>
+                )}
+                {cancelledRequests.length > 0 && (
+                  <Badge className="bg-gray-100 text-gray-800">
+                    {cancelledRequests.length} Cancelled
+                  </Badge>
+                )}
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -225,6 +235,8 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
                         className={
                           request.status === 'paid' 
                             ? 'bg-green-100 text-green-800'
+                            : request.status === 'cancelled'
+                            ? 'bg-gray-100 text-gray-800'
                             : request.due_date && new Date(request.due_date) < new Date()
                             ? 'bg-red-100 text-red-800'
                             : 'bg-yellow-100 text-yellow-800'
@@ -232,6 +244,8 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
                       >
                         {request.status === 'paid' ? (
                           <CheckCircle className="h-3 w-3 mr-1" />
+                        ) : request.status === 'cancelled' ? (
+                          <span className="h-3 w-3 mr-1">✕</span>
                         ) : request.due_date && new Date(request.due_date) < new Date() ? (
                           <AlertTriangle className="h-3 w-3 mr-1" />
                         ) : null}

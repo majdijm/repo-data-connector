@@ -90,7 +90,9 @@ export const useSupabaseData = () => {
                   title: job.title,
                   status: job.status,
                   client_id: job.client_id,
-                  created_at: job.created_at
+                  created_at: job.created_at,
+                  price: job.price,
+                  package_included: job.package_included
                 });
               });
             }
@@ -147,6 +149,16 @@ export const useSupabaseData = () => {
           } else {
             console.log('Fetched client payments:', clientPayments);
             console.log('Number of payments found:', clientPayments?.length || 0);
+            if (clientPayments && clientPayments.length > 0) {
+              clientPayments.forEach((payment, index) => {
+                console.log(`Payment ${index + 1}:`, {
+                  id: payment.id,
+                  amount: payment.amount,
+                  payment_date: payment.payment_date,
+                  payment_method: payment.payment_method
+                });
+              });
+            }
             setPayments(clientPayments || []);
           }
 
@@ -169,6 +181,17 @@ export const useSupabaseData = () => {
           } else {
             console.log('Fetched client payment requests:', clientPaymentRequests);
             console.log('Number of payment requests found:', clientPaymentRequests?.length || 0);
+            if (clientPaymentRequests && clientPaymentRequests.length > 0) {
+              clientPaymentRequests.forEach((request, index) => {
+                console.log(`Payment Request ${index + 1}:`, {
+                  id: request.id,
+                  amount: request.amount,
+                  status: request.status,
+                  due_date: request.due_date,
+                  description: request.description
+                });
+              });
+            }
             setPaymentRequests(clientPaymentRequests || []);
           }
         } else {
@@ -269,18 +292,48 @@ export const useSupabaseData = () => {
     fetchData();
   }, [userProfile?.id, userProfile?.role, userProfile?.email]);
 
-  // Calculate stats
-  const stats = {
-    totalJobs: jobs.length,
-    activeJobs: jobs.filter(job => job.status === 'in_progress' || job.status === 'pending').length,
-    pendingJobs: jobs.filter(job => job.status === 'pending').length,
-    completedJobs: jobs.filter(job => job.status === 'completed' || job.status === 'delivered').length,
-    totalClients: clients.length,
-    totalUsers: users.length,
-    totalRevenue: payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
-    pendingPayments: jobs.reduce((sum, job) => sum + (job.price || 0), 0) - payments.reduce((sum, payment) => sum + (payment.amount || 0), 0),
+  // Calculate stats with correct payment logic
+  const calculateStats = () => {
+    const totalJobs = jobs.length;
+    const activeJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'pending').length;
+    const pendingJobs = jobs.filter(job => job.status === 'pending').length;
+    const completedJobs = jobs.filter(job => job.status === 'completed' || job.status === 'delivered').length;
+    const totalClients = clients.length;
+    const totalUsers = users.length;
+    
+    // Calculate total payments received
+    const totalPayments = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+    
+    // Calculate total expected revenue from jobs and packages
+    const individualJobsRevenue = jobs
+      .filter(job => !job.package_included)
+      .reduce((sum, job) => sum + (job.price || 0), 0);
+    
+    const packageRevenue = clientPackages
+      .filter(pkg => pkg.is_active)
+      .reduce((sum, pkg) => {
+        const monthlyFee = pkg.packages?.price || 0;
+        const duration = pkg.packages?.duration_months || 1;
+        return sum + (monthlyFee * duration);
+      }, 0);
+    
+    const totalExpectedRevenue = individualJobsRevenue + packageRevenue;
+    const pendingPayments = Math.max(0, totalExpectedRevenue - totalPayments);
+    
+    return {
+      totalJobs,
+      activeJobs,
+      pendingJobs,
+      completedJobs,
+      totalClients,
+      totalUsers,
+      totalRevenue: totalPayments,
+      totalExpectedRevenue,
+      pendingPayments
+    };
   };
 
+  const stats = calculateStats();
   const recentJobs = jobs.slice(0, 5);
   const isLoading = loading;
 
