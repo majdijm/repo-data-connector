@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -13,6 +13,7 @@ interface Job {
   due_date: string | null;
   client_id: string | null;
   assigned_to: string | null;
+  workflow_history?: any[];
   clients?: {
     name: string;
   };
@@ -69,12 +70,58 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
   };
 
   const getJobsForClientAndType = (clientId: string, jobType: string) => {
-    return jobs.filter(job => job.client_id === clientId && job.type === jobType);
+    // Get jobs of the specific type for this client
+    const directJobs = jobs.filter(job => 
+      job.client_id === clientId && 
+      job.type === jobType
+    );
+
+    // Also get jobs that were transitioned to this type through workflow
+    const workflowJobs = jobs.filter(job => {
+      if (job.client_id !== clientId) return false;
+      
+      // Check if this job has workflow history that shows it went through this stage
+      if (job.workflow_history && Array.isArray(job.workflow_history)) {
+        return job.workflow_history.some((entry: any) => 
+          entry.previous_stage === jobType || entry.new_stage === jobType
+        );
+      }
+      
+      return false;
+    });
+
+    // Combine and deduplicate
+    const allJobs = [...directJobs, ...workflowJobs];
+    const uniqueJobs = allJobs.filter((job, index, self) => 
+      index === self.findIndex(j => j.id === job.id)
+    );
+
+    return uniqueJobs;
   };
 
   const isOverdue = (dueDateString: string | null) => {
     if (!dueDateString) return false;
     return new Date() > new Date(dueDateString);
+  };
+
+  const getJobWorkflowStatus = (job: Job, currentType: string) => {
+    // If job type matches current type, it's active here
+    if (job.type === currentType) {
+      return { isActive: true, isCompleted: false };
+    }
+
+    // Check workflow history to see if this stage was completed
+    if (job.workflow_history && Array.isArray(job.workflow_history)) {
+      const wasInThisStage = job.workflow_history.some((entry: any) => 
+        entry.previous_stage === currentType
+      );
+      
+      if (wasInThisStage) {
+        return { isActive: false, isCompleted: true };
+      }
+    }
+
+    return { isActive: false, isCompleted: false };
   };
 
   return (
@@ -116,43 +163,69 @@ const TasksMatrixView: React.FC<TasksMatrixViewProps> = ({ jobs, clients, users 
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {clientJobs.map(job => (
-                          <div 
-                            key={job.id} 
-                            className="border rounded-lg p-3 bg-gray-50 cursor-pointer hover:bg-blue-50 transition-colors"
-                            onClick={() => navigate(`/jobs/${job.id}`)}
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-medium text-sm text-gray-900 leading-tight">
-                                {job.title}
-                              </h4>
-                              {getStatusIcon(job.status)}
-                            </div>
-                            
-                            <div className="flex items-center justify-between mb-2">
-                              <Badge className={`text-xs ${getStatusColor(job.status)}`}>
-                                {job.status.replace('_', ' ')}
-                              </Badge>
-                              {job.due_date && isOverdue(job.due_date) && job.status !== 'completed' && job.status !== 'delivered' && (
-                                <Badge variant="destructive" className="text-xs">
-                                  Overdue
-                                </Badge>
-                              )}
-                            </div>
-
-                            <div className="space-y-1 text-xs text-gray-600">
-                              {job.due_date && (
+                        {clientJobs.map(job => {
+                          const workflowStatus = getJobWorkflowStatus(job, jobType);
+                          
+                          return (
+                            <div 
+                              key={job.id} 
+                              className={`border rounded-lg p-3 cursor-pointer transition-colors ${
+                                workflowStatus.isCompleted 
+                                  ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                                  : workflowStatus.isActive 
+                                    ? 'bg-gray-50 hover:bg-blue-50' 
+                                    : 'bg-gray-100 opacity-60'
+                              }`}
+                              onClick={() => navigate(`/jobs/${job.id}`)}
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <h4 className="font-medium text-sm text-gray-900 leading-tight">
+                                  {job.title}
+                                </h4>
                                 <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Due: {new Date(job.due_date).toLocaleDateString()}
+                                  {getStatusIcon(job.status)}
+                                  {workflowStatus.isCompleted && (
+                                    <ArrowRight className="h-3 w-3 text-green-600" />
+                                  )}
                                 </div>
-                              )}
-                              <div className="text-xs text-blue-600">
-                                Assigned: {getUserName(job.assigned_to)}
+                              </div>
+                              
+                              <div className="flex items-center justify-between mb-2">
+                                <Badge className={`text-xs ${getStatusColor(job.status)}`}>
+                                  {job.status.replace('_', ' ')}
+                                </Badge>
+                                {workflowStatus.isCompleted && (
+                                  <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                    Completed Here
+                                  </Badge>
+                                )}
+                                {job.due_date && isOverdue(job.due_date) && !['completed', 'delivered'].includes(job.status) && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Overdue
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="space-y-1 text-xs text-gray-600">
+                                {job.due_date && (
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    Due: {new Date(job.due_date).toLocaleDateString()}
+                                  </div>
+                                )}
+                                <div className="text-xs text-blue-600">
+                                  {workflowStatus.isActive ? 'Assigned: ' : 'Was assigned: '}
+                                  {getUserName(job.assigned_to)}
+                                </div>
+                                {workflowStatus.isCompleted && (
+                                  <div className="text-xs text-green-600">
+                                    ✓ Stage completed, moved to next step
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>

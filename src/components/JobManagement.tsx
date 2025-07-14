@@ -121,15 +121,17 @@ const JobManagement = () => {
       let jobsQuery = supabase.from('jobs').select('*');
 
       if (isTeamMemberValue && user?.id) {
-        console.log('🔍 Filtering jobs for team member with user ID:', user.id);
-        jobsQuery = jobsQuery.eq('assigned_to', user.id);
+        console.log('🔍 Team member view - getting jobs assigned to user OR jobs they worked on');
+        
+        // For team members, get jobs assigned to them OR jobs they have worked on
+        jobsQuery = jobsQuery.or(`assigned_to.eq.${user.id},workflow_history.cs.[{"transitioned_by": "${user.id}"}]`);
       } else {
-        console.log('🔍 Not filtering jobs (admin/receptionist view)');
+        console.log('🔍 Admin/receptionist view - getting all jobs');
       }
 
       jobsQuery = jobsQuery.order('created_at', { ascending: false });
 
-      console.log('🔍 Executing filtered jobs query...');
+      console.log('🔍 Executing jobs query...');
       const { data: jobsData, error: jobsError } = await jobsQuery;
 
       if (jobsError) {
@@ -142,11 +144,11 @@ const JobManagement = () => {
         throw jobsError;
       }
       
-      console.log('🔍 Raw filtered jobs data:', jobsData);
+      console.log('🔍 Raw jobs data:', jobsData);
       console.log('🔍 Jobs found:', jobsData?.length || 0);
 
       if (!jobsData || jobsData.length === 0) {
-        console.log('🔍 No jobs found for user after filtering');
+        console.log('🔍 No jobs found for user');
         setJobs([]);
         return;
       }
@@ -392,179 +394,226 @@ const JobManagement = () => {
         </Card>
       ) : (
         <div className="space-y-4">
-          {jobs.map((job) => (
-            <Card key={job.id} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card via-card/80 to-muted/20">
-              <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-purple-600/5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <div className="p-2 bg-gradient-to-br from-primary/20 to-purple-600/20 rounded-lg">
-                      {getTypeIcon(job.type)}
-                    </div>
-                    <div>
-                      <CardTitle className="text-lg bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">{job.title}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {t('client')}: {job.clients?.name || t('unknown')}
-                      </p>
-                      {job.workflow_stage && (
-                        <p className="text-xs text-purple-600 dark:text-purple-400">
-                          {t('workflow')}: {job.workflow_stage} ({t('step')} {job.workflow_order})
+          {jobs.map((job) => {
+            // Check if this is a workflow job and determine user's involvement
+            const isWorkflowJob = job.workflow_history && Array.isArray(job.workflow_history) && job.workflow_history.length > 0;
+            const userWorkedOnJob = isWorkflowJob && job.workflow_history.some((entry: any) => entry.transitioned_by === user?.id);
+            const isCurrentlyAssigned = job.assigned_to === user?.id;
+
+            return (
+              <Card key={job.id} className="overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card via-card/80 to-muted/20">
+                <CardHeader className="pb-3 bg-gradient-to-r from-primary/5 to-purple-600/5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3 rtl:space-x-reverse">
+                      <div className="p-2 bg-gradient-to-br from-primary/20 to-purple-600/20 rounded-lg">
+                        {getTypeIcon(job.type)}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">{job.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {t('client')}: {job.clients?.name || t('unknown')}
                         </p>
-                      )}
+                        {isWorkflowJob && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-purple-600 dark:text-purple-400">
+                              Workflow Job
+                            </p>
+                            {userWorkedOnJob && !isCurrentlyAssigned && (
+                              <Badge variant="outline" className="text-xs text-green-700 border-green-300">
+                                Previously worked on
+                              </Badge>
+                            )}
+                            {isCurrentlyAssigned && (
+                              <Badge variant="default" className="text-xs">
+                                Currently assigned
+                              </Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                    <Badge className={getStatusColor(job.status)}>
-                      {t(getStatusTranslationKey(job.status))}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleJobExpansion(job.id)}
-                      className="hover:bg-primary/10"
-                    >
-                      {expandedJobs.has(job.id) ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-
-              {expandedJobs.has(job.id) && (
-                <CardContent className="pt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-3 rounded-lg">
-                      <User className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm">
-                        {t('assigned')}: {job.users?.name || t('unassigned')}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-3 rounded-lg">
-                      <Calendar className="h-4 w-4 text-green-600" />
-                      <span className="text-sm">
-                        {t('due')}: {job.due_date ? new Date(job.due_date).toLocaleDateString() : t('noDueDate')}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 p-3 rounded-lg">
-                      <DollarSign className="h-4 w-4 text-yellow-600" />
-                      <span className="text-sm">
-                        {t('price')}: ${job.price}
-                      </span>
-                    </div>
-                  </div>
-
-                  {job.description && (
-                    <div className="mb-4 p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
-                      <h4 className="font-semibold mb-2 text-primary">{t('description')}</h4>
-                      <p className="text-sm text-muted-foreground">{job.description}</p>
-                    </div>
-                  )}
-
-                  {canManageJobsValue && (
-                    <div className="flex items-center space-x-2 rtl:space-x-reverse mb-4">
-                      <Label htmlFor={`status-${job.id}`} className="text-sm font-medium">
-                        {t('status')}:
-                      </Label>
-                      <Select
-                        value={job.status}
-                        onValueChange={(value) => updateJobStatus(job.id, value)}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">{t('pending')}</SelectItem>
-                          <SelectItem value="in_progress">{t('in_progress')}</SelectItem>
-                          <SelectItem value="review">{t('review')}</SelectItem>
-                          <SelectItem value="completed">{t('completed')}</SelectItem>
-                          <SelectItem value="delivered">{t('delivered')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {canManageJobsValue && (
-                    <div className="flex space-x-2 rtl:space-x-reverse mb-4">
+                    <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                      <Badge className={getStatusColor(job.status)}>
+                        {t(getStatusTranslationKey(job.status))}
+                      </Badge>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setSelectedJob(job);
-                          setIsEditDialogOpen(true);
-                        }}
-                        className="hover:bg-primary/10 hover:border-primary/50"
+                        onClick={() => toggleJobExpansion(job.id)}
+                        className="hover:bg-primary/10"
                       >
-                        <Edit className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
-                        {t('edit')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteJob(job.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/50"
-                      >
-                        <Trash2 className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
-                        {t('delete')}
+                        {expandedJobs.has(job.id) ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
-                  )}
+                  </div>
+                </CardHeader>
 
-                  {/* File Upload Section - Show for team members */}
-                  {isTeamMemberValue && (
-                    <div className="mb-4">
-                      <FileUpload jobId={job.id} onFileUploaded={fetchJobs} />
+                {expandedJobs.has(job.id) && (
+                  <CardContent className="pt-0">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 p-3 rounded-lg">
+                        <User className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm">
+                          {t('assigned')}: {job.users?.name || t('unassigned')}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 p-3 rounded-lg">
+                        <Calendar className="h-4 w-4 text-green-600" />
+                        <span className="text-sm">
+                          {t('due')}: {job.due_date ? new Date(job.due_date).toLocaleDateString() : t('noDueDate')}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 p-3 rounded-lg">
+                        <DollarSign className="h-4 w-4 text-yellow-600" />
+                        <span className="text-sm">
+                          {t('price')}: ${job.price}
+                        </span>
+                      </div>
                     </div>
-                  )}
 
-                  {/* Job Files Display */}
-                  <JobFilesDisplay jobId={job.id} />
+                    {job.description && (
+                      <div className="mb-4 p-4 bg-gradient-to-r from-muted/50 to-muted/30 rounded-lg">
+                        <h4 className="font-semibold mb-2 text-primary">{t('description')}</h4>
+                        <p className="text-sm text-muted-foreground">{job.description}</p>
+                      </div>
+                    )}
 
-                  {/* Job Completion Actions */}
-                  {(() => {
-                    const isWorkflowJob = job.workflow_stage && job.workflow_order;
-                    const isAssignedToUser = job.assigned_to === user?.id;
-                    const canCompleteJob = isTeamMemberValue && isAssignedToUser && 
-                                         ['pending', 'in_progress', 'review'].includes(job.status);
-                    
-                    if (!canCompleteJob) {
-                      return null;
-                    }
+                    {/* Workflow History Display */}
+                    {isWorkflowJob && job.workflow_history && job.workflow_history.length > 0 && (
+                      <div className="mb-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-lg">
+                        <h4 className="font-semibold mb-2 text-purple-700 dark:text-purple-300">Workflow History</h4>
+                        <div className="space-y-2">
+                          {job.workflow_history.map((entry: any, index: number) => (
+                            <div key={index} className="text-sm border-l-2 border-purple-300 pl-3">
+                              <div className="font-medium">
+                                {entry.previous_stage?.replace('_', ' ')} → {entry.new_stage?.replace('_', ' ')}
+                              </div>
+                              <div className="text-gray-600 text-xs">
+                                {entry.transitioned_at && new Date(entry.transitioned_at).toLocaleString()}
+                              </div>
+                              {entry.notes && (
+                                <div className="text-gray-700 text-xs mt-1">
+                                  Note: {entry.notes}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-                    // Show workflow actions for workflow jobs assigned to photographers
-                    if (isWorkflowJob && userProfile?.role === 'photographer') {
-                      return (
-                        <JobWorkflowActions 
-                          job={job} 
-                          onJobUpdated={handleJobUpdated}
-                        />
-                      );
-                    }
+                    {canManageJobsValue && (
+                      <div className="flex items-center space-x-2 rtl:space-x-reverse mb-4">
+                        <Label htmlFor={`status-${job.id}`} className="text-sm font-medium">
+                          {t('status')}:
+                        </Label>
+                        <Select
+                          value={job.status}
+                          onValueChange={(value) => updateJobStatus(job.id, value)}
+                        >
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">{t('pending')}</SelectItem>
+                            <SelectItem value="in_progress">{t('in_progress')}</SelectItem>
+                            <SelectItem value="review">{t('review')}</SelectItem>
+                            <SelectItem value="completed">{t('completed')}</SelectItem>
+                            <SelectItem value="delivered">{t('delivered')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    // Show simple completion actions for regular jobs or non-photographer roles
-                    if (!isWorkflowJob || userProfile?.role !== 'photographer') {
+                    {canManageJobsValue && (
+                      <div className="flex space-x-2 rtl:space-x-reverse mb-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedJob(job);
+                            setIsEditDialogOpen(true);
+                          }}
+                          className="hover:bg-primary/10 hover:border-primary/50"
+                        >
+                          <Edit className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+                          {t('edit')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/50"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+                          {t('delete')}
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* File Upload Section - Show for team members */}
+                    {isTeamMemberValue && (isCurrentlyAssigned || userWorkedOnJob) && (
+                      <div className="mb-4">
+                        <FileUpload jobId={job.id} onFileUploaded={fetchJobs} />
+                      </div>
+                    )}
+
+                    {/* Job Files Display */}
+                    <JobFilesDisplay jobId={job.id} />
+
+                    {/* Job Completion Actions */}
+                    {(() => {
+                      const canCompleteJob = isTeamMemberValue && isCurrentlyAssigned && 
+                                           ['pending', 'in_progress', 'review'].includes(job.status);
+                      
+                      if (!canCompleteJob) {
+                        return null;
+                      }
+
+                      // Show workflow actions for photo sessions that can transition
+                      if (job.type === 'photo_session') {
+                        return (
+                          <JobWorkflowActions 
+                            job={job} 
+                            onJobUpdated={handleJobUpdated}
+                          />
+                        );
+                      }
+
+                      // Show workflow actions for video editing and design jobs too
+                      if (['video_editing', 'design'].includes(job.type)) {
+                        return (
+                          <JobWorkflowActions 
+                            job={job} 
+                            onJobUpdated={handleJobUpdated}
+                          />
+                        );
+                      }
+
+                      // Show simple completion actions for other jobs
                       return (
                         <JobCompletionActions 
                           job={job} 
                           onJobUpdated={handleJobUpdated}
                         />
                       );
-                    }
+                    })()}
 
-                    return null;
-                  })()}
-
-                  {/* Job Comments Section */}
-                  <JobComments 
-                    jobId={job.id} 
-                    jobTitle={job.title}
-                    clientName={job.clients?.name}
-                  />
-                </CardContent>
-              )}
-            </Card>
-          ))}
+                    {/* Job Comments Section */}
+                    <JobComments 
+                      jobId={job.id} 
+                      jobTitle={job.title}
+                      clientName={job.clients?.name}
+                    />
+                  </CardContent>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
 
