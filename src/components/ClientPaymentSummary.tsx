@@ -56,20 +56,49 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   const individualJobs = jobs.filter(job => !job.package_included);
   const packageIncludedJobs = jobs.filter(job => job.package_included);
   
+  // Calculate total individual job value
   const totalIndividualJobValue = individualJobs.reduce((sum, job) => sum + (job.price || 0), 0);
+  
+  // Calculate total payments received
   const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  
+  // Calculate total payment requests amount
   const totalRequested = paymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
   
-  // Calculate package values
+  // Calculate package values - use payment requests and monthly fees for active packages
   const activePackages = clientPackages.filter(pkg => pkg.is_active);
-  const totalPackageValue = activePackages.reduce((sum, pkg) => {
-    const monthsActive = Math.max(1, pkg.duration_months || 1);
-    return sum + (pkg.price * monthsActive);
-  }, 0);
+  let totalPackageValue = 0;
+  
+  // If there are active packages, calculate based on their monthly fees
+  if (activePackages.length > 0) {
+    totalPackageValue = activePackages.reduce((sum, pkg) => {
+      // Calculate months between start and end date
+      const startDate = new Date(pkg.start_date);
+      const endDate = new Date(pkg.end_date);
+      const monthsDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+      const totalMonths = Math.max(1, monthsDiff);
+      return sum + (pkg.price * totalMonths);
+    }, 0);
+  } else {
+    // If no active packages but have payment requests, use those to estimate package value
+    // This handles cases where package info might not be properly loaded
+    const packageRelatedRequests = paymentRequests.filter(req => 
+      req.description?.toLowerCase().includes('package') || 
+      req.description?.toLowerCase().includes('subscription') ||
+      req.amount >= 500 // Assume larger amounts might be package-related
+    );
+    totalPackageValue = packageRelatedRequests.reduce((sum, req) => sum + req.amount, 0);
+  }
   
   // Total value includes both individual jobs and package subscriptions
   const totalJobValue = totalIndividualJobValue + totalPackageValue;
+  
+  // Calculate outstanding amount: total value minus payments made
   const totalOutstanding = Math.max(0, totalJobValue - totalPaid);
+  
+  // If we have payment requests but no calculated total value, use payment requests as minimum
+  const adjustedTotalValue = totalJobValue > 0 ? totalJobValue : totalRequested;
+  const adjustedOutstanding = Math.max(0, adjustedTotalValue - totalPaid);
 
   // Calculate package-related values for display
   const packageIncludedValue = packageIncludedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
@@ -79,6 +108,20 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   const overdueRequests = paymentRequests.filter(req => 
     req.status === 'pending' && req.due_date && new Date(req.due_date) < new Date()
   );
+
+  // Debug logging
+  console.log('Payment Summary Debug:', {
+    individualJobs,
+    packageIncludedJobs,
+    totalIndividualJobValue,
+    totalPackageValue,
+    totalJobValue: adjustedTotalValue,
+    totalPaid,
+    totalRequested,
+    outstanding: adjustedOutstanding,
+    activePackages,
+    paymentRequests
+  });
 
   return (
     <div className="space-y-6">
@@ -113,7 +156,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
               <div className="mt-4 p-3 bg-white rounded-lg border">
                 <p className="text-sm font-medium mb-2">Package Included Services</p>
                 <p className="text-sm text-muted-foreground">
-                  {packageIncludedJobs.length} job(s) worth ${packageIncludedValue} included in your package
+                  {packageIncludedJobs.length} job(s) included in your package
                 </p>
               </div>
             )}
@@ -132,7 +175,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">${totalJobValue}</p>
+              <p className="text-2xl font-bold text-blue-600">${adjustedTotalValue}</p>
               <p className="text-sm text-muted-foreground">Total Value</p>
               <p className="text-xs text-gray-500 mt-1">
                 Jobs: ${totalIndividualJobValue} + Packages: ${totalPackageValue}
@@ -147,7 +190,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
               <p className="text-sm text-muted-foreground">Requested</p>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-600">${totalOutstanding}</p>
+              <p className="text-2xl font-bold text-red-600">${adjustedOutstanding}</p>
               <p className="text-sm text-muted-foreground">Outstanding</p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">

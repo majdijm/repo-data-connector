@@ -25,9 +25,15 @@ const ClientNotifications: React.FC = () => {
   const { toast } = useToast();
 
   const fetchNotifications = async () => {
-    if (!userProfile?.id) return;
+    if (!userProfile?.id) {
+      console.log('No user profile ID available for notifications');
+      setLoading(false);
+      return;
+    }
 
     try {
+      console.log('Fetching notifications for user:', userProfile.id);
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -35,7 +41,12 @@ const ClientNotifications: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        throw error;
+      }
+
+      console.log('Fetched notifications:', data);
       setNotifications(data || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -67,6 +78,11 @@ const ClientNotifications: React.FC = () => {
       );
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark notification as read",
+        variant: "destructive"
+      });
     }
   };
 
@@ -90,6 +106,11 @@ const ClientNotifications: React.FC = () => {
       });
     } catch (error) {
       console.error('Error marking all as read:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark all notifications as read",
+        variant: "destructive"
+      });
     }
   };
 
@@ -112,6 +133,43 @@ const ClientNotifications: React.FC = () => {
       });
     } catch (error) {
       console.error('Error deleting notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const createTestNotification = async () => {
+    if (!userProfile?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .insert([{
+          user_id: userProfile.id,
+          title: 'Test Notification',
+          message: 'This is a test notification to verify the system is working.',
+          is_read: false
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Test notification created"
+      });
+
+      // Refresh notifications
+      fetchNotifications();
+    } catch (error) {
+      console.error('Error creating test notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create test notification",
+        variant: "destructive"
+      });
     }
   };
 
@@ -119,34 +177,38 @@ const ClientNotifications: React.FC = () => {
     fetchNotifications();
 
     // Set up real-time subscription for new notifications
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${userProfile?.id}`
-        },
-        (payload) => {
-          setNotifications(prev => [payload.new as NotificationData, ...prev]);
-          toast({
-            title: "New Notification",
-            description: (payload.new as NotificationData).title
-          });
-        }
-      )
-      .subscribe();
+    if (userProfile?.id) {
+      const channel = supabase
+        .channel('notifications')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userProfile.id}`
+          },
+          (payload) => {
+            console.log('New notification received:', payload);
+            setNotifications(prev => [payload.new as NotificationData, ...prev]);
+            toast({
+              title: "New Notification",
+              description: (payload.new as NotificationData).title
+            });
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
   }, [userProfile?.id]);
 
   const getNotificationIcon = (title: string) => {
     if (title.includes('Status')) return <AlertCircle className="h-4 w-4" />;
     if (title.includes('Completed')) return <CheckCircle className="h-4 w-4" />;
+    if (title.includes('Payment')) return <CheckCircle className="h-4 w-4" />;
     return <Info className="h-4 w-4" />;
   };
 
@@ -173,12 +235,17 @@ const ClientNotifications: React.FC = () => {
               <Badge className="bg-red-100 text-red-800">{unreadCount}</Badge>
             )}
           </CardTitle>
-          {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              <Check className="h-4 w-4 mr-1" />
-              Mark All Read
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={createTestNotification}>
+              Create Test
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                <Check className="h-4 w-4 mr-1" />
+                Mark All Read
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -186,6 +253,7 @@ const ClientNotifications: React.FC = () => {
           <div className="text-center py-6 text-muted-foreground">
             <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
             <p>No notifications yet</p>
+            <p className="text-sm mt-2">Click "Create Test" to test the notification system</p>
           </div>
         ) : (
           <div className="space-y-3">
