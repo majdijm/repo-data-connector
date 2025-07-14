@@ -62,14 +62,16 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   // Calculate total payments received
   const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
   
-  // Calculate active payment requests (excluding cancelled ones)
-  const activePaymentRequests = paymentRequests.filter(req => req.status !== 'cancelled');
+  // Calculate active payment requests (excluding cancelled and paid ones)
+  const activePaymentRequests = paymentRequests.filter(req => 
+    req.status === 'pending' || req.status === 'overdue'
+  );
   const totalActiveRequested = activePaymentRequests.reduce((sum, request) => sum + (request.amount || 0), 0);
   
-  // Calculate package values - monthly fee * duration for active packages
+  // Calculate package values - total package value for active packages
   const activePackages = clientPackages.filter(pkg => pkg.is_active);
   const totalPackageValue = activePackages.reduce((sum, pkg) => {
-    // Calculate total package value: monthly fee * duration
+    // Package value is the monthly price * duration
     const monthlyFee = pkg.price || 0;
     const durationMonths = pkg.duration_months || 1;
     return sum + (monthlyFee * durationMonths);
@@ -78,15 +80,20 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   // Total expected value: individual jobs + package subscriptions
   const totalExpectedValue = totalIndividualJobValue + totalPackageValue;
   
-  // Calculate outstanding amount: total expected value minus payments made
-  const totalOutstanding = Math.max(0, totalExpectedValue - totalPaid);
+  // Calculate outstanding amount and overpayment
+  let totalOutstanding = 0;
+  let overpayment = 0;
   
-  // Calculate overpayment (if any)
-  const overpayment = totalPaid > totalExpectedValue ? totalPaid - totalExpectedValue : 0;
+  if (totalPaid < totalExpectedValue) {
+    totalOutstanding = totalExpectedValue - totalPaid;
+    overpayment = 0;
+  } else {
+    totalOutstanding = 0;
+    overpayment = totalPaid - totalExpectedValue;
+  }
   
-  // Calculate package-related values for display
-  const packageIncludedValue = packageIncludedJobs.reduce((sum, job) => sum + (job.price || 0), 0);
-  const activePackage = activePackages[0]; // Show the first active package
+  // Get the first active package for display
+  const activePackage = activePackages[0];
 
   const pendingRequests = paymentRequests.filter(req => req.status === 'pending');
   const overdueRequests = paymentRequests.filter(req => 
@@ -95,7 +102,7 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
   const cancelledRequests = paymentRequests.filter(req => req.status === 'cancelled');
 
   // Debug logging
-  console.log('Payment Summary Debug:', {
+  console.log('Payment Summary Debug - Fixed Calculations:', {
     individualJobs,
     packageIncludedJobs,
     totalIndividualJobValue,
@@ -107,7 +114,16 @@ const ClientPaymentSummary: React.FC<ClientPaymentSummaryProps> = ({
     overpayment,
     activePackages,
     activePaymentRequests,
-    cancelledRequests: cancelledRequests.length
+    cancelledRequests: cancelledRequests.length,
+    calculations: {
+      'Individual Jobs Value': totalIndividualJobValue,
+      'Package Value': totalPackageValue,
+      'Total Expected': totalExpectedValue,
+      'Total Paid': totalPaid,
+      'Outstanding': totalOutstanding,
+      'Overpayment': overpayment,
+      'Active Requests': totalActiveRequested
+    }
   });
 
   return (
