@@ -54,29 +54,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string, userEmail?: string) => {
     try {
-      console.log('Fetching user profile for:', userId);
-      const { data, error } = await supabase
+      console.log('Fetching user profile for:', userId, userEmail);
+      
+      // First try to find by ID
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Error fetching user profile:', error);
-        if (error.code === 'PGRST116') {
-          console.log('User profile not found, this is expected for new users');
-          setUserProfile(null);
-          setError(null);
-          return;
-        }
+        console.error('Error fetching user profile by ID:', error);
         setError(`Profile error: ${error.message}`);
         return;
       }
 
-      console.log('User profile fetched successfully:', data);
-      setUserProfile(data);
+      // If no user found by ID but we have an email, try to find by email and sync
+      if (!data && userEmail) {
+        console.log('User not found by ID, trying by email:', userEmail);
+        
+        const { data: emailUser, error: emailError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', userEmail)
+          .maybeSingle();
+
+        if (emailError) {
+          console.error('Error fetching user profile by email:', emailError);
+          setUserProfile(null);
+          setError(null);
+          return;
+        }
+
+        if (emailUser) {
+          console.log('Found user by email, syncing ID...');
+          // Update the user's ID to match the auth user ID
+          const { data: updatedUser, error: updateError } = await supabase
+            .from('users')
+            .update({ id: userId })
+            .eq('email', userEmail)
+            .select()
+            .single();
+
+          if (updateError) {
+            console.error('Error updating user ID:', updateError);
+            setUserProfile(emailUser);
+          } else {
+            console.log('User ID synced successfully');
+            setUserProfile(updatedUser);
+          }
+        } else {
+          console.log('User profile not found, this is expected for new users');
+          setUserProfile(null);
+        }
+      } else if (data) {
+        console.log('User profile fetched successfully:', data);
+        setUserProfile(data);
+      } else {
+        console.log('User profile not found');
+        setUserProfile(null);
+      }
+      
       setError(null);
     } catch (err: any) {
       console.error('Error in fetchUserProfile:', err);
@@ -86,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshUserProfile = async () => {
     if (user?.id) {
-      await fetchUserProfile(user.id);
+      await fetchUserProfile(user.id, user.email);
     }
   };
 
@@ -185,7 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Defer profile fetching to avoid blocking auth state changes
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
+            fetchUserProfile(session.user.id, session.user.email);
           }, 100);
         } else {
           setUserProfile(null);
@@ -203,7 +243,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id, session.user.email);
       }
       
       setIsLoading(false);
