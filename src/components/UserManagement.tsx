@@ -5,17 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { UserPlus, RefreshCw, AlertCircle } from 'lucide-react';
+import { UserPlus, RefreshCw, AlertCircle, Trash2, UserX } from 'lucide-react';
 import CreateUserDialog from './CreateUserDialog';
 import { useUsers } from '@/hooks/useUsers';
 
 const UserManagement = () => {
   const { userProfile, isLoading: authLoading } = useAuth();
-  const { users, isLoading, error, refetch, updateUserRole } = useUsers();
+  const { users, isLoading, error, refetch, updateUserRole, deleteUser } = useUsers();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const handleRoleUpdate = async (userId: string, newRole: string) => {
@@ -45,6 +47,36 @@ const UserManagement = () => {
       title: "Success",
       description: "User created successfully"
     });
+  };
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (userEmail === userProfile?.email) {
+      toast({
+        title: "Error",
+        description: "You cannot delete your own account",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsDeleting(userId);
+      await deleteUser(userId);
+      await refetch();
+      toast({
+        title: "Success",
+        description: "User deleted successfully"
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user: " + (error instanceof Error ? error.message : 'Unknown error'),
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -154,7 +186,7 @@ const UserManagement = () => {
                     <Select
                       value={user.role}
                       onValueChange={(newRole) => handleRoleUpdate(user.id, newRole)}
-                      disabled={isUpdating}
+                      disabled={isUpdating || isDeleting === user.id}
                     >
                       <SelectTrigger className="w-36 border-gray-300">
                         <SelectValue />
@@ -168,6 +200,56 @@ const UserManagement = () => {
                         <SelectItem value="client">Client</SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    {/* Delete Button */}
+                    {user.email !== userProfile?.email && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            disabled={isDeleting === user.id}
+                          >
+                            {isDeleting === user.id ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                              <UserX className="h-5 w-5" />
+                              Delete User Account
+                            </AlertDialogTitle>
+                            <AlertDialogDescription className="space-y-2">
+                              <p>Are you sure you want to delete <strong>{user.name}</strong> ({user.email})?</p>
+                              <div className="bg-red-50 p-3 rounded border border-red-200">
+                                <p className="text-sm text-red-800 font-medium">⚠️ This action cannot be undone!</p>
+                                <p className="text-sm text-red-700 mt-1">This will:</p>
+                                <ul className="text-sm text-red-700 mt-1 list-disc list-inside">
+                                  <li>Permanently delete their account</li>
+                                  <li>Remove them from all assigned jobs</li>
+                                  <li>Delete their activity history</li>
+                                  <li>Revoke access to the system</li>
+                                </ul>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              Delete User
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               ))}

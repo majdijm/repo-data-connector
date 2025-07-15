@@ -95,6 +95,77 @@ export const useUsers = () => {
     }
   };
 
+  const deleteUser = async (userId: string) => {
+    if (!userProfile || userProfile.role !== 'admin') {
+      throw new Error('Access denied. Admin role required.');
+    }
+
+    try {
+      console.log('🗑️ useUsers: Deleting user:', userId);
+      
+      // First, delete all related data that references this user
+      // This is important to maintain data integrity
+      
+      // Delete activity logs
+      await supabase.from('activity_logs').delete().eq('user_id', userId);
+      
+      // Delete calendar events
+      await supabase.from('calendar_events').delete().eq('user_id', userId);
+      
+      // Delete job comments
+      await supabase.from('job_comments').delete().eq('user_id', userId);
+      
+      // Delete job files uploaded by this user
+      await supabase.from('job_files').delete().eq('uploaded_by', userId);
+      
+      // Delete notifications
+      await supabase.from('notifications').delete().eq('user_id', userId);
+      
+      // Delete payments received by this user
+      await supabase.from('payments').delete().eq('received_by', userId);
+      
+      // Delete salaries for this user
+      await supabase.from('salaries').delete().eq('user_id', userId);
+      
+      // Delete payment requests made by this user
+      await supabase.from('payment_requests').delete().eq('requested_by', userId);
+      
+      // Delete client contracts uploaded by this user
+      await supabase.from('client_contracts').delete().eq('uploaded_by', userId);
+      
+      // Delete expenses recorded by this user
+      await supabase.from('expenses').delete().eq('recorded_by', userId);
+      
+      // Update jobs to remove references to this user
+      await supabase
+        .from('jobs')
+        .update({ 
+          assigned_to: null,
+          original_assigned_to: null,
+          created_by: null,
+          updated_at: new Date().toISOString()
+        })
+        .or(`assigned_to.eq.${userId},original_assigned_to.eq.${userId},created_by.eq.${userId}`);
+      
+      // Finally, delete the user
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) {
+        console.error('❌ useUsers: Error deleting user:', error);
+        throw error;
+      }
+
+      console.log('✅ useUsers: User deleted successfully');
+      
+    } catch (error) {
+      console.error('💥 useUsers: Error deleting user:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     console.log('🚀 useUsers: Hook initialized, starting initial fetch');
     fetchUsers();
@@ -105,6 +176,7 @@ export const useUsers = () => {
     isLoading,
     error,
     refetch: fetchUsers,
-    updateUserRole
+    updateUserRole,
+    deleteUser
   };
 };
