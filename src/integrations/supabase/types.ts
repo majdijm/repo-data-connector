@@ -793,10 +793,6 @@ export type Database = {
         Args: { job_id: string; stages: Json }
         Returns: undefined
       }
-      sync_existing_user: {
-        Args: { user_email: string; auth_user_id: string }
-        Returns: boolean
-      }
       update_job_workflow: {
         Args: { job_id: string; new_status: string; new_assigned_to: string }
         Returns: undefined
