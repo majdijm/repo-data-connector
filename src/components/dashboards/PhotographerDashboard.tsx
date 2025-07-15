@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 
 const PhotographerDashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -131,7 +131,7 @@ const PhotographerDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Performance Chart */}
+      {/* Performance Overview */}
       {chartData.length > 0 && (
         <Card>
           <CardHeader>
@@ -141,15 +141,27 @@ const PhotographerDashboard: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="sessions" stroke="#3b82f6" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {chartData.map((item, index) => {
+                const maxSessions = chartData.reduce((max, d) => Math.max(max, Number(d.sessions) || 0), 1);
+                const percentage = (Number(item.sessions) / maxSessions) * 100;
+                
+                return (
+                  <div key={index} className="flex items-center justify-between">
+                    <span className="text-sm">{item.month}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-2 bg-gray-200 rounded">
+                        <div 
+                          className="h-full bg-blue-500 rounded" 
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className="font-medium text-sm">{Number(item.sessions)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}

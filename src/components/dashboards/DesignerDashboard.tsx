@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
 
 const DesignerDashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -126,7 +126,7 @@ const DesignerDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Project Status Chart */}
+      {/* Project Status Overview */}
       {statusData.length > 0 && (
         <Card>
           <CardHeader>
@@ -136,15 +136,22 @@ const DesignerDashboard: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={statusData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="status" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8b5cf6" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {statusData.map((item, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-sm">{item.status}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-2 bg-gray-200 rounded">
+                      <div 
+                        className="h-full bg-purple-500 rounded" 
+                        style={{ width: `${Math.max(...statusData.map(d => d.count)) > 0 ? (item.count / Math.max(...statusData.map(d => d.count))) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="font-medium text-sm">{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { TrendingUp, Users, DollarSign, Clock } from 'lucide-react';
 
@@ -93,8 +92,8 @@ const DashboardAnalytics = () => {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Job Status Distribution - Only if there's data */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Temporary Chart Placeholders */}
         {jobStatusData.length > 0 && (
           <Card>
             <CardHeader>
@@ -102,30 +101,12 @@ const DashboardAnalytics = () => {
               <CardDescription>Current job status breakdown</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={jobStatusData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {jobStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-4 space-y-2">
+              <div className="space-y-4">
                 {jobStatusData.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between text-sm">
+                  <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                      <span>{item.name}</span>
+                      <span className="text-sm">{item.name}</span>
                     </div>
                     <span className="font-medium">{item.value}</span>
                   </div>
@@ -135,23 +116,35 @@ const DashboardAnalytics = () => {
           </Card>
         )}
 
-        {/* Job Types Distribution - Only if there's data */}
+        {/* Job Types Distribution */}
         {jobTypeChartData.length > 0 && (
-          <Card className="lg:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle>Job Types Distribution</CardTitle>
               <CardDescription>Projects by type</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={jobTypeChartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="type" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8b5cf6" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-3">
+                {jobTypeChartData.map((item, index) => {
+                  const maxCount = jobTypeChartData.reduce((max, d) => Math.max(max, Number(d.count) || 0), 1);
+                  const percentage = (Number(item.count) / maxCount) * 100;
+                  
+                  return (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-sm">{item.type}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-2 bg-gray-200 rounded">
+                          <div 
+                            className="h-full bg-purple-500 rounded" 
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="font-medium text-sm">{Number(item.count)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
         )}
