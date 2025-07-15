@@ -73,7 +73,8 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
           data: {
             name: formData.name,
             role: formData.role
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
