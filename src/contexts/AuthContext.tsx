@@ -57,11 +57,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserProfile = async (userId: string) => {
     try {
       console.log('Fetching user profile for:', userId);
-      const { data, error } = await supabase
+      
+      // First try to get user by ID
+      let { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
+
+      // If not found by ID, try to get user by email (for existing users before sync)
+      if (error && error.code === 'PGRST116' && user?.email) {
+        console.log('User not found by ID, trying by email:', user.email);
+        const { data: userData, error: emailError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+        
+        if (!emailError && userData) {
+          // Found user by email, now sync their ID
+          console.log('Found user by email, syncing ID...');
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ id: userId })
+            .eq('email', user.email);
+            
+          if (!updateError) {
+            data = { ...userData, id: userId };
+            error = null;
+            console.log('User ID synced successfully');
+          } else {
+            console.error('Error syncing user ID:', updateError);
+          }
+        } else {
+          data = userData;
+          error = emailError;
+        }
+      }
 
       if (error) {
         console.error('Error fetching user profile:', error);
