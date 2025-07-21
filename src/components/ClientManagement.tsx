@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Mail, Phone, MapPin, DollarSign, Edit, Eye, Upload, FileText, Download, Calendar, User } from 'lucide-react';
+import { Plus, Mail, Phone, MapPin, DollarSign, Edit, Eye, Upload, FileText, Download, Calendar, User, Package } from 'lucide-react';
 import ClientPackageAssignment from './ClientPackageAssignment';
 
 interface Client {
@@ -328,6 +328,7 @@ const ClientManagement = () => {
         )}
       </div>
 
+      {/* Create Client Form */}
       {showCreateForm && canManageClients && (
         <Card>
           <CardHeader>
@@ -389,17 +390,16 @@ const ClientManagement = () => {
         </Card>
       )}
 
+      {/* Client List */}
       <div className="grid gap-4">
         {clients.map(client => (
           <Card key={client.id}>
             <CardContent className="p-6">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <h3 className="font-semibold text-lg">{client.name}</h3>
-                    <Badge variant="outline">
-                      Client
-                    </Badge>
+                    <Badge variant="outline">Client</Badge>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 text-sm mb-4">
@@ -434,17 +434,10 @@ const ClientManagement = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleShowContracts(client.id)}
-                  >
-                    <FileText className="h-4 w-4" />
-                    {showContracts[client.id] ? 'Hide' : 'Show'} Contracts
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => setSelectedClient(client)}
                   >
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
                   </Button>
                   {canManageClients && (
                     <Button
@@ -460,22 +453,42 @@ const ClientManagement = () => {
                         setSelectedClient(client);
                       }}
                     >
-                      <Edit className="h-4 w-4" />
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
                     </Button>
                   )}
                 </div>
               </div>
 
-              {/* Contract Management Section */}
-              {showContracts[client.id] && (
-                <div className="mt-6 pt-6 border-t">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Contracts ({contracts[client.id]?.length || 0})
-                      </h4>
-                      {canManageClients && (
+              {/* Client Management Tabs */}
+              {canManageClients && (
+                <Tabs defaultValue="packages" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="packages" className="flex items-center gap-2">
+                      <Package className="h-4 w-4" />
+                      Packages
+                    </TabsTrigger>
+                    <TabsTrigger value="contracts" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Contracts
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="packages" className="mt-4">
+                    <ClientPackageAssignment
+                      clientId={client.id}
+                      clientName={client.name}
+                      onAssignmentChange={fetchClients}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="contracts" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-lg flex items-center gap-2">
+                          <FileText className="h-5 w-5" />
+                          Contracts ({contracts[client.id]?.length || 0})
+                        </h4>
                         <Button
                           size="sm"
                           onClick={() => setUploadClientId(uploadClientId === client.id ? null : client.id)}
@@ -484,96 +497,97 @@ const ClientManagement = () => {
                           <Upload className="h-4 w-4 mr-2" />
                           {uploadClientId === client.id ? 'Cancel Upload' : 'Upload Contract'}
                         </Button>
+                      </div>
+
+                      {/* Upload Form */}
+                      {uploadClientId === client.id && (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                          <div>
+                            <Label htmlFor={`contractName-${client.id}`}>Contract Name *</Label>
+                            <Input
+                              id={`contractName-${client.id}`}
+                              value={contractName}
+                              onChange={(e) => setContractName(e.target.value)}
+                              placeholder="Enter contract name"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="file">Contract File *</Label>
+                            <Input
+                              id="file"
+                              type="file"
+                              onChange={handleFileSelect}
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                            />
+                          </div>
+
+                          <Button 
+                            onClick={uploadContract}
+                            disabled={!selectedFile || !contractName || isUploading}
+                            size="sm"
+                          >
+                            {isUploading ? 'Uploading...' : 'Upload Contract'}
+                          </Button>
+                        </div>
                       )}
-                    </div>
 
-                    {/* Upload Form */}
-                    {uploadClientId === client.id && canManageClients && (
-                      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-                        <div>
-                          <Label htmlFor={`contractName-${client.id}`}>Contract Name *</Label>
-                          <Input
-                            id={`contractName-${client.id}`}
-                            value={contractName}
-                            onChange={(e) => setContractName(e.target.value)}
-                            placeholder="Enter contract name"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="file">Contract File *</Label>
-                          <Input
-                            id="file"
-                            type="file"
-                            onChange={handleFileSelect}
-                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          />
-                        </div>
-
-                        <Button 
-                          onClick={uploadContract}
-                          disabled={!selectedFile || !contractName || isUploading}
-                          size="sm"
-                        >
-                          {isUploading ? 'Uploading...' : 'Upload Contract'}
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Contracts List */}
-                    {contracts[client.id]?.length === 0 ? (
-                      <div className="text-center py-4">
-                        <p className="text-gray-500">No contracts uploaded yet.</p>
-                      </div>
-                    ) : (
+                      {/* Contracts List */}
                       <div className="space-y-3">
-                        {contracts[client.id]?.map(contract => (
-                          <div key={contract.id} className="border rounded-lg p-3 bg-white">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <h5 className="font-medium">{contract.contract_name}</h5>
-                                <div className="grid grid-cols-2 gap-2 mt-1 text-xs text-gray-600">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    {new Date(contract.created_at).toLocaleDateString()}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Upload className="h-3 w-3" />
-                                    {(contract.file_size / 1024 / 1024).toFixed(2)} MB
+                        {!contracts[client.id] && (
+                          <Button
+                            variant="outline"
+                            onClick={() => fetchClientContracts(client.id)}
+                            className="w-full"
+                          >
+                            Load Contracts
+                          </Button>
+                        )}
+                        
+                        {contracts[client.id]?.length === 0 ? (
+                          <div className="text-center py-4">
+                            <p className="text-gray-500">No contracts uploaded yet.</p>
+                          </div>
+                        ) : (
+                          contracts[client.id]?.map(contract => (
+                            <div key={contract.id} className="border rounded-lg p-3 bg-white">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <h5 className="font-medium">{contract.contract_name}</h5>
+                                  <div className="grid grid-cols-2 gap-2 mt-1 text-xs text-gray-600">
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {new Date(contract.created_at).toLocaleDateString()}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Upload className="h-3 w-3" />
+                                      {(contract.file_size / 1024 / 1024).toFixed(2)} MB
+                                    </div>
                                   </div>
                                 </div>
+                                <Button
+                                  onClick={() => downloadContract(contract)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="ml-2"
+                                >
+                                  <Download className="h-3 w-3" />
+                                </Button>
                               </div>
-                              <Button
-                                onClick={() => downloadContract(contract)}
-                                variant="outline"
-                                size="sm"
-                                className="ml-2"
-                              >
-                                <Download className="h-3 w-3" />
-                              </Button>
                             </div>
-                          </div>
-                        ))}
+                          ))
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {canManageClients && (
-                <div className="mt-6 pt-6 border-t">
-                  <ClientPackageAssignment
-                    clientId={client.id}
-                    clientName={client.name}
-                    onAssignmentChange={fetchClients}
-                  />
-                </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
         ))}
       </div>
 
+      {/* Client Details Modal */}
       {selectedClient && (
         <Card>
           <CardHeader>
