@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, RefreshCw, AlertCircle, Trash2, UserX } from 'lucide-react';
 import CreateUserDialog from './CreateUserDialog';
+import BulkUserActions from './BulkUserActions';
 import { useUsers } from '@/hooks/useUsers';
 
 const UserManagement = () => {
@@ -91,7 +91,6 @@ const UserManagement = () => {
     return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  // Show loading state
   if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -103,7 +102,6 @@ const UserManagement = () => {
     );
   }
 
-  // Access control
   if (userProfile?.role !== 'admin') {
     return (
       <div className="flex items-center justify-center h-64">
@@ -119,7 +117,6 @@ const UserManagement = () => {
     );
   }
 
-  // Show error state
   if (error) {
     return (
       <div className="space-y-4">
@@ -201,7 +198,6 @@ const UserManagement = () => {
                       </SelectContent>
                     </Select>
                     
-                    {/* Delete Button */}
                     {user.email !== userProfile?.email && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -264,6 +260,12 @@ const UserManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <BulkUserActions 
+        users={users}
+        adminEmail="majdijm@gmail.com"
+        onUsersUpdated={refetch}
+      />
 
       <CreateUserDialog
         open={isCreateDialogOpen}
