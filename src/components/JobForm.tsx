@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,7 +61,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
         title: data.title,
         type: data.type,
         client_id: data.client_id,
-        assigned_to: data.assigned_to || null,
+        assigned_to: data.assigned_to === 'unassigned' ? null : data.assigned_to || null,
         due_date: data.due_date.toISOString(),
         session_date: data.session_date?.toISOString() || null,
         description: data.description || null,
@@ -180,14 +179,14 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Assign To (Optional)</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "unassigned"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select team member" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {teamMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name} ({member.role})
