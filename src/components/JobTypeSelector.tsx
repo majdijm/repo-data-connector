@@ -43,14 +43,18 @@ const JobTypeSelector: React.FC<JobTypeSelectorProps> = ({
             <SelectValue placeholder="Select job type..." />
           </SelectTrigger>
           <SelectContent>
-            {jobModeOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                <div className="flex items-center gap-2">
-                  <option.icon className="h-4 w-4" />
-                  {option.label}
-                </div>
-              </SelectItem>
-            ))}
+            <SelectItem value="single">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Single Job
+              </div>
+            </SelectItem>
+            <SelectItem value="workflow">
+              <div className="flex items-center gap-2">
+                <Workflow className="h-4 w-4" />
+                Workflow Package
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
