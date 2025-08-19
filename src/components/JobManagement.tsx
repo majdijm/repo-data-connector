@@ -9,12 +9,14 @@ import { useRoleAccess } from '@/hooks/useRoleAccess';
 import JobForm from '@/components/JobForm';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const JobManagement = () => {
   const { jobs, loading, refetch } = useSupabaseData();
   const { canManageJobs } = useRoleAccess();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   console.log('JobManagement - Jobs data:', jobs);
   console.log('JobManagement - Loading:', loading);
@@ -47,25 +49,29 @@ const JobManagement = () => {
   const formatJobType = (type: string) => {
     switch (type) {
       case 'photo_session':
-        return 'Photo Session';
+        return t('photoSession');
       case 'video_editing':
-        return 'Video Editing';
+        return t('videoEditing');
       case 'design':
-        return 'Design';
+        return t('design');
       default:
         return type;
     }
+  };
+
+  const getStatusText = (status: string) => {
+    return t(status as any) || status.replace('_', ' ');
   };
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Job Management</h2>
+          <h2 className="text-2xl font-bold">{t('jobManagement')}</h2>
           {canManageJobs() && (
             <Button disabled>
               <Plus className="w-4 h-4 mr-2" />
-              Create New Job
+              {t('createNewJob')}
             </Button>
           )}
         </div>
@@ -93,8 +99,8 @@ const JobManagement = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Job Management</h2>
-          <p className="text-gray-600">Create and manage client jobs</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('jobManagement')}</h2>
+          <p className="text-gray-600">{t('createNewJob')} {t('clients')}</p>
         </div>
         {canManageJobs() && (
           <Button 
@@ -105,7 +111,7 @@ const JobManagement = () => {
             variant={showCreateForm ? "outline" : "default"}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {showCreateForm ? 'Cancel' : 'Create New Job'}
+            {showCreateForm ? t('cancel') : t('createNewJob')}
           </Button>
         )}
       </div>
@@ -114,8 +120,8 @@ const JobManagement = () => {
       {showCreateForm && canManageJobs() && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Job</CardTitle>
-            <CardDescription>Fill in the details to create a new job for a client</CardDescription>
+            <CardTitle>{t('createNewJob')}</CardTitle>
+            <CardDescription>{t('createNewJob')} {t('clients')}</CardDescription>
           </CardHeader>
           <CardContent>
             <JobForm onJobAdded={handleJobAdded} />
@@ -129,7 +135,7 @@ const JobManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Jobs</p>
+                <p className="text-sm font-medium text-gray-600">{t('totalJobs')}</p>
                 <p className="text-2xl font-bold">{jobs.length}</p>
               </div>
               <FileText className="h-8 w-8 text-blue-600" />
@@ -140,7 +146,7 @@ const JobManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-sm font-medium text-gray-600">{t('pending')}</p>
                 <p className="text-2xl font-bold">
                   {jobs.filter(job => job.status === 'pending').length}
                 </p>
@@ -153,7 +159,7 @@ const JobManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">In Progress</p>
+                <p className="text-sm font-medium text-gray-600">{t('inProgress')}</p>
                 <p className="text-2xl font-bold">
                   {jobs.filter(job => job.status === 'in_progress').length}
                 </p>
@@ -166,7 +172,7 @@ const JobManagement = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Completed</p>
+                <p className="text-sm font-medium text-gray-600">{t('completed')}</p>
                 <p className="text-2xl font-bold">
                   {jobs.filter(job => job.status === 'completed' || job.status === 'delivered').length}
                 </p>
@@ -179,17 +185,17 @@ const JobManagement = () => {
 
       {/* Jobs List */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Recent Jobs</h3>
+        <h3 className="text-lg font-semibold">{t('jobs')}</h3>
         {jobs.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs yet</h3>
-              <p className="text-gray-500 mb-4">Get started by creating your first job</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('noJobsCreatedYet')}</h3>
+              <p className="text-gray-500 mb-4">{t('createNewJob')}</p>
               {canManageJobs() && (
                 <Button onClick={() => setShowCreateForm(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Job
+                  {t('createNewJob')}
                 </Button>
               )}
             </CardContent>
@@ -205,7 +211,7 @@ const JobManagement = () => {
                       <CardDescription>{formatJobType(job.type)}</CardDescription>
                     </div>
                     <Badge variant="outline" className={getStatusColor(job.status)}>
-                      {job.status.replace('_', ' ')}
+                      {getStatusText(job.status)}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -213,11 +219,11 @@ const JobManagement = () => {
                   <div className="space-y-3">
                     <div className="flex items-center text-sm text-gray-600">
                       <User className="w-4 h-4 mr-2" />
-                      {job.clients?.name || 'No client assigned'}
+                      {job.clients?.name || t('unassigned')}
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Calendar className="w-4 h-4 mr-2" />
-                      Due: {format(new Date(job.due_date), 'MMM dd, yyyy')}
+                      {t('due')}: {format(new Date(job.due_date), 'MMM dd, yyyy')}
                     </div>
                     {job.price && (
                       <div className="flex items-center text-sm text-gray-600">
@@ -233,7 +239,7 @@ const JobManagement = () => {
                         className="w-full"
                       >
                         <Eye className="w-4 h-4 mr-2" />
-                        View Details
+                        {t('viewDetails')}
                       </Button>
                     </div>
                   </div>

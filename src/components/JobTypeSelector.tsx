@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Workflow, FileText } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface JobTypeSelectorProps {
   jobMode: 'single' | 'workflow';
@@ -15,18 +16,20 @@ const JobTypeSelector: React.FC<JobTypeSelectorProps> = ({
   jobMode, 
   onJobModeChange 
 }) => {
+  const { t } = useTranslation();
+
   const jobModeOptions = [
     {
       value: 'single' as const,
-      label: 'Single Job',
-      description: 'Create a standalone job',
+      label: t('singleJob'),
+      description: t('createStandaloneJob'),
       icon: FileText,
       color: 'bg-blue-100 text-blue-800'
     },
     {
       value: 'workflow' as const,
-      label: 'Workflow Package',
-      description: 'Create a complete workflow with photo session → editing → design',
+      label: t('workflowPackage'),
+      description: t('createCompleteWorkflow'),
       icon: Workflow,
       color: 'bg-purple-100 text-purple-800'
     }
@@ -37,22 +40,22 @@ const JobTypeSelector: React.FC<JobTypeSelectorProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="jobMode">Job Type</Label>
+        <Label htmlFor="jobMode">{t('jobType')}</Label>
         <Select value={jobMode} onValueChange={onJobModeChange}>
           <SelectTrigger>
-            <SelectValue placeholder="Select job type..." />
+            <SelectValue placeholder={t('selectJobType')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="single">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Single Job
+                {t('singleJob')}
               </div>
             </SelectItem>
             <SelectItem value="workflow">
               <div className="flex items-center gap-2">
                 <Workflow className="h-4 w-4" />
-                Workflow Package
+                {t('workflowPackage')}
               </div>
             </SelectItem>
           </SelectContent>
@@ -75,21 +78,15 @@ const JobTypeSelector: React.FC<JobTypeSelectorProps> = ({
             {jobMode === 'single' && (
               <div className="bg-blue-50 p-3 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Single Job:</strong> Create one independent job that can be assigned to any team member. 
-                  Perfect for standalone tasks like individual photo sessions, design work, or video editing.
+                  <strong>{t('singleJob')}:</strong> {t('createStandaloneJob')}
                 </p>
               </div>
             )}
             {jobMode === 'workflow' && (
               <div className="bg-purple-50 p-3 rounded-lg">
                 <p className="text-sm text-purple-800">
-                  <strong>Workflow Package:</strong> Create a complete workflow with three connected jobs:
+                  <strong>{t('workflowPackage')}:</strong> {t('createCompleteWorkflow')}
                 </p>
-                <ul className="text-sm text-purple-700 mt-2 space-y-1">
-                  <li>1. Photo Session (Photographer)</li>
-                  <li>2. Video Editing (Editor) - starts after photo session</li>
-                  <li>3. Design Work (Designer) - starts after video editing</li>
-                </ul>
               </div>
             )}
           </CardContent>

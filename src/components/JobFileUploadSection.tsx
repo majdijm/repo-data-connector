@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface JobFileUploadSectionProps {
   selectedFile: File | null;
@@ -20,6 +21,8 @@ const JobFileUploadSection: React.FC<JobFileUploadSectionProps> = ({
   onFileLinkChange,
   onRemoveFile
 }) => {
+  const { t } = useTranslation();
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -30,10 +33,10 @@ const JobFileUploadSection: React.FC<JobFileUploadSectionProps> = ({
 
   return (
     <div className="space-y-3">
-      <Label>Attach Files or Links (Optional)</Label>
+      <Label>{t('attachFilesOrLinks')}</Label>
       
       <div>
-        <Label htmlFor="file" className="text-sm">Upload File</Label>
+        <Label htmlFor="file" className="text-sm">{t('uploadFile')}</Label>
         <Input
           id="file"
           type="file"
@@ -54,12 +57,12 @@ const JobFileUploadSection: React.FC<JobFileUploadSectionProps> = ({
       </div>
 
       <div>
-        <Label htmlFor="fileLink" className="text-sm">Cloud Drive Link</Label>
+        <Label htmlFor="fileLink" className="text-sm">{t('cloudDriveLink')}</Label>
         <Input
           id="fileLink"
           value={fileLink}
           onChange={(e) => onFileLinkChange(e.target.value)}
-          placeholder="https://drive.google.com/... or https://dropbox.com/..."
+          placeholder={t('cloudDriveLinkPlaceholder')}
         />
       </div>
     </div>
