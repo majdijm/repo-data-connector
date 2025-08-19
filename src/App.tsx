@@ -21,82 +21,92 @@ import PaymentsPage from '@/pages/PaymentsPage';
 import JobDetails from '@/pages/JobDetails';
 import FilesPage from '@/pages/FilesPage';
 
-const queryClient = new QueryClient();
+// Create QueryClient outside component to prevent recreation on each render
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LanguageProvider>
-          <DirectionProvider>
-            <Router>
-              <div className="App">
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/users" element={
-                    <ProtectedRoute>
-                      <Users />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/clients" element={
-                    <ProtectedRoute>
-                      <Clients />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/jobs" element={
-                    <ProtectedRoute>
-                      <JobsPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/jobs/:id" element={
-                    <ProtectedRoute>
-                      <JobDetails />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/tasks" element={
-                    <ProtectedRoute>
-                      <Tasks />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/calendar" element={
-                    <ProtectedRoute>
-                      <Calendar />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/settings" element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/financial" element={
-                    <ProtectedRoute>
-                      <FinancialPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/payments" element={
-                    <ProtectedRoute>
-                      <PaymentsPage />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/files" element={
-                    <ProtectedRoute>
-                      <FilesPage />
-                    </ProtectedRoute>
-                  } />
-                </Routes>
-                <Toaster />
-              </div>
-            </Router>
-          </DirectionProvider>
-        </LanguageProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <LanguageProvider>
+            <DirectionProvider>
+              <Router>
+                <div className="App">
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/dashboard" element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/users" element={
+                      <ProtectedRoute>
+                        <Users />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/clients" element={
+                      <ProtectedRoute>
+                        <Clients />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/jobs" element={
+                      <ProtectedRoute>
+                        <JobsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/jobs/:id" element={
+                      <ProtectedRoute>
+                        <JobDetails />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/tasks" element={
+                      <ProtectedRoute>
+                        <Tasks />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/calendar" element={
+                      <ProtectedRoute>
+                        <Calendar />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/settings" element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/financial" element={
+                      <ProtectedRoute>
+                        <FinancialPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/payments" element={
+                      <ProtectedRoute>
+                        <PaymentsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/files" element={
+                      <ProtectedRoute>
+                        <FilesPage />
+                      </ProtectedRoute>
+                    } />
+                  </Routes>
+                  <Toaster />
+                </div>
+              </Router>
+            </DirectionProvider>
+          </LanguageProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
   );
 }
 
