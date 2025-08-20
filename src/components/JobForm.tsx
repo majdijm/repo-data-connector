@@ -34,8 +34,13 @@ interface JobFormProps {
 
 const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { clients, teamMembers } = useSupabaseData();
+  const { clients, users } = useSupabaseData();
   const { t } = useTranslation();
+
+  // Filter users to get team members (photographer, designer, editor)
+  const teamMembers = users.filter(user => 
+    ['photographer', 'designer', 'editor'].includes(user.role)
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -50,6 +55,8 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting job form:', data);
+      
       const jobData = {
         title: data.title,
         type: data.type,
@@ -62,26 +69,30 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
         status: 'pending'
       };
 
+      console.log('Prepared job data:', jobData);
+
       const { error } = await supabase
         .from('jobs')
         .insert([jobData]);
 
       if (error) {
+        console.error('Supabase error:', error);
         throw error;
       }
 
       toast({
         title: t('success'),
-        description: t('jobMarkedAsCompleted'),
+        description: t('jobCreatedSuccessfully'),
       });
 
       form.reset();
       onJobAdded?.();
     } catch (error) {
       console.error('Error creating job:', error);
+      console.error('Error in job creation:', error);
       toast({
         title: t('error'),
-        description: t('failedToMarkAsCompleted'),
+        description: t('failedToCreateJob'),
         variant: 'destructive',
       });
     } finally {
