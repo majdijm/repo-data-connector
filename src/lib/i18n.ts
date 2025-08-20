@@ -1,3 +1,4 @@
+
 export const locales = ['en', 'ar'] as const;
 
 export const defaultLocale = 'en';
@@ -63,6 +64,16 @@ export const translations = {
     processing: "Processing...",
     loading: "Loading...",
     
+    // Navigation and UI
+    tasks: "Tasks",
+    calendar: "Calendar",
+    financial: "Financial",
+    users: "Users",
+    signOut: "Sign Out",
+    name: "Name",
+    email: "Email",
+    role: "Role",
+    
     // Job Status
     pending: "Pending",
     inProgress: "In Progress",
@@ -93,8 +104,8 @@ export const translations = {
     datesWithTasks: "Dates with Tasks",
     noTasksScheduled: "No tasks scheduled",
     scheduledTasks: "Scheduled Tasks",
-    selectDate: "Select Date",
     type: "Type",
+    taskScheduling: "Task Scheduling",
     
     // File Upload
     attachFilesOrLinks: "Attach Files or Links",
@@ -264,6 +275,13 @@ export const translations = {
     minutes: "Minutes",
     seconds: "Seconds",
 
+    // Settings
+    profileInformation: "Profile Information",
+    languageSettings: "Language Settings",
+
+    // Error handling
+    errorLoadingData: "Error loading data",
+
     // Additional general keys
     add: "Add",
     update: "Update",
@@ -319,7 +337,6 @@ export const translations = {
     send: "Send",
     receive: "Receive",
     upload: "Upload",
-    download: "Download",
     sync: "Sync",
     backup: "Backup",
     restore: "Restore",
@@ -378,6 +395,16 @@ export const translations = {
     processing: "جاري المعالجة...",
     loading: "جاري التحميل...",
     
+    // Navigation and UI
+    tasks: "المهام",
+    calendar: "التقويم",
+    financial: "المالية",
+    users: "المستخدمون",
+    signOut: "تسجيل الخروج",
+    name: "الاسم",
+    email: "البريد الإلكتروني",
+    role: "الدور",
+    
     // Job Status
     pending: "قيد الانتظار",
     inProgress: "قيد التنفيذ",
@@ -408,8 +435,8 @@ export const translations = {
     datesWithTasks: "التواريخ التي تحتوي على مهام",
     noTasksScheduled: "لا توجد مهام مجدولة",
     scheduledTasks: "المهام المجدولة",
-    selectDate: "اختر تاريخ",
     type: "النوع",
+    taskScheduling: "جدولة المهام",
     
     // File Upload
     attachFilesOrLinks: "إرفاق ملفات أو روابط",
@@ -579,6 +606,13 @@ export const translations = {
     minutes: "دقائق",
     seconds: "ثواني",
 
+    // Settings
+    profileInformation: "معلومات الملف الشخصي",
+    languageSettings: "إعدادات اللغة",
+
+    // Error handling
+    errorLoadingData: "خطأ في تحميل البيانات",
+
     // Additional general keys
     add: "إضافة",
     update: "تحديث",
@@ -634,7 +668,6 @@ export const translations = {
     send: "إرسال",
     receive: "استقبال",
     upload: "رفع",
-    download: "تحميل",
     sync: "مزامنة",
     backup: "نسخ احتياطي",
     restore: "استعادة",
