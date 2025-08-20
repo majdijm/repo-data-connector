@@ -33,7 +33,7 @@ export const translations = {
   en: {
     // General
     success: "Success",
-    error: "Error",
+    error: "Error", 
     home: "Home",
     dashboard: "Dashboard",
     jobs: "Jobs",
@@ -62,14 +62,51 @@ export const translations = {
     viewDetails: "View Details",
     unassigned: "Unassigned",
     processing: "Processing...",
+    loading: "Loading...",
+    
+    // Job Status
+    pending: "Pending",
+    inProgress: "In Progress",
+    review: "Under Review",
+    completed: "Completed",
+    delivered: "Delivered",
+    handovered: "Handed Over",
+    
+    // Job Progress & Client View
+    jobProgress: "Job Progress",
+    complete: "Complete",
+    projectValue: "Project Value",
+    projectReadyForReview: "Project Ready for Review!",
+    reviewFinalDeliverables: "Please review the final deliverables below. Once you're satisfied with the work, click 'Accept & Complete' to finalize the project.",
+    acceptCompleteProject: "Accept & Complete Project",
+    projectCompleted: "Project Completed!",
+    projectDeliveredSuccessfully: "Your project has been delivered successfully. You can access all final files below.",
+    
+    // Dashboard Layout
+    creativeStudio: "Creative Studio",
+    digitalDesign: "Digital Design",
+    innovation: "Innovation",
+    creativity: "Creativity",
+    inspiration: "Inspiration",
+    
+    // Calendar
+    calendarView: "Calendar View",
+    datesWithTasks: "Dates with Tasks",
+    noTasksScheduled: "No tasks scheduled",
+    scheduledTasks: "Scheduled Tasks",
+    selectDate: "Select Date",
+    type: "Type",
+    
+    // File Upload
+    attachFilesOrLinks: "Attach Files or Links",
+    uploadFile: "Upload File",
+    cloudDriveLink: "Cloud Drive Link",
+    cloudDriveLinkPlaceholder: "Paste Google Drive, Dropbox, or OneDrive link here...",
 
     // Dashboard
     welcome: "Welcome",
     totalJobs: "Total Jobs",
     activeJobs: "Active Jobs",
-    pending: "Pending",
-    inProgress: "In Progress",
-    completed: "Completed",
     totalClients: "Total Clients",
     totalRevenue: "Total Revenue",
     recentJobs: "Recent Jobs",
@@ -316,14 +353,51 @@ export const translations = {
     viewDetails: "عرض التفاصيل",
     unassigned: "غير معين",
     processing: "جاري المعالجة...",
+    loading: "جاري التحميل...",
+    
+    // Job Status
+    pending: "قيد الانتظار",
+    inProgress: "قيد التنفيذ",
+    review: "قيد المراجعة",
+    completed: "مكتمل",
+    delivered: "تم التسليم",
+    handovered: "تم التسليم النهائي",
+    
+    // Job Progress & Client View
+    jobProgress: "تقدم المهمة",
+    complete: "مكتمل",
+    projectValue: "قيمة المشروع",
+    projectReadyForReview: "مشروعك جاهز للمراجعة!",
+    reviewFinalDeliverables: "يرجى مراجعة التسليمات النهائية أدناه. بمجرد أن تصبح راضيًا عن العمل، انقر على 'قبول وإكمال' لإنهاء المشروع.",
+    acceptCompleteProject: "قبول وإكمال المشروع",
+    projectCompleted: "تم إكمال المشروع!",
+    projectDeliveredSuccessfully: "تم تسليم مشروعك بنجاح. يمكنك الوصول إلى جميع الملفات النهائية أدناه.",
+    
+    // Dashboard Layout
+    creativeStudio: "الاستوديو الإبداعي",
+    digitalDesign: "التصميم الرقمي",
+    innovation: "الابتكار",
+    creativity: "الإبداع",
+    inspiration: "الإلهام",
+    
+    // Calendar
+    calendarView: "عرض التقويم",
+    datesWithTasks: "التواريخ التي تحتوي على مهام",
+    noTasksScheduled: "لا توجد مهام مجدولة",
+    scheduledTasks: "المهام المجدولة",
+    selectDate: "اختر تاريخ",
+    type: "النوع",
+    
+    // File Upload
+    attachFilesOrLinks: "إرفاق ملفات أو روابط",
+    uploadFile: "رفع ملف",
+    cloudDriveLink: "رابط التخزين السحابي",
+    cloudDriveLinkPlaceholder: "الصق رابط Google Drive أو Dropbox أو OneDrive هنا...",
 
     // Dashboard
     welcome: "مرحبا",
     totalJobs: "إجمالي المهام",
     activeJobs: "المهام النشطة",
-    pending: "قيد الانتظار",
-    inProgress: "قيد التنفيذ",
-    completed: "مكتمل",
     totalClients: "إجمالي العملاء",
     totalRevenue: "إجمالي الإيرادات",
     recentJobs: "المهام الأخيرة",
@@ -534,8 +608,8 @@ export const translations = {
     deletePackageConfirmation: "هل أنت متأكد أنك تريد حذف هذه الباقة؟",
     deletePackageConfirmationDescription: "لا يمكن التراجع عن هذا الإجراء.",
     durationMonths: "المدة (بالأشهر)",
-    duration: "Duration",
-    monthly: "Monthly",
+    duration: "المدة",
+    monthly: "شهريا",
     total: "المجموع",
   }
 };
