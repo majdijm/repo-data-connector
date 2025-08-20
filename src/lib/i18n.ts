@@ -1,38 +1,32 @@
-import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
-
 // Can be imported from a shared config
-export const locales = ['en', 'ar'];
+export const locales = ['en', 'ar'] as const;
 
 export const defaultLocale = 'en';
 
-export function getLocale() {
-  const acceptLanguage =
-    typeof window !== 'undefined'
-      ? window.navigator.language
-      : // @ts-ignore
-        getRequestConfig().headers.get('accept-language');
+export type Language = typeof locales[number];
 
-  if (acceptLanguage) {
-    const locale = acceptLanguage.split(',')[0].split('-')[0];
-    if (locales.includes(locale)) {
-      return locale;
+export function getLocale(): Language {
+  if (typeof window !== 'undefined') {
+    const savedLanguage = localStorage.getItem('language') as Language;
+    if (savedLanguage && locales.includes(savedLanguage)) {
+      return savedLanguage;
+    }
+    
+    const browserLanguage = window.navigator.language.split('-')[0] as Language;
+    if (locales.includes(browserLanguage)) {
+      return browserLanguage;
     }
   }
 
   return defaultLocale;
 }
 
-export function isValidLocale(locale: string): locale is 'en' | 'ar' {
-  return locales.includes(locale);
+export function isValidLocale(locale: string): locale is Language {
+  return locales.includes(locale as Language);
 }
 
-export async function getMessages(locale: string) {
-  try {
-    return (await import(`../messages/${locale}.json`)).default;
-  } catch (error) {
-    notFound();
-  }
+export function isRTL(language: Language): boolean {
+  return language === 'ar';
 }
 
 export const translations = {
@@ -540,10 +534,16 @@ export const translations = {
     deletePackageConfirmation: "هل أنت متأكد أنك تريد حذف هذه الباقة؟",
     deletePackageConfirmationDescription: "لا يمكن التراجع عن هذا الإجراء.",
     durationMonths: "المدة (بالأشهر)",
-    duration: "المدة",
-    monthly: "شهريا",
+    duration: "Duration",
+    monthly: "Monthly",
     total: "المجموع",
   }
 };
 
 export type Locale = keyof typeof translations;
+
+export type TranslationKey = keyof typeof translations.en;
+
+export function getTranslation(key: TranslationKey, language: Language): string {
+  return translations[language][key] || translations.en[key] || key;
+}
