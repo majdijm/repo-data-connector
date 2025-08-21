@@ -123,8 +123,8 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
       let errorMessage = "Failed to create user";
       if (error.message?.includes("already registered")) {
         errorMessage = "A user with this email already exists";
-      } else if (error.message?.includes("email")) {
-        errorMessage = "Please enter a valid email address";
+      } else if (error.message?.includes("email") || error.message?.includes("invalid")) {
+        errorMessage = "Please enter a valid email address. Some email providers may not be supported.";
       } else if (error.message?.includes("password")) {
         errorMessage = "Password must be at least 6 characters long";
       } else if (error.message) {
@@ -147,10 +147,13 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="create-user-description">
         <DialogHeader>
           <DialogTitle>Create New User</DialogTitle>
         </DialogHeader>
+        <p id="create-user-description" className="text-sm text-muted-foreground mb-4">
+          Create a new user account with email and password. The user will be able to log in immediately.
+        </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -189,6 +192,7 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
                 <SelectItem value="photographer">Photographer</SelectItem>
                 <SelectItem value="designer">Designer</SelectItem>
                 <SelectItem value="editor">Editor</SelectItem>
+                <SelectItem value="ads_manager">Ads Manager</SelectItem>
                 <SelectItem value="client">Client</SelectItem>
               </SelectContent>
             </Select>
