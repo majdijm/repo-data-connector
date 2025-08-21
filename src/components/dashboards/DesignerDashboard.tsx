@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
+import AttendanceWidget from '@/components/AttendanceWidget';
 
 
 const DesignerDashboard: React.FC = () => {
@@ -79,119 +80,129 @@ const DesignerDashboard: React.FC = () => {
         <p className="text-gray-600 mt-1">Welcome back, {userProfile?.name}!</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-            <Palette className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeProjects}</div>
-            <p className="text-xs text-muted-foreground mt-1">Currently working on</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+                <Palette className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{activeProjects}</div>
+                <p className="text-xs text-muted-foreground mt-1">Currently working on</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{pendingReview}</div>
-            <p className="text-xs text-muted-foreground mt-1">Awaiting client feedback</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingReview}</div>
+                <p className="text-xs text-muted-foreground mt-1">Awaiting client feedback</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Projects</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{completedProjects}</div>
-            <p className="text-xs text-muted-foreground mt-1">Successfully delivered</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed Projects</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{completedProjects}</div>
+                <p className="text-xs text-muted-foreground mt-1">Successfully delivered</p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-            <Upload className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{designJobs.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">All design projects</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Project Status Overview */}
-      {statusData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Project Status Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {statusData.map((item, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm">{item.status}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 h-2 bg-gray-200 rounded">
-                      <div 
-                        className="h-full bg-purple-500 rounded" 
-                        style={{ width: `${Math.max(...statusData.map(d => d.count)) > 0 ? (item.count / Math.max(...statusData.map(d => d.count))) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                    <span className="font-medium text-sm">{item.count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Assigned Projects */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Design Projects</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {designJobs.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No design projects assigned to you yet.
-              </div>
-            ) : (
-              designJobs.map((project) => (
-                <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{project.title}</h3>
-                    <p className="text-sm text-gray-600">
-                      Client: {project.clients?.name || 'Unknown'} • Type: Design
-                    </p>
-                    {project.due_date && (
-                      <p className="text-sm text-gray-500">
-                        Due: {new Date(project.due_date).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge className={`${getStatusColor(project.status)} border-0`}>
-                      {project.status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                </div>
-              ))
-            )}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
+                <Upload className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{designJobs.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">All design projects</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Project Status Overview */}
+          {statusData.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Project Status Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {statusData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-sm">{item.status}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-2 bg-gray-200 rounded">
+                          <div 
+                            className="h-full bg-purple-500 rounded" 
+                            style={{ width: `${Math.max(...statusData.map(d => d.count)) > 0 ? (item.count / Math.max(...statusData.map(d => d.count))) * 100 : 0}%` }}
+                          ></div>
+                        </div>
+                        <span className="font-medium text-sm">{item.count}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Assigned Projects */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Design Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {designJobs.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    No design projects assigned to you yet.
+                  </div>
+                ) : (
+                  designJobs.map((project) => (
+                    <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{project.title}</h3>
+                        <p className="text-sm text-gray-600">
+                          Client: {project.clients?.name || 'Unknown'} • Type: Design
+                        </p>
+                        {project.due_date && (
+                          <p className="text-sm text-gray-500">
+                            Due: {new Date(project.due_date).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge className={`${getStatusColor(project.status)} border-0`}>
+                          {project.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <AttendanceWidget />
+        </div>
+      </div>
     </div>
   );
 };

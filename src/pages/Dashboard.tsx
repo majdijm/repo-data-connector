@@ -8,6 +8,7 @@ import PhotographerDashboard from '@/components/dashboards/PhotographerDashboard
 import DesignerDashboard from '@/components/dashboards/DesignerDashboard';
 import EditorDashboard from '@/components/dashboards/EditorDashboard';
 import ClientDashboard from '@/components/dashboards/ClientDashboard';
+import AdsManagerDashboard from '@/components/dashboards/AdsManagerDashboard';
 
 const Dashboard = () => {
   const { userProfile } = useAuth();
@@ -28,6 +29,8 @@ const Dashboard = () => {
         return <DesignerDashboard />;
       case 'editor':
         return <EditorDashboard />;
+      case 'ads_manager':
+        return <AdsManagerDashboard />;
       case 'client':
         return <ClientDashboard />;
       default:

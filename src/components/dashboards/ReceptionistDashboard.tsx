@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import AttendanceWidget from '@/components/AttendanceWidget';
 
 const ReceptionistDashboard = () => {
   const { stats, recentJobs, clients, isLoading, error, refetch } = useSupabaseData();
@@ -189,7 +190,7 @@ const ReceptionistDashboard = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Jobs */}
         <Card className="shadow-md">
           <CardHeader>
@@ -262,6 +263,11 @@ const ReceptionistDashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Attendance Widget */}
+        <div>
+          <AttendanceWidget />
+        </div>
       </div>
     </div>
   );

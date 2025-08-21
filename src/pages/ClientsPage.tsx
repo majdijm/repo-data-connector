@@ -2,6 +2,7 @@
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ClientManagement from '@/components/ClientManagement';
+import ClientPackageAssignment from '@/components/ClientPackageAssignment';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Users, UserPlus, Building, Phone, FileText } from 'lucide-react';
 

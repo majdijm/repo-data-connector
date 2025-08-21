@@ -289,8 +289,10 @@ export const useSupabaseData = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [userProfile?.id, userProfile?.role, userProfile?.email]);
+    if (userProfile?.id) {
+      fetchData();
+    }
+  }, [userProfile?.id]);
 
   // Calculate stats with correct payment logic
   const calculateStats = () => {

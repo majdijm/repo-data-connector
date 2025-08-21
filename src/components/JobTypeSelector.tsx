@@ -4,8 +4,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Workflow, FileText } from 'lucide-react';
+import { Workflow, FileText, Megaphone, PenTool, Eye, FileVideo } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
+
+export const JOB_TYPES = {
+  // Photographer tasks
+  'photo_session': 'Photo Session',
+  'product_photography': 'Product Photography',
+  'event_photography': 'Event Photography',
+  
+  // Designer tasks  
+  'logo_design': 'Logo Design',
+  'branding': 'Branding',
+  'print_design': 'Print Design',
+  'web_design': 'Web Design',
+  'packaging_design': 'Packaging Design',
+  
+  // Editor tasks
+  'video_editing': 'Video Editing',
+  'photo_editing': 'Photo Editing',
+  'color_correction': 'Color Correction',
+  'motion_graphics': 'Motion Graphics',
+  
+  // Ads Manager tasks
+  'ads_plan': 'Ads Plan',
+  'content_plan': 'Content Plan', 
+  'visual_id': 'Visual ID',
+  'scripts': 'Scripts'
+};
+
+export const ROLE_JOB_TYPES = {
+  photographer: ['photo_session', 'product_photography', 'event_photography'],
+  designer: ['logo_design', 'branding', 'print_design', 'web_design', 'packaging_design'],
+  editor: ['video_editing', 'photo_editing', 'color_correction', 'motion_graphics'],
+  ads_manager: ['ads_plan', 'content_plan', 'visual_id', 'scripts']
+};
 
 interface JobTypeSelectorProps {
   jobMode: 'single' | 'workflow';
