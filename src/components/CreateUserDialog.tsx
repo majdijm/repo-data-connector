@@ -124,9 +124,11 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
       if (error.message?.includes("already registered")) {
         errorMessage = "A user with this email already exists";
       } else if (error.message?.includes("email") || error.message?.includes("invalid")) {
-        errorMessage = "Please enter a valid email address. Some email providers may not be supported.";
+        errorMessage = "This email address is not supported. Please try a different email provider (Gmail, Outlook, Yahoo, etc.)";
       } else if (error.message?.includes("password")) {
         errorMessage = "Password must be at least 6 characters long";
+      } else if (error.message?.includes("domain")) {
+        errorMessage = "This email domain is not allowed. Please use a different email provider.";
       } else if (error.message) {
         errorMessage = error.message;
       }

@@ -147,7 +147,6 @@ export const translations = {
     photoSession: "Photo Session",
     videoEditing: "Video Editing",
     design: "Design",
-    client: "Client",
     selectClient: "Select client",
     assignedTo: "Assigned To",
     selectTeamMember: "Select team member",
@@ -360,6 +359,16 @@ export const translations = {
     report: "Report",
     flag: "Flag",
     unflag: "Unflag",
+
+    // Roles
+    admin: "Admin",
+    receptionist: "Receptionist", 
+    photographer: "Photographer",
+    designer: "Designer",
+    editor: "Editor",
+    ads_manager: "Ads Manager",
+    client: "Client",
+    manager: "Manager",
   },
   ar: {
     // General
@@ -478,7 +487,6 @@ export const translations = {
     photoSession: "جلسة تصوير",
     videoEditing: "تحرير الفيديو",
     design: "تصميم",
-    client: "عميل",
     selectClient: "اختر عميل",
     assignedTo: "تعيين إلى",
     selectTeamMember: "اختر عضو فريق",
@@ -689,10 +697,20 @@ export const translations = {
     block: "حظر",
     unblock: "إلغاء الحظر",
     report: "إبلاغ",
-    flag: "علامة",
-    unflag: "إلغاء العلامة",
-  }
-};
+     flag: "علامة",
+     unflag: "إلغاء العلامة",
+
+     // Roles
+     admin: "مدير",
+     receptionist: "موظف الاستقبال",
+     photographer: "مصور", 
+     designer: "مصمم",
+     editor: "محرر",
+     ads_manager: "مدير الإعلانات",
+     client: "عميل",
+     manager: "مدير",
+   }
+ };
 
 export type Locale = keyof typeof translations;
 
