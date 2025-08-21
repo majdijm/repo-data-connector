@@ -13,7 +13,8 @@ import {
   CheckCircle, 
   AlertCircle,
   Eye,
-  Bell
+  Bell,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ClientJobProgress from '@/components/ClientJobProgress';
@@ -86,12 +87,24 @@ const ClientDashboard = () => {
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-primary/10 to-purple-600/10 p-6 rounded-lg border">
-        <h1 className="text-2xl font-bold mb-2">
-          Welcome back, {clientRecord?.name || 'Valued Client'}!
-        </h1>
-        <p className="text-muted-foreground">
-          Here's an overview of your projects and account status.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">
+              Welcome back, {clientRecord?.name || 'Valued Client'}!
+            </h1>
+            <p className="text-muted-foreground">
+              Here's an overview of your projects and account status.
+            </p>
+          </div>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/client-portal')}
+            className="flex items-center gap-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            Full Portal
+          </Button>
+        </div>
       </div>
 
       {/* Notifications */}

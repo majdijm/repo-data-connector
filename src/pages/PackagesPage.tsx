@@ -1,7 +1,7 @@
 
 import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import PackageManagement from '@/components/PackageManagement';
+import EnhancedPackageManagement from '@/components/EnhancedPackageManagement';
 
 const PackagesPage = () => {
   return (
@@ -11,7 +11,7 @@ const PackagesPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">Package Management</h1>
           <p className="text-gray-600 mt-1">Manage pricing packages and client assignments</p>
         </div>
-        <PackageManagement />
+        <EnhancedPackageManagement />
       </div>
     </DashboardLayout>
   );

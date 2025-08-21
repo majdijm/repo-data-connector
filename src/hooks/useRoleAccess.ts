@@ -41,6 +41,8 @@ export const useRoleAccess = () => {
 
   const canViewAttendance = () => hasRole(['admin', 'manager', 'receptionist']);
 
+  const canManagePackages = () => hasRole(['admin', 'manager', 'receptionist']);
+
   const getCurrentRole = (): UserRole | null => {
     return (userProfile?.role as UserRole) || null;
   };
@@ -60,6 +62,7 @@ export const useRoleAccess = () => {
     canViewFiles,
     canManageAttendance,
     canViewAttendance,
+    canManagePackages,
     getCurrentRole,
     userRole: userProfile?.role as UserRole,
     isLoading: !userProfile

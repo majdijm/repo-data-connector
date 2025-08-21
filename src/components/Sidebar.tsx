@@ -12,7 +12,12 @@ import {
   LogOut,
   CheckSquare,
   Briefcase,
-  CreditCard
+  CreditCard,
+  Package,
+  Folder,
+  UserCheck,
+  Receipt,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
@@ -34,6 +39,12 @@ const Sidebar = () => {
       href: '/',
       icon: LayoutDashboard,
       show: true
+    },
+    {
+      name: 'Projects',
+      href: '/projects',
+      icon: Folder,
+      show: roleAccess.canViewJobs()
     },
     {
       name: t('tasks'),
@@ -72,16 +83,34 @@ const Sidebar = () => {
       show: roleAccess.canManagePayments()
     },
     {
+      name: 'Packages',
+      href: '/packages',
+      icon: Package,
+      show: roleAccess.canManagePackages()
+    },
+    {
       name: t('payments'),
       href: '/payments',
       icon: CreditCard,
       show: roleAccess.canManagePayments()
     },
     {
+      name: 'Attendance',
+      href: '/attendance',
+      icon: UserCheck,
+      show: roleAccess.canViewAttendance()
+    },
+    {
       name: t('users'),
       href: '/users',
       icon: Users,
       show: roleAccess.canManageUsers()
+    },
+    {
+      name: 'Client Portal',
+      href: '/client-portal',
+      icon: Eye,
+      show: roleAccess.isClient()
     }
   ];
 
