@@ -18,8 +18,10 @@ const Dashboard = () => {
     switch (userProfile.role) {
       case 'admin':
         return <AdminDashboard />;
-      case 'receptionist':
-        return <ReceptionistDashboard />;
+                    case 'receptionist':
+                      return <ReceptionistDashboard />;
+                    case 'manager':
+                      return <ReceptionistDashboard />;
       case 'photographer':
         return <PhotographerDashboard />;
       case 'designer':

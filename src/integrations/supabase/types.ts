@@ -275,10 +275,95 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          client_id: string
+          contract_type: string
+          created_at: string
+          expiry_date: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          signed_date: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          client_id: string
+          contract_type: string
+          created_at?: string
+          expiry_date?: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          signed_date?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          client_id?: string
+          contract_type?: string
+          created_at?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          signed_date?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
           category: string
+          category_id: string | null
           created_at: string
           date: string
           description: string
@@ -290,6 +375,7 @@ export type Database = {
         Insert: {
           amount: number
           category: string
+          category_id?: string | null
           created_at?: string
           date: string
           description: string
@@ -301,6 +387,7 @@ export type Database = {
         Update: {
           amount?: number
           category?: string
+          category_id?: string | null
           created_at?: string
           date?: string
           description?: string
@@ -309,7 +396,15 @@ export type Database = {
           recorded_by?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
@@ -349,6 +444,53 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      financial_summary: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          id: string
+          individual_job_revenue: number | null
+          month_year: string
+          package_revenue: number | null
+          total_billed: number | null
+          total_paid: number | null
+          total_pending: number | null
+          updated_at: string
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          individual_job_revenue?: number | null
+          month_year: string
+          package_revenue?: number | null
+          total_billed?: number | null
+          total_paid?: number | null
+          total_pending?: number | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          individual_job_revenue?: number | null
+          month_year?: string
+          package_revenue?: number | null
+          total_billed?: number | null
+          total_paid?: number | null
+          total_pending?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_summary_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -607,6 +749,89 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_services: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          package_id: string
+          quantity_included: number
+          service_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          package_id: string
+          quantity_included?: number
+          service_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          package_id?: string
+          quantity_included?: number
+          service_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_services_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      package_usage: {
+        Row: {
+          client_package_id: string
+          created_at: string
+          id: string
+          job_id: string
+          quantity_used: number
+          service_type: string
+          usage_date: string
+        }
+        Insert: {
+          client_package_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+          quantity_used?: number
+          service_type: string
+          usage_date?: string
+        }
+        Update: {
+          client_package_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+          quantity_used?: number
+          service_type?: string
+          usage_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "package_usage_client_package_id_fkey"
+            columns: ["client_package_id"]
+            isOneToOne: false
+            referencedRelation: "client_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "package_usage_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
