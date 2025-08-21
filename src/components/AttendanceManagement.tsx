@@ -73,8 +73,14 @@ const AttendanceManagement = () => {
       let query = supabase
         .from('attendance')
         .select(`
-          *,
-          users (
+          id,
+          user_id,
+          check_in_time,
+          check_out_time,
+          work_date,
+          notes,
+          created_at,
+          users!attendance_user_id_fkey (
             name,
             email
           )

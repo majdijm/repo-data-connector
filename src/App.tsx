@@ -20,6 +20,7 @@ import FinancialPage from '@/pages/FinancialPage';
 import PaymentsPage from '@/pages/PaymentsPage';
 import JobDetails from '@/pages/JobDetails';
 import FilesPage from '@/pages/FilesPage';
+import AttendancePage from '@/pages/AttendancePage';
 
 // Create QueryClient outside component to prevent recreation on each render
 const queryClient = new QueryClient({
@@ -96,6 +97,11 @@ function App() {
                     <Route path="/files" element={
                       <ProtectedRoute>
                         <FilesPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/attendance" element={
+                      <ProtectedRoute>
+                        <AttendancePage />
                       </ProtectedRoute>
                     } />
                   </Routes>
