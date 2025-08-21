@@ -6,6 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import DashboardAnalytics from '@/components/DashboardAnalytics';
+import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
 import { 
   Users, 
   Briefcase, 
@@ -53,6 +55,12 @@ const AdminDashboard = () => {
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white shadow-xl">
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-blue-100">Complete overview of your media agency operations</p>
+      </div>
+
+      {/* Quick Access Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AttendanceWidget />
+        <NotificationWidget />
       </div>
 
       {/* Stats Grid */}

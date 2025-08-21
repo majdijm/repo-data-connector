@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useTranslation } from '@/hooks/useTranslation';
+import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
 import { 
   Calendar, 
   DollarSign, 
@@ -107,8 +109,11 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      {/* Notifications */}
-      <ClientNotifications />
+      {/* Quick Access Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AttendanceWidget />
+        <NotificationWidget />
+      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

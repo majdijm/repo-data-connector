@@ -39,7 +39,7 @@ export const useRoleAccess = () => {
 
   const canManageAttendance = () => hasRole(['admin', 'manager', 'receptionist']);
 
-  const canViewAttendance = () => hasRole(['admin', 'manager', 'receptionist']);
+  const canViewAttendance = () => true; // All users can view attendance
 
   const canManagePackages = () => hasRole(['admin', 'manager', 'receptionist']);
 

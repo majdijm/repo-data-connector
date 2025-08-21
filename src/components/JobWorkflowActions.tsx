@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import JobWorkflowSelector from './JobWorkflowSelector';
 
@@ -32,6 +33,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [selectedUserId, setSelectedUserId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { notifyJobStatusUpdate } = useNotifications();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -59,6 +61,9 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         .eq('id', job.id);
 
       if (error) throw error;
+
+      // Send notification about status update
+      await notifyJobStatusUpdate(job, newStatus);
 
       toast({
         title: 'Success',
@@ -115,6 +120,10 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         .eq('id', job.id);
 
       if (error) throw error;
+
+      // Send notification about workflow change
+      const updatedJob = { ...job, ...updateData };
+      await notifyJobStatusUpdate(updatedJob, updateData.status);
 
       toast({
         title: 'Success',

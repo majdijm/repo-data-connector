@@ -22,6 +22,7 @@ import JobDetails from '@/pages/JobDetails';
 import FilesPage from '@/pages/FilesPage';
 import ProjectsPage from '@/pages/ProjectsPage';
 import AttendancePage from '@/pages/AttendancePage';
+import NotificationsPage from '@/pages/NotificationsPage';
 import ClientPortalPage from '@/pages/ClientPortalPage';
 import PackagesPage from '@/pages/PackagesPage';
 
@@ -110,6 +111,11 @@ function App() {
                     <Route path="/attendance" element={
                       <ProtectedRoute>
                         <AttendancePage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/notifications" element={
+                      <ProtectedRoute>
+                        <NotificationsPage />
                       </ProtectedRoute>
                     } />
                     <Route path="/client-portal" element={

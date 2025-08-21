@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
+import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
 
 
 const PhotographerDashboard: React.FC = () => {
@@ -82,6 +84,12 @@ const PhotographerDashboard: React.FC = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Photographer Dashboard</h1>
         <p className="text-gray-600 mt-1">Welcome back, {userProfile?.name}!</p>
+      </div>
+
+      {/* Quick Access Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AttendanceWidget />
+        <NotificationWidget />
       </div>
 
       {/* Stats Cards */}

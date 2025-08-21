@@ -17,7 +17,8 @@ import {
   Folder,
   UserCheck,
   Receipt,
-  Eye
+  Eye,
+  Bell
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
@@ -44,19 +45,19 @@ const Sidebar = () => {
       name: 'Projects',
       href: '/projects',
       icon: Folder,
-      show: roleAccess.canViewJobs()
+      show: roleAccess.canViewJobs() && !roleAccess.isTeamMember()
     },
     {
       name: t('tasks'),
       href: '/tasks',
       icon: CheckSquare,
-      show: roleAccess.canViewJobs()
+      show: roleAccess.canViewJobs() && !roleAccess.isTeamMember()
     },
     {
       name: t('jobs'),
       href: '/jobs',
       icon: Briefcase,
-      show: roleAccess.canViewJobs()
+      show: roleAccess.canViewJobs() && !roleAccess.isTeamMember()
     },
     {
       name: t('clients'),
@@ -68,13 +69,13 @@ const Sidebar = () => {
       name: t('calendar'),
       href: '/calendar',
       icon: Calendar,
-      show: true
+      show: !roleAccess.isTeamMember()
     },
     {
       name: t('files'),
       href: '/files',
       icon: FileText,
-      show: roleAccess.canViewFiles()
+      show: roleAccess.canViewFiles() && !roleAccess.isTeamMember()
     },
     {
       name: t('financial'),
@@ -98,7 +99,7 @@ const Sidebar = () => {
       name: 'Attendance',
       href: '/attendance',
       icon: UserCheck,
-      show: roleAccess.canViewAttendance()
+      show: true // Show for all users
     },
     {
       name: t('users'),
@@ -111,6 +112,12 @@ const Sidebar = () => {
       href: '/client-portal',
       icon: Eye,
       show: roleAccess.isClient()
+    },
+    {
+      name: 'Notifications',
+      href: '/notifications',
+      icon: Bell,
+      show: true // Show for all users
     }
   ];
 
@@ -182,9 +189,9 @@ const Sidebar = () => {
             {t('dashboard')}
           </h3>
           <nav className="space-y-1">
-            {navigationItems.filter(item => item.show).map((item) => (
+            {navigationItems.filter(item => item.show).map((item, index) => (
               <NavLink
-                key={item.name}
+                key={`${item.name}-${item.href}-${index}`}
                 to={item.href}
                 className={cn(
                   "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
