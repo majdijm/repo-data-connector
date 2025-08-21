@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -427,6 +427,7 @@ export type Database = {
           original_assigned_to: string | null
           package_included: boolean | null
           price: number | null
+          session_date: string | null
           status: string
           title: string
           type: string
@@ -451,6 +452,7 @@ export type Database = {
           original_assigned_to?: string | null
           package_included?: boolean | null
           price?: number | null
+          session_date?: string | null
           status: string
           title: string
           type: string
@@ -475,6 +477,7 @@ export type Database = {
           original_assigned_to?: string | null
           package_included?: boolean | null
           price?: number | null
+          session_date?: string | null
           status?: string
           title?: string
           type?: string
@@ -794,18 +797,18 @@ export type Database = {
         Returns: undefined
       }
       sync_existing_user: {
-        Args: { user_email: string; auth_user_id: string }
+        Args: { auth_user_id: string; user_email: string }
         Returns: boolean
       }
       update_job_workflow: {
-        Args: { job_id: string; new_status: string; new_assigned_to: string }
+        Args: { job_id: string; new_assigned_to: string; new_status: string }
         Returns: undefined
       }
       update_job_workflow_stage: {
         Args: {
           job_id: string
-          new_stage: string
           new_assigned_to: string
+          new_stage: string
           stage_notes?: string
         }
         Returns: undefined
