@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,16 +70,20 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
         status: 'pending'
       };
 
-      console.log('Prepared job data:', jobData);
+      console.log('Prepared job data for insertion:', jobData);
 
-      const { error } = await supabase
+      const { data: insertedJob, error } = await supabase
         .from('jobs')
-        .insert([jobData]);
+        .insert(jobData)
+        .select()
+        .single();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Supabase insertion error:', error);
         throw error;
       }
+
+      console.log('Job created successfully:', insertedJob);
 
       toast({
         title: t('success'),
@@ -89,10 +94,15 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
       onJobAdded?.();
     } catch (error) {
       console.error('Error creating job:', error);
-      console.error('Error in job creation:', error);
+      
+      let errorMessage = t('failedToCreateJob');
+      if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = `${t('failedToCreateJob')}: ${error.message}`;
+      }
+      
       toast({
         title: t('error'),
-        description: t('failedToCreateJob'),
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
