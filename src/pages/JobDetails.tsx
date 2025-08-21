@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarIcon, CheckCircle, User } from 'lucide-react';
@@ -33,8 +34,8 @@ interface Job {
 }
 
 const JobDetails = () => {
-  const router = useRouter();
-  const { jobId } = router.query;
+  const navigate = useNavigate();
+  const { jobId } = useParams();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const { canViewJobs } = useRoleAccess();
@@ -176,7 +177,7 @@ const JobDetails = () => {
     <div className="container mx-auto p-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{job.title}</h1>
-        <Button onClick={() => router.back()}>Back to Jobs</Button>
+        <Button onClick={() => navigate(-1)}>Back to Jobs</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
