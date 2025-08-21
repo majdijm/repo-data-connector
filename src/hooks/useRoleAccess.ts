@@ -52,6 +52,7 @@ export const useRoleAccess = () => {
     canManagePayments,
     canViewFiles,
     getCurrentRole,
-    userRole: userProfile?.role as UserRole
+    userRole: userProfile?.role as UserRole,
+    isLoading: !userProfile
   };
 };

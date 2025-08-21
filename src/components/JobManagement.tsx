@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { JobForm } from './JobForm';
+import JobForm from './JobForm';
 import { JobCard } from './JobCard';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
@@ -26,11 +27,11 @@ interface Job {
   updated_at: string;
 }
 
-export const JobManagement = () => {
+const JobManagement = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('');
   const { jobs, loading, refetch } = useSupabaseData();
-  const { canManageJobs, isLoading } = useRoleAccess();
+  const { canManageJobs } = useRoleAccess();
 
   const filteredJobs = jobs.filter(job => {
     if (!filterStatus || filterStatus.trim() === '') return true;
@@ -112,7 +113,7 @@ export const JobManagement = () => {
     { value: 'delivered', label: 'Delivered' }
   ].filter(option => option.value && option.value.trim() !== '');
 
-  if (loading || isLoading) {
+  if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
@@ -189,3 +190,5 @@ export const JobManagement = () => {
     </div>
   );
 };
+
+export default JobManagement;
