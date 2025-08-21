@@ -8,7 +8,7 @@ import { Users, UserPlus, Building, Phone, FileText } from 'lucide-react';
 
 const ClientsPage = () => {
   return (
-    <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor']}>
+    <ProtectedRoute requiredRoles={['admin', 'receptionist', 'photographer', 'designer', 'editor', 'ads_manager']}>
       <DashboardLayout>
         <div className="space-y-8">
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-8 text-white shadow-xl">
