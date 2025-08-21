@@ -215,8 +215,8 @@ export const useSupabaseData = () => {
         `);
 
         // Apply role-based filtering
-        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
-          // Admin and receptionist can see all jobs
+        if (userProfile.role === 'admin' || userProfile.role === 'manager' || userProfile.role === 'receptionist') {
+          // Admin, manager, and receptionist can see all jobs
           jobsQuery = jobsQuery.order('created_at', { ascending: false });
         } else {
           // Other roles only see jobs assigned to them
@@ -231,8 +231,8 @@ export const useSupabaseData = () => {
           setJobs(jobsData || []);
         }
 
-        // Fetch clients (admin/receptionist only)
-        if (userProfile.role === 'admin' || userProfile.role === 'receptionist') {
+        // Fetch clients (admin/manager/receptionist only)
+        if (userProfile.role === 'admin' || userProfile.role === 'manager' || userProfile.role === 'receptionist') {
           const { data: clientsData, error: clientsError } = await supabase
             .from('clients')
             .select('*')
