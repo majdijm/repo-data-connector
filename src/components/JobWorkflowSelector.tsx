@@ -50,7 +50,7 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
   const currentStep = availableSteps.find(step => step.value === nextStep);
   const needsUserSelection = currentStep?.needsAssignment && nextStep;
 
-  // Filter users based on the selected next step
+  // Filter users based on the selected next step and ensure they have valid IDs
   const getFilteredUsers = () => {
     if (!nextStep) return [];
 
@@ -79,11 +79,15 @@ const JobWorkflowSelector: React.FC<JobWorkflowSelectorProps> = ({
     const filteredUsers = users.filter(user => {
       const roleMatch = user.role === targetRole;
       const activeMatch = user.is_active === true;
-      const finalMatch = roleMatch && activeMatch;
+      const hasValidId = user.id && user.id.trim() !== '';
+      const hasValidName = user.name && user.name.trim() !== '';
+      const finalMatch = roleMatch && activeMatch && hasValidId && hasValidName;
       
       console.log(`🔍 User ${user.name} (${user.email}) - Role: ${user.role}, Active: ${user.is_active}`, {
         roleMatch,
         activeMatch,
+        hasValidId,
+        hasValidName,
         finalMatch
       });
       

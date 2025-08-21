@@ -37,10 +37,13 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
   const { clients, users } = useSupabaseData();
   const { t } = useTranslation();
 
-  // Filter users to get team members (photographer, designer, editor)
+  // Filter users to get team members (photographer, designer, editor) and ensure they have valid IDs
   const teamMembers = users.filter(user => 
-    ['photographer', 'designer', 'editor'].includes(user.role)
+    ['photographer', 'designer', 'editor'].includes(user.role) && user.id && user.id.trim() !== ''
   );
+
+  // Filter clients to ensure they have valid IDs
+  const validClients = clients.filter(client => client.id && client.id.trim() !== '' && client.name && client.name.trim() !== '');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -162,7 +165,7 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {clients.map((client) => (
+                  {validClients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.name}
                     </SelectItem>
