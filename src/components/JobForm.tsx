@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -231,7 +230,6 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
@@ -272,7 +270,6 @@ const JobForm: React.FC<JobFormProps> = ({ onJobAdded }) => {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) => date < new Date()}
                     initialFocus
                     className="p-3 pointer-events-auto"
                   />
