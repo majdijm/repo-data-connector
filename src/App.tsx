@@ -11,7 +11,7 @@ import Index from '@/pages/Index';
 import LoginPage from '@/pages/LoginPage';
 import Dashboard from '@/pages/Dashboard';
 import Users from '@/pages/Users';
-import Clients from '@/pages/Clients';
+import ClientsPage from '@/pages/ClientsPage';
 import JobsPage from '@/pages/JobsPage';
 import Tasks from '@/pages/Tasks';
 import Calendar from '@/pages/Calendar';
@@ -60,7 +60,7 @@ function App() {
                     } />
                     <Route path="/clients" element={
                       <ProtectedRoute>
-                        <Clients />
+                        <ClientsPage />
                       </ProtectedRoute>
                     } />
                     <Route path="/jobs" element={
