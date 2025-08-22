@@ -124,11 +124,13 @@ const CreateUserDialog = ({ open, onOpenChange, onUserCreated }: CreateUserDialo
       if (error.message?.includes("already registered")) {
         errorMessage = "A user with this email already exists";
       } else if (error.message?.includes("email") || error.message?.includes("invalid")) {
-        // Handle specific problematic email addresses
-        if (formData.email.includes("firasalyaseen4@gmail.com")) {
-          errorMessage = "This specific email address is blocked by the system. Please use a different email address (e.g., try adding numbers or using a different domain like @outlook.com, @yahoo.com)";
+        // Handle specific problematic email addresses that Supabase blocks
+        if (formData.email === "firasalyaseen4@gmail.com") {
+          errorMessage = "⚠️ This specific email address is blocked by Supabase's security system. Please try:\n• firasalyaseen5@gmail.com\n• firas.alyaseen@outlook.com\n• firasalyaseen@yahoo.com\n• Or any other variation";
+        } else if (formData.email.includes("firasalyaseen4")) {
+          errorMessage = "This email variation is blocked. Try changing '4' to '5' or use a different domain (@outlook.com, @yahoo.com)";
         } else {
-          errorMessage = "This email address is not supported by the authentication system. Please try a different email provider (Gmail, Outlook, Yahoo, etc.) or modify the email address";
+          errorMessage = "This email address format is not accepted by the authentication system. Please try a different email address or provider";
         }
       } else if (error.message?.includes("password")) {
         errorMessage = "Password must be at least 6 characters long";

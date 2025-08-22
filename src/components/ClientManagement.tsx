@@ -489,17 +489,9 @@ const ClientManagement = () => {
                 </div>
 
                 <div className="flex gap-2 ml-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedClient(client)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    View Details
-                  </Button>
                   {canManageClients && (
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={() => {
                         setFormData({
@@ -512,9 +504,17 @@ const ClientManagement = () => {
                       }}
                     >
                       <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      Edit Client
                     </Button>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedClient(selectedClient?.id === client.id ? null : client)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    {selectedClient?.id === client.id ? 'Hide' : 'View'} Details
+                  </Button>
                 </div>
               </div>
 
@@ -731,34 +731,46 @@ const ClientManagement = () => {
         ))}
       </div>
 
-      {/* Client Details Modal */}
+      {/* Client Edit/Details Modal */}
       {selectedClient && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Client Details - {selectedClient.name}</CardTitle>
+        <Card className="mt-6 border-2 border-primary/20">
+          <CardHeader className="bg-primary/5">
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {canManageClients ? 'Edit Client' : 'Client Details'} - {selectedClient.name}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {canManageClients ? (
               <form onSubmit={(e) => {
                 e.preventDefault();
                 handleUpdateClient(selectedClient.id, formData);
-              }} className="space-y-4">
+              }} className="space-y-6">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-amber-800 mb-2">✏️ Editing Client Information</h4>
+                  <p className="text-sm text-amber-700">Make changes below and click "Update Client" to save.</p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="edit-name">Client Name</Label>
+                    <Label htmlFor="edit-name">Client Name *</Label>
                     <Input
                       id="edit-name"
                       value={formData.name}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="mt-1"
+                      required
                     />
                   </div>
                   <div>
-                    <Label htmlFor="edit-email">Email</Label>
+                    <Label htmlFor="edit-email">Email *</Label>
                     <Input
                       id="edit-email"
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({...formData, email: e.target.value})}
+                      className="mt-1"
+                      required
                     />
                   </div>
                 </div>
@@ -770,6 +782,8 @@ const ClientManagement = () => {
                       id="edit-phone"
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      className="mt-1"
+                      placeholder="Enter phone number"
                     />
                   </div>
                   <div>
@@ -778,12 +792,16 @@ const ClientManagement = () => {
                       id="edit-address"
                       value={formData.address}
                       onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      className="mt-1"
+                      placeholder="Enter address"
                     />
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button type="submit">Update Client</Button>
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+                    {isLoading ? 'Updating...' : '✅ Update Client'}
+                  </Button>
                   <Button type="button" variant="outline" onClick={() => setSelectedClient(null)}>
                     Cancel
                   </Button>
@@ -793,25 +811,25 @@ const ClientManagement = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Name</Label>
-                    <p className="text-sm text-gray-700">{selectedClient.name}</p>
+                    <Label className="font-medium">Name</Label>
+                    <p className="text-sm text-gray-700 mt-1">{selectedClient.name}</p>
                   </div>
                   <div>
-                    <Label>Email</Label>
-                    <p className="text-sm text-gray-700">{selectedClient.email}</p>
+                    <Label className="font-medium">Email</Label>
+                    <p className="text-sm text-gray-700 mt-1">{selectedClient.email}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Phone</Label>
-                    <p className="text-sm text-gray-700">{selectedClient.phone || 'Not provided'}</p>
+                    <Label className="font-medium">Phone</Label>
+                    <p className="text-sm text-gray-700 mt-1">{selectedClient.phone || 'Not provided'}</p>
                   </div>
                   <div>
-                    <Label>Address</Label>
-                    <p className="text-sm text-gray-700">{selectedClient.address || 'Not provided'}</p>
+                    <Label className="font-medium">Address</Label>
+                    <p className="text-sm text-gray-700 mt-1">{selectedClient.address || 'Not provided'}</p>
                   </div>
                 </div>
-                <Button variant="outline" onClick={() => setSelectedClient(null)}>
+                <Button variant="outline" onClick={() => setSelectedClient(null)} className="mt-4">
                   Close
                 </Button>
               </div>
