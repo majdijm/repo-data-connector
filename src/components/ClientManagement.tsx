@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Mail, Phone, MapPin, DollarSign, Edit, Eye, Upload, FileText, Download, Calendar, User, Package } from 'lucide-react';
+import { Plus, Mail, Phone, MapPin, DollarSign, Edit, Eye, Upload, FileText, Download, Calendar, User, Package, CreditCard } from 'lucide-react';
 import ClientPackageAssignment from './ClientPackageAssignment';
 
 interface Client {
@@ -48,6 +48,14 @@ const ClientManagement = () => {
   const [contractName, setContractName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadClientId, setUploadClientId] = useState<string | null>(null);
+
+  // Payment states
+  const [showPaymentForm, setShowPaymentForm] = useState<{ [clientId: string]: boolean }>({});
+  const [paymentData, setPaymentData] = useState({
+    amount: 0,
+    payment_method: 'cash',
+    notes: ''
+  });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -314,6 +322,56 @@ const ClientManagement = () => {
     }
   };
 
+  const handleCreatePayment = async (clientId: string) => {
+    if (!user?.id || !paymentData.amount) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid amount",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('payments')
+        .insert([{
+          client_id: clientId,
+          amount: paymentData.amount,
+          payment_method: paymentData.payment_method,
+          notes: paymentData.notes,
+          received_by: user.id,
+          payment_date: new Date().toISOString()
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully"
+      });
+
+      setPaymentData({
+        amount: 0,
+        payment_method: 'cash',
+        notes: ''
+      });
+      
+      setShowPaymentForm(prev => ({ ...prev, [clientId]: false }));
+      fetchClients(); // Refresh to update financial data
+    } catch (error: any) {
+      console.error('Error creating payment:', error);
+      toast({
+        title: "Error",
+        description: `Failed to record payment: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const canManageClients = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
 
   return (
@@ -463,7 +521,7 @@ const ClientManagement = () => {
               {/* Client Management Tabs */}
               {canManageClients && (
                 <Tabs defaultValue="packages" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="packages" className="flex items-center gap-2">
                       <Package className="h-4 w-4" />
                       Packages
@@ -471,6 +529,10 @@ const ClientManagement = () => {
                     <TabsTrigger value="contracts" className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       Contracts
+                    </TabsTrigger>
+                    <TabsTrigger value="payments" className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      Payments
                     </TabsTrigger>
                   </TabsList>
                   
@@ -577,6 +639,88 @@ const ClientManagement = () => {
                             </div>
                           ))
                         )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="payments" className="mt-4">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-lg flex items-center gap-2">
+                          <CreditCard className="h-5 w-5" />
+                          Record Payment
+                        </h4>
+                        <Button
+                          size="sm"
+                          onClick={() => setShowPaymentForm(prev => ({ ...prev, [client.id]: !prev[client.id] }))}
+                          variant={showPaymentForm[client.id] ? "default" : "outline"}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          {showPaymentForm[client.id] ? 'Cancel' : 'Add Payment'}
+                        </Button>
+                      </div>
+
+                      {/* Payment Form */}
+                      {showPaymentForm[client.id] && (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor={`amount-${client.id}`}>Amount *</Label>
+                              <Input
+                                id={`amount-${client.id}`}
+                                type="number"
+                                step="0.01"
+                                value={paymentData.amount}
+                                onChange={(e) => setPaymentData(prev => ({ ...prev, amount: Number(e.target.value) }))}
+                                placeholder="Enter amount"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor={`payment_method-${client.id}`}>Payment Method</Label>
+                              <Select 
+                                value={paymentData.payment_method} 
+                                onValueChange={(value) => setPaymentData(prev => ({ ...prev, payment_method: value }))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="cash">Cash</SelectItem>
+                                  <SelectItem value="card">Card</SelectItem>
+                                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                                  <SelectItem value="check">Check</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor={`notes-${client.id}`}>Notes</Label>
+                            <Input
+                              id={`notes-${client.id}`}
+                              value={paymentData.notes}
+                              onChange={(e) => setPaymentData(prev => ({ ...prev, notes: e.target.value }))}
+                              placeholder="Payment notes (optional)"
+                            />
+                          </div>
+
+                          <Button 
+                            onClick={() => handleCreatePayment(client.id)}
+                            disabled={!paymentData.amount || isLoading}
+                            size="sm"
+                          >
+                            {isLoading ? 'Recording...' : 'Record Payment'}
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="text-center py-4">
+                        <p className="text-gray-500 text-sm">
+                          Current Balance: Paid ${client.total_paid || 0} | Due ${client.total_due || 0}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Visit the Payments page for detailed payment history
+                        </p>
                       </div>
                     </div>
                   </TabsContent>
