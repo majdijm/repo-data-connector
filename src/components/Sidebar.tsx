@@ -101,7 +101,7 @@ const Sidebar = () => {
       name: 'Attendance',
       href: '/attendance',
       icon: UserCheck,
-      show: true // Show for all users
+      show: !roleAccess.isClient() // Hide from clients
     },
     {
       name: t('users'),

@@ -79,12 +79,13 @@ interface ClientJob {
 
 interface Contract {
   id: string;
-  contract_type: string;
-  file_name: string;
+  client_id: string;
+  contract_name: string;
   file_path: string;
-  status: string;
-  signed_date?: string;
+  file_size: number;
+  uploaded_by: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface Payment {
@@ -182,7 +183,7 @@ const ClientPortal = () => {
 
       // Fetch contracts
       const { data: clientContracts, error: contractsError } = await supabase
-        .from('contracts')
+        .from('client_contracts')
         .select('*')
         .eq('client_id', client.id)
         .order('created_at', { ascending: false });
@@ -505,42 +506,48 @@ const ClientPortal = () => {
         </TabsContent>
 
         <TabsContent value="contracts" className="space-y-6">
-          {contracts.map(contract => (
-            <Card key={contract.id} className="shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <FileText className="h-8 w-8 text-blue-600" />
-                    <div>
-                      <h3 className="font-semibold">{contract.file_name}</h3>
-                      <p className="text-sm text-gray-600 capitalize">{contract.contract_type} contract</p>
+          {contracts.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Contracts Yet</h3>
+                <p className="text-gray-600">Contract documents will appear here once uploaded by our team</p>
+              </CardContent>
+            </Card>
+          ) : (
+            contracts.map(contract => (
+              <Card key={contract.id} className="shadow-lg border-0">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <FileText className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <h3 className="font-semibold">{contract.contract_name}</h3>
+                        <p className="text-sm text-gray-600">
+                          Size: {(contract.file_size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      <Button size="sm" variant="outline">
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                      <Button size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download
+                      </Button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4">
-                    <Badge variant={contract.status === 'signed' ? "default" : "secondary"}>
-                      {contract.status}
-                    </Badge>
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
-                    <Button size="sm">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </Button>
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p>Uploaded: {format(new Date(contract.created_at), 'MMM dd, yyyy')}</p>
                   </div>
-                </div>
-                
-                <div className="mt-4 text-sm text-gray-600">
-                  <p>Created: {format(new Date(contract.created_at), 'MMM dd, yyyy')}</p>
-                  {contract.signed_date && (
-                    <p>Signed: {format(new Date(contract.signed_date), 'MMM dd, yyyy')}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="payments" className="space-y-6">
