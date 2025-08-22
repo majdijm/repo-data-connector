@@ -105,23 +105,38 @@ const PaymentManagement = () => {
 
   const handleCreatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.client_id) {
+      toast({
+        title: "Error",
+        description: "Please select a client",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const { error } = await supabase
+      
+      // Insert payment record
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert([{
           ...formData,
           received_by: userProfile?.id,
           payment_date: formData.payment_date || new Date().toISOString()
-        }]);
+        }])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (paymentError) throw paymentError;
 
       toast({
         title: "Success",
-        description: "Payment recorded successfully"
+        description: `Payment of $${formData.amount} recorded successfully`
       });
 
+      // Reset form
       setFormData({
         amount: 0,
         payment_method: 'cash',
@@ -130,12 +145,19 @@ const PaymentManagement = () => {
         notes: ''
       });
       setShowCreateForm(false);
-      fetchPayments();
+      
+      // Refresh payment data to show updated totals
+      await fetchPayments();
+      
+      // Add real-time notification
+      if (paymentData) {
+        console.log('Payment created successfully:', paymentData);
+      }
     } catch (error) {
       console.error('Error creating payment:', error);
       toast({
         title: "Error",
-        description: "Failed to record payment",
+        description: "Failed to record payment. Please try again.",
         variant: "destructive"
       });
     } finally {

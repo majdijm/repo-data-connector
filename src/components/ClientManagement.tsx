@@ -323,10 +323,10 @@ const ClientManagement = () => {
   };
 
   const handleCreatePayment = async (clientId: string) => {
-    if (!user?.id || !paymentData.amount) {
+    if (!user?.id || !paymentData.amount || paymentData.amount <= 0) {
       toast({
         title: "Error",
-        description: "Please enter a valid amount",
+        description: "Please enter a valid amount greater than 0",
         variant: "destructive"
       });
       return;
@@ -334,7 +334,9 @@ const ClientManagement = () => {
 
     try {
       setIsLoading(true);
-      const { error } = await supabase
+      
+      // Insert payment and get the created record
+      const { data: paymentRecord, error } = await supabase
         .from('payments')
         .insert([{
           client_id: clientId,
@@ -343,15 +345,18 @@ const ClientManagement = () => {
           notes: paymentData.notes,
           received_by: user.id,
           payment_date: new Date().toISOString()
-        }]);
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Payment recorded successfully"
+        description: `Payment of $${paymentData.amount} recorded successfully. Client totals updated automatically.`
       });
 
+      // Reset form
       setPaymentData({
         amount: 0,
         payment_method: 'cash',
@@ -359,7 +364,11 @@ const ClientManagement = () => {
       });
       
       setShowPaymentForm(prev => ({ ...prev, [clientId]: false }));
-      fetchClients(); // Refresh to update financial data
+      
+      // Refresh client data to show updated totals
+      await fetchClients();
+      
+      console.log('Payment recorded successfully:', paymentRecord);
     } catch (error: any) {
       console.error('Error creating payment:', error);
       toast({

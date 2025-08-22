@@ -294,6 +294,59 @@ export const useSupabaseData = () => {
     }
   }, [userProfile?.id]);
 
+  // Set up real-time subscription for payments and clients updates
+  useEffect(() => {
+    if (!userProfile?.id) return;
+
+    const channels: any[] = [];
+
+    // Subscribe to payments changes
+    const paymentsChannel = supabase
+      .channel('payments-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments'
+        },
+        (payload) => {
+          console.log('Payment change detected:', payload);
+          // Refetch data when payments change
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    channels.push(paymentsChannel);
+
+    // Subscribe to clients changes (for updated totals)
+    const clientsChannel = supabase
+      .channel('clients-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clients'
+        },
+        (payload) => {
+          console.log('Client totals updated:', payload);
+          // Refetch data when client totals are updated
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    channels.push(clientsChannel);
+
+    return () => {
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+    };
+  }, [userProfile?.id]);
+
   // Calculate stats with correct payment logic
   const calculateStats = () => {
     const totalJobs = jobs.length;
