@@ -708,6 +708,111 @@ export type Database = {
           },
         ]
       }
+      monthly_reports: {
+        Row: {
+          created_at: string
+          id: string
+          month_year: string
+          net_profit: number | null
+          total_expenses: number | null
+          total_revenue: number | null
+          total_salaries: number | null
+          total_session_payments: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_year: string
+          net_profit?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+          total_salaries?: number | null
+          total_session_payments?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_year?: string
+          net_profit?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+          total_salaries?: number | null
+          total_session_payments?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      monthly_salaries: {
+        Row: {
+          base_salary: number
+          bonuses: number | null
+          created_at: string
+          deductions: number | null
+          id: string
+          month_year: string
+          notes: string | null
+          payment_date: string | null
+          processed_at: string | null
+          processed_by: string | null
+          session_payments_total: number | null
+          status: string
+          total_salary: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_salary: number
+          bonuses?: number | null
+          created_at?: string
+          deductions?: number | null
+          id?: string
+          month_year: string
+          notes?: string | null
+          payment_date?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          session_payments_total?: number | null
+          status?: string
+          total_salary?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          bonuses?: number | null
+          created_at?: string
+          deductions?: number | null
+          id?: string
+          month_year?: string
+          notes?: string | null
+          payment_date?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          session_payments_total?: number | null
+          status?: string
+          total_salary?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_salaries_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_salaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string | null
@@ -1009,6 +1114,72 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      session_payments: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          description: string | null
+          id: string
+          month_year: string
+          notes: string | null
+          rate_per_session: number
+          session_count: number
+          session_date: string
+          status: string
+          total_amount: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          month_year: string
+          notes?: string | null
+          rate_per_session: number
+          session_count?: number
+          session_date: string
+          status?: string
+          total_amount?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          month_year?: string
+          notes?: string | null
+          rate_per_session?: number
+          session_count?: number
+          session_date?: string
+          status?: string
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_payments_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {

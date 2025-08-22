@@ -110,8 +110,7 @@ const ClientDashboard = () => {
       </div>
 
       {/* Quick Access Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AttendanceWidget />
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 mb-8">
         <NotificationWidget />
       </div>
 

@@ -3,6 +3,7 @@ import React from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import FinancialManagement from '@/components/FinancialManagement';
 import ExpenseManagement from '@/components/ExpenseManagement';
+import MonthlyFinancialReports from '@/components/MonthlyFinancialReports';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { Calculator, TrendingUp, Users, Receipt } from 'lucide-react';
 
@@ -55,6 +56,7 @@ const FinancialPage = () => {
 
           <FinancialManagement />
           <ExpenseManagement />
+          <MonthlyFinancialReports />
         </div>
       </DashboardLayout>
     </ProtectedRoute>
