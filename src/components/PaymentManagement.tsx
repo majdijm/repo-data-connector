@@ -175,7 +175,7 @@ const PaymentManagement = () => {
     return colors[method as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const canManagePayments = userProfile?.role === 'admin' || userProfile?.role === 'receptionist';
+  const canManagePayments = userProfile?.role === 'admin' || userProfile?.role === 'manager' || userProfile?.role === 'receptionist';
 
   return (
     <div className="space-y-6">

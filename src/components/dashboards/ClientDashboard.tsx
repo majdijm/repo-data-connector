@@ -19,6 +19,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ClientPackageDisplay from '@/components/ClientPackageDisplay';
 import ClientJobProgress from '@/components/ClientJobProgress';
 import ClientPaymentSummary from '@/components/ClientPaymentSummary';
 import ClientNotifications from '@/components/ClientNotifications';
@@ -171,6 +172,12 @@ const ClientDashboard = () => {
         payments={payments} 
         paymentRequests={paymentRequests}
         clientPackages={transformedClientPackages}
+      />
+
+      {/* Client Packages Display */}
+      <ClientPackageDisplay 
+        clientPackages={clientPackages}
+        loading={loading}
       />
 
       {/* Active Projects */}

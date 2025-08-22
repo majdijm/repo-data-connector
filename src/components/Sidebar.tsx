@@ -18,7 +18,9 @@ import {
   UserCheck,
   Receipt,
   Eye,
-  Bell
+  Bell,
+  Clock2,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
@@ -118,6 +120,18 @@ const Sidebar = () => {
       href: '/notifications',
       icon: Bell,
       show: true // Show for all users
+    },
+    {
+      name: 'Session Payments',
+      href: '/session-payments',
+      icon: Clock2,
+      show: !roleAccess.isClient() // Show for all except clients
+    },
+    {
+      name: 'Monthly Salaries',
+      href: '/monthly-salaries',
+      icon: Wallet,
+      show: roleAccess.canManageUsers() || roleAccess.canManagePayments() // Show for admins, managers, receptionists
     }
   ];
 

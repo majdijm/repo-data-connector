@@ -25,6 +25,8 @@ import AttendancePage from '@/pages/AttendancePage';
 import NotificationsPage from '@/pages/NotificationsPage';
 import ClientPortalPage from '@/pages/ClientPortalPage';
 import PackagesPage from '@/pages/PackagesPage';
+import SessionPaymentsPage from '@/pages/SessionPaymentsPage';
+import MonthlySalariesPage from '@/pages/MonthlySalariesPage';
 
 // Create QueryClient outside component to prevent recreation on each render
 const queryClient = new QueryClient({
@@ -126,6 +128,16 @@ function App() {
                     <Route path="/packages" element={
                       <ProtectedRoute>
                         <PackagesPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/session-payments" element={
+                      <ProtectedRoute>
+                        <SessionPaymentsPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/monthly-salaries" element={
+                      <ProtectedRoute>
+                        <MonthlySalariesPage />
                       </ProtectedRoute>
                     } />
                   </Routes>

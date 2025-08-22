@@ -107,6 +107,7 @@ export const useSupabaseData = () => {
             .select(`
               *,
               packages (
+                id,
                 name,
                 price,
                 duration_months,
@@ -114,6 +115,7 @@ export const useSupabaseData = () => {
               )
             `)
             .eq('client_id', clientRecord.id)
+            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
           if (packagesError) {
