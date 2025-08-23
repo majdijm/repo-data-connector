@@ -229,6 +229,10 @@ const ClientPortal = () => {
   };
 
   const calculateServiceUsage = (packageServices: any[], usage: PackageUsage[]) => {
+    if (!packageServices || !Array.isArray(packageServices)) {
+      return [];
+    }
+    
     return packageServices.map(service => {
       const used = usage
         .filter(u => u.service_type === service.service_type)
