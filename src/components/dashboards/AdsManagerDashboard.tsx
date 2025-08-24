@@ -17,6 +17,7 @@ import {
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
 
 const AdsManagerDashboard = () => {
   const { stats, recentJobs, isLoading, error, refetch } = useSupabaseData();
@@ -205,6 +206,7 @@ const AdsManagerDashboard = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           <AttendanceWidget />
+          <NotificationWidget />
           
           <Card className="shadow-lg border-0 bg-gradient-to-br from-indigo-50 to-purple-50">
             <CardHeader>

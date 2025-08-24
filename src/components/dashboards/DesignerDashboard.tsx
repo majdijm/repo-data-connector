@@ -16,6 +16,8 @@ import {
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 
 const DesignerDashboard: React.FC = () => {
@@ -140,22 +142,14 @@ const DesignerDashboard: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {statusData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <span className="text-sm">{item.status}</span>
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 bg-gray-200 rounded">
-                          <div 
-                            className="h-full bg-purple-500 rounded" 
-                            style={{ width: `${Math.max(...statusData.map(d => d.count)) > 0 ? (item.count / Math.max(...statusData.map(d => d.count))) * 100 : 0}%` }}
-                          ></div>
-                        </div>
-                        <span className="font-medium text-sm">{item.count}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={statusData.map(item => ({ status: item.status, count: item.count }))}>
+                    <XAxis dataKey="status" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           )}
@@ -201,6 +195,7 @@ const DesignerDashboard: React.FC = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           <AttendanceWidget />
+          <NotificationWidget />
         </div>
       </div>
     </div>

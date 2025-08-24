@@ -17,6 +17,7 @@ import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import AttendanceWidget from '@/components/AttendanceWidget';
+import NotificationWidget from '@/components/NotificationWidget';
 
 const EditorDashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -215,6 +216,7 @@ const EditorDashboard: React.FC = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           <AttendanceWidget />
+          <NotificationWidget />
         </div>
       </div>
     </div>

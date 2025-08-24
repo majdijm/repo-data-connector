@@ -53,7 +53,7 @@ const Sidebar = () => {
       name: t('tasks'),
       href: '/tasks',
       icon: CheckSquare,
-      show: roleAccess.canViewJobs() && !roleAccess.isTeamMember()
+      show: roleAccess.canViewJobs() // Show for all who can view jobs, including team members
     },
     {
       name: t('jobs'),
@@ -71,7 +71,7 @@ const Sidebar = () => {
       name: t('calendar'),
       href: '/calendar',
       icon: Calendar,
-      show: !roleAccess.isTeamMember()
+      show: true // Show calendar for all users including team members
     },
     {
       name: t('files'),

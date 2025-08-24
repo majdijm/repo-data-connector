@@ -13,6 +13,7 @@ import {
   RefreshCw,
   TrendingUp
 } from 'lucide-react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 import { useSupabaseData } from '@/hooks/useSupabaseData';
 import { useAuth } from '@/contexts/AuthContext';
 import AttendanceWidget from '@/components/AttendanceWidget';
@@ -149,27 +150,14 @@ const PhotographerDashboard: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {chartData.map((item, index) => {
-                const maxSessions = chartData.reduce((max, d) => Math.max(max, Number(d.sessions) || 0), 1);
-                const percentage = (Number(item.sessions) / maxSessions) * 100;
-                
-                return (
-                  <div key={index} className="flex items-center justify-between">
-                    <span className="text-sm">{item.month}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-gray-200 rounded">
-                        <div 
-                          className="h-full bg-blue-500 rounded" 
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                      <span className="font-medium text-sm">{Number(item.sessions)}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="sessions" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       )}
