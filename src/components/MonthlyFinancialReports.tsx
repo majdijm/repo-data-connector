@@ -133,7 +133,7 @@ const MonthlyFinancialReports = () => {
   const getNextMonth = (monthYear: string) => {
     const date = new Date(monthYear + '-01');
     date.setMonth(date.getMonth() + 1);
-    return date.toISOString().slice(0, 7);
+    return date.toISOString().slice(0, 10); // Return full date format YYYY-MM-DD
   };
 
   const getCurrentMonthYear = () => {
