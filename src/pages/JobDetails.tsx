@@ -13,6 +13,9 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
 import JobWorkflowActions from '@/components/JobWorkflowActions';
+import JobComments from '@/components/JobComments';
+import JobFilesDisplay from '@/components/JobFilesDisplay';
+import FileUpload from '@/components/FileUpload';
 
 interface Job {
   id: string;
@@ -240,11 +243,39 @@ const JobDetails = () => {
           </CardContent>
         </Card>
 
+        <div className="space-y-4">
+          <JobWorkflowActions 
+            job={job} 
+            onJobUpdate={refetchJob}
+          />
+          
+          {/* File Upload Section for team members */}
+          {job.assigned_to && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload Files</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FileUpload
+                  jobId={job.id}
+                  onUploadComplete={refetchJob}
+                  allowedTypes={['image', 'video', 'document']}
+                />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+      
+      {/* Comments and Files sections */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <JobComments 
+          jobId={job.id} 
+          jobTitle={job.title}
+          clientName={job.clients?.name}
+        />
         
-              <JobWorkflowActions 
-                job={job} 
-                onJobUpdate={refetchJob}
-              />
+        <JobFilesDisplay jobId={job.id} />
       </div>
     </div>
   );
