@@ -258,7 +258,7 @@ const JobDetails = () => {
               <CardContent>
                 <FileUpload
                   jobId={job.id}
-                  onUploadComplete={refetchJob}
+                  onFileUploaded={refetchJob}
                   allowedTypes={['image', 'video', 'document']}
                 />
               </CardContent>
