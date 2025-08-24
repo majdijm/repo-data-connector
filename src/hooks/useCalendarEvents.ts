@@ -27,8 +27,12 @@ interface Job {
   assigned_to: string | null;
   description: string | null;
   price: number | null;
+  created_at: string;
+  updated_at: string;
+  session_date?: string;
   clients?: {
     name: string;
+    email?: string;
   };
   users?: {
     name: string;

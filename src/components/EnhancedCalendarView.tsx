@@ -5,7 +5,8 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, User, MapPin, Eye, Calendar as CalendarIcon, ArrowRight } from 'lucide-react';
+import { Clock, User, MapPin, Eye, Calendar as CalendarIcon, ArrowRight, Edit } from 'lucide-react';
+import CalendarTaskEditor from './CalendarTaskEditor';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
 import { useTranslation } from '@/hooks/useTranslation';
 import { format } from 'date-fns';
@@ -21,8 +22,12 @@ interface Job {
   assigned_to: string | null;
   description: string | null;
   price: number | null;
+  created_at: string;
+  updated_at: string;
+  session_date?: string;
   clients?: {
     name: string;
+    email?: string;
   };
   users?: {
     name: string;
@@ -32,11 +37,13 @@ interface Job {
 
 interface EnhancedCalendarViewProps {
   onJobSelect?: (job: Job) => void;
+  onJobUpdate?: () => void;
 }
 
-const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect }) => {
+const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect, onJobUpdate }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const { events, jobs, loading } = useCalendarEvents();
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const { events, jobs, loading, refreshEvents } = useCalendarEvents();
   const { t, language } = useTranslation();
   const navigate = useNavigate();
 
@@ -159,57 +166,82 @@ const EnhancedCalendarView: React.FC<EnhancedCalendarViewProps> = ({ onJobSelect
                 {t('scheduledTasks')}
               </div>
               {selectedDateJobs.map(job => (
-                <div 
-                  key={job.id} 
-                  className="group border-2 rounded-xl p-4 bg-white shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-white hover:to-blue-50 hover:border-blue-300 transform hover:-translate-y-1"
-                  onClick={() => handleJobClick(job)}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900 flex-1 group-hover:text-blue-700 transition-colors">
-                      {job.title}
-                    </h4>
-                    <Badge className={`text-xs ${getStatusColor(job.status)} border shadow-sm`}>
-                      {t(job.status as any)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm text-gray-600 mb-4">
-                    {job.clients?.name && (
-                      <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-blue-500" />
-                        <span>{t('client')}: {job.clients.name}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-3 w-3 text-green-500" />
-                      <span>{t('type')}: {t(job.type.replace('_', '') as any) || job.type}</span>
-                    </div>
-                    {job.price && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-green-600 font-semibold text-base">${job.price}</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleJobClick(job);
-                    }}
+                  <div 
+                    key={job.id} 
+                    className="group border-2 rounded-xl p-4 bg-white shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-white hover:to-blue-50 hover:border-blue-300 transform hover:-translate-y-1"
+                    onClick={() => handleJobClick(job)}
                   >
-                    <Eye className="h-3 w-3 mr-2" />
-                    {t('viewDetails')}
-                    <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-gray-900 flex-1 group-hover:text-blue-700 transition-colors">
+                        {job.title}
+                      </h4>
+                      <Badge className={`text-xs ${getStatusColor(job.status)} border shadow-sm`}>
+                        {t(job.status as any)}
+                      </Badge>
+                    </div>
+                    
+                    <div className="space-y-2 text-sm text-gray-600 mb-4">
+                      {job.clients?.name && (
+                        <div className="flex items-center gap-2">
+                          <User className="h-3 w-3 text-blue-500" />
+                          <span>{t('client')}: {job.clients.name}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-3 w-3 text-green-500" />
+                        <span>{t('type')}: {t(job.type.replace('_', '') as any) || job.type}</span>
+                      </div>
+                      {job.price && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 font-semibold text-base">${job.price}</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobClick(job);
+                        }}
+                      >
+                        <Eye className="h-3 w-3 mr-2" />
+                        {t('viewDetails')}
+                        <ArrowRight className="h-3 w-3 ml-2 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="group-hover:bg-green-600 group-hover:text-white group-hover:border-green-600 transition-all duration-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingJob(job);
+                        }}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Task Editor Modal */}
+      {editingJob && (
+        <CalendarTaskEditor
+          job={editingJob}
+          onJobUpdate={() => {
+            refreshEvents();
+            onJobUpdate && onJobUpdate();
+          }}
+          onClose={() => setEditingJob(null)}
+        />
+      )}
     </div>
   );
 };
