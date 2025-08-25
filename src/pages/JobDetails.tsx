@@ -46,11 +46,14 @@ const JobDetails = () => {
   useEffect(() => {
     const fetchJob = async () => {
       if (!jobId || typeof jobId !== 'string') {
+        setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
+        console.log('JobDetails: Fetching job with ID:', jobId);
+        
         const { data, error } = await supabase
           .from('jobs')
           .select(`
@@ -61,26 +64,37 @@ const JobDetails = () => {
             )
           `)
           .eq('id', jobId)
-          .single();
+          .maybeSingle();
+
+        console.log('JobDetails: Query result:', { data, error });
 
         if (error) {
-          console.error('Error fetching job:', error);
+          console.error('JobDetails: Error fetching job:', error);
           toast({
             title: 'Error',
             description: 'Failed to fetch job details',
             variant: 'destructive',
           });
+          setLoading(false);
           return;
         }
 
         if (data) {
+          console.log('JobDetails: Job data loaded successfully:', data);
           setJob(data);
+        } else {
+          console.log('JobDetails: No job found with ID:', jobId);
+          toast({
+            title: 'Job Not Found',
+            description: 'The requested job could not be found or you do not have permission to view it.',
+            variant: 'destructive',
+          });
         }
       } catch (error) {
-        console.error('Error fetching job:', error);
+        console.error('JobDetails: Unexpected error:', error);
         toast({
           title: 'Error',
-          description: 'Failed to fetch job details',
+          description: 'An unexpected error occurred while fetching job details',
           variant: 'destructive',
         });
       } finally {
@@ -108,23 +122,26 @@ const JobDetails = () => {
           )
         `)
         .eq('id', jobId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Error fetching job:', error);
+        console.error('JobDetails: Error refetching job:', error);
         toast({
           title: 'Error',
-          description: 'Failed to fetch job details',
+          description: 'Failed to refresh job details',
           variant: 'destructive',
         });
+        return;
       }
 
-      setJob(data);
+      if (data) {
+        setJob(data);
+      }
     } catch (error) {
-      console.error('Error fetching job:', error);
+      console.error('JobDetails: Unexpected error during refetch:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch job details',
+        description: 'An unexpected error occurred while refreshing job details',
         variant: 'destructive',
       });
     } finally {
