@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { useAuth } from '@/contexts/AuthContext';
 import JobWorkflowActions from '@/components/JobWorkflowActions';
 import JobComments from '@/components/JobComments';
 import JobFilesDisplay from '@/components/JobFilesDisplay';
@@ -41,7 +42,8 @@ const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const { canViewJobs } = useRoleAccess();
+  const { canViewJobs, isClient } = useRoleAccess();
+  const { userProfile } = useAuth();
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -149,7 +151,11 @@ const JobDetails = () => {
     }
   };
 
-  if (!canViewJobs()) {
+  // Check if user has permission to view jobs
+  // Clients can view jobs, but we'll check ownership in the query via RLS
+  const hasJobViewPermission = canViewJobs() || isClient();
+  
+  if (!hasJobViewPermission) {
     return (
       <div className="flex justify-center items-center h-64">
         <Card>
