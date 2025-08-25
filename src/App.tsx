@@ -70,11 +70,11 @@ function App() {
                         <JobsPage />
                       </ProtectedRoute>
                     } />
-                    <Route path="/jobs/:id" element={
-                      <ProtectedRoute>
-                        <JobDetails />
-                      </ProtectedRoute>
-                    } />
+                     <Route path="/jobs/:jobId" element={
+                       <ProtectedRoute>
+                         <JobDetails />
+                       </ProtectedRoute>
+                     } />
                     <Route path="/tasks" element={
                       <ProtectedRoute>
                         <Tasks />
