@@ -42,7 +42,7 @@ const JobDetails = () => {
   const { jobId } = useParams();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
-  const { canViewJobs, isClient } = useRoleAccess();
+  const { canViewJobs, isClient, isLoading: roleLoading } = useRoleAccess();
   const { userProfile } = useAuth();
 
   useEffect(() => {
@@ -151,6 +151,18 @@ const JobDetails = () => {
     }
   };
 
+  // Wait for user profile to load before checking permissions
+  if (roleLoading || !userProfile) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Check if user has permission to view jobs
   // Clients can view jobs, but we'll check ownership in the query via RLS
   const hasJobViewPermission = canViewJobs() || isClient();
@@ -160,7 +172,8 @@ const JobDetails = () => {
     isClient: isClient(),
     hasJobViewPermission,
     userProfile: userProfile,
-    userRole: userProfile?.role
+    userRole: userProfile?.role,
+    roleLoading
   });
   
   if (!hasJobViewPermission) {
