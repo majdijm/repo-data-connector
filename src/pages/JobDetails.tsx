@@ -155,6 +155,14 @@ const JobDetails = () => {
   // Clients can view jobs, but we'll check ownership in the query via RLS
   const hasJobViewPermission = canViewJobs() || isClient();
   
+  console.log('JobDetails: Permission check debug:', {
+    canViewJobs: canViewJobs(),
+    isClient: isClient(),
+    hasJobViewPermission,
+    userProfile: userProfile,
+    userRole: userProfile?.role
+  });
+  
   if (!hasJobViewPermission) {
     return (
       <div className="flex justify-center items-center h-64">
