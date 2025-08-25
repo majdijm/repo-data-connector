@@ -70,9 +70,12 @@ const JobDetails = () => {
             description: 'Failed to fetch job details',
             variant: 'destructive',
           });
+          return;
         }
 
-        setJob(data);
+        if (data) {
+          setJob(data);
+        }
       } catch (error) {
         console.error('Error fetching job:', error);
         toast({
