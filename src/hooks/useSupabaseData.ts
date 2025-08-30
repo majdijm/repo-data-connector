@@ -220,8 +220,10 @@ export const useSupabaseData = () => {
           // Admin, manager, and receptionist can see all jobs
           jobsQuery = jobsQuery.order('created_at', { ascending: false });
         } else {
-          // Other roles only see jobs assigned to them
-          jobsQuery = jobsQuery.eq('assigned_to', userProfile.id).order('created_at', { ascending: false });
+          // Other roles see jobs currently assigned to them OR previously assigned to them
+          // This ensures completed jobs remain visible in their account
+          jobsQuery = jobsQuery.or(`assigned_to.eq.${userProfile.id},original_assigned_to.eq.${userProfile.id}`)
+            .order('created_at', { ascending: false });
         }
 
         const { data: jobsData, error: jobsError } = await jobsQuery;

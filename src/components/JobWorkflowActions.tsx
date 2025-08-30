@@ -5,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useWorkflowNotifications } from '@/hooks/useWorkflowNotifications';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import JobWorkflowSelector from './JobWorkflowSelector';
 
@@ -14,6 +16,7 @@ interface Job {
   type: string;
   status: string;
   assigned_to?: string;
+  original_assigned_to?: string;
   due_date: string;
   session_date?: string;
   price?: number;
@@ -34,6 +37,8 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { notifyJobStatusUpdate } = useNotifications();
+  const { sendJobAssignmentNotification, sendWorkflowTransitionNotification } = useWorkflowNotifications();
+  const { userProfile } = useAuth();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -63,6 +68,16 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       if (error) throw error;
 
       // Send notification about status update
+      if (userProfile) {
+        // Set original_assigned_to if not already set and job is assigned
+        if (!job.original_assigned_to && job.assigned_to) {
+          await supabase
+            .from('jobs')
+            .update({ original_assigned_to: job.assigned_to })
+            .eq('id', job.id);
+        }
+      }
+      
       await notifyJobStatusUpdate(job, newStatus);
 
       toast({
@@ -98,15 +113,25 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       console.log('Processing workflow action:', { jobId: job.id, nextStep, selectedUserId });
 
       let updateData: any = { updated_at: new Date().toISOString() };
+      const previousAssignedTo = job.assigned_to;
+      const currentUserName = userProfile?.name || 'Unknown User';
 
       if (nextStep === 'handover') {
         updateData.status = 'completed';
-        updateData.assigned_to = null;
+        // Keep the assigned_to for history tracking, don't set to null
+        // Set original_assigned_to if not already set
+        if (!job.original_assigned_to && job.assigned_to) {
+          updateData.original_assigned_to = job.assigned_to;
+        }
       } else {
         updateData.status = 'in_progress';
         updateData.type = nextStep;
         
         if (selectedUserId && selectedUserId !== 'auto-assign' && selectedUserId.trim() !== '') {
+          // If this is the first assignment, record as original
+          if (!job.original_assigned_to && !job.assigned_to) {
+            updateData.original_assigned_to = selectedUserId;
+          }
           updateData.assigned_to = selectedUserId;
         } else {
           // Auto-assign logic would go here
@@ -121,9 +146,34 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
 
       if (error) throw error;
 
-      // Send notification about workflow change
+      // Send notifications about workflow change
       const updatedJob = { ...job, ...updateData };
-      await notifyJobStatusUpdate(updatedJob, updateData.status);
+      
+      if (nextStep === 'handover') {
+        // Job completed notification
+        await notifyJobStatusUpdate(updatedJob, updateData.status);
+      } else if (updateData.assigned_to && updateData.assigned_to !== previousAssignedTo) {
+        // Job assigned to new user
+        await sendJobAssignmentNotification(
+          job.id,
+          job.title,
+          updateData.assigned_to,
+          currentUserName
+        );
+        
+        // Workflow transition notification
+        await sendWorkflowTransitionNotification(
+          job.id,
+          job.title,
+          job.type,
+          nextStep,
+          updateData.assigned_to,
+          currentUserName
+        );
+      } else {
+        // Regular status update
+        await notifyJobStatusUpdate(updatedJob, updateData.status);
+      }
 
       toast({
         title: 'Success',
