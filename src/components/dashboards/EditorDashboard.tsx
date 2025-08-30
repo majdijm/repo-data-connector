@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import AttendanceWidget from '@/components/AttendanceWidget';
 import NotificationWidget from '@/components/NotificationWidget';
+import TestNotificationButton from '@/components/TestNotificationButton';
 
 const EditorDashboard: React.FC = () => {
   const { userProfile } = useAuth();
@@ -217,6 +218,7 @@ const EditorDashboard: React.FC = () => {
         <div className="space-y-6">
           <AttendanceWidget />
           <NotificationWidget />
+          <TestNotificationButton />
         </div>
       </div>
     </div>

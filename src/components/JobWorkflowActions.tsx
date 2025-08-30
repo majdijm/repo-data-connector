@@ -116,6 +116,13 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       const previousAssignedTo = job.assigned_to;
       const currentUserName = userProfile?.name || 'Unknown User';
 
+      console.log('🔄 Workflow Debug:', {
+        previousAssignedTo,
+        currentUserName,
+        nextStep,
+        selectedUserId
+      });
+
       if (nextStep === 'handover') {
         updateData.status = 'completed';
         // Keep the assigned_to for history tracking, don't set to null
@@ -149,11 +156,21 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
       // Send notifications about workflow change
       const updatedJob = { ...job, ...updateData };
       
+      console.log('🔔 Notification Decision Point:', {
+        nextStep,
+        isHandover: nextStep === 'handover',
+        hasNewAssignment: updateData.assigned_to && updateData.assigned_to !== previousAssignedTo,
+        newAssignedTo: updateData.assigned_to,
+        previousAssignedTo
+      });
+      
       if (nextStep === 'handover') {
         // Job completed notification
+        console.log('📤 Sending job completion notification...');
         await notifyJobStatusUpdate(updatedJob, updateData.status);
       } else if (updateData.assigned_to && updateData.assigned_to !== previousAssignedTo) {
         // Job assigned to new user
+        console.log('📤 Sending job assignment notifications...');
         await sendJobAssignmentNotification(
           job.id,
           job.title,
@@ -172,6 +189,7 @@ const JobWorkflowActions: React.FC<JobWorkflowActionsProps> = ({ job, onJobUpdat
         );
       } else {
         // Regular status update
+        console.log('📤 Sending regular status update...');
         await notifyJobStatusUpdate(updatedJob, updateData.status);
       }
 

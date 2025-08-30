@@ -11,7 +11,14 @@ export const useWorkflowNotifications = () => {
     assignedBy: string
   ) => {
     try {
-      const { error } = await supabase
+      console.log('🔔 Sending job assignment notification:', {
+        jobId,
+        jobTitle,
+        assignedUserId,
+        assignedBy
+      });
+
+      const { data, error } = await supabase
         .from('notifications')
         .insert({
           user_id: assignedUserId,
@@ -19,9 +26,15 @@ export const useWorkflowNotifications = () => {
           message: `You have been assigned to job "${jobTitle}" by ${assignedBy}`,
           related_job_id: jobId,
           created_at: new Date().toISOString()
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Assignment notification error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Assignment notification sent successfully:', data);
     } catch (error) {
       console.error('Error sending assignment notification:', error);
     }
@@ -108,8 +121,17 @@ export const useWorkflowNotifications = () => {
     transitionBy: string
   ) => {
     try {
+      console.log('🔄 Sending workflow transition notification:', {
+        jobId,
+        jobTitle,
+        fromStage,
+        toStage,
+        assignedTo,
+        transitionBy
+      });
+
       // Notify the newly assigned user
-      await supabase
+      const { data: userNotification, error: userError } = await supabase
         .from('notifications')
         .insert({
           user_id: assignedTo,
@@ -117,7 +139,15 @@ export const useWorkflowNotifications = () => {
           message: `Job "${jobTitle}" has been moved from ${fromStage} to ${toStage} and assigned to you`,
           related_job_id: jobId,
           created_at: new Date().toISOString()
-        });
+        })
+        .select();
+
+      if (userError) {
+        console.error('❌ Workflow user notification error:', userError);
+        throw userError;
+      }
+
+      console.log('✅ Workflow user notification sent:', userNotification);
 
       // Notify admins about workflow progression
       const { data: adminUsers } = await supabase
@@ -135,9 +165,16 @@ export const useWorkflowNotifications = () => {
           created_at: new Date().toISOString()
         }));
 
-        await supabase
+        const { data: adminNotifications, error: adminError } = await supabase
           .from('notifications')
-          .insert(notifications);
+          .insert(notifications)
+          .select();
+
+        if (adminError) {
+          console.error('❌ Admin workflow notifications error:', adminError);
+        } else {
+          console.log('✅ Admin workflow notifications sent:', adminNotifications?.length);
+        }
       }
     } catch (error) {
       console.error('Error sending workflow transition notification:', error);

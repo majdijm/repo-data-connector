@@ -26,6 +26,8 @@ const NotificationWidget = () => {
 
     try {
       setLoading(true);
+      console.log('📩 Fetching notifications for user:', user.id);
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -34,6 +36,8 @@ const NotificationWidget = () => {
         .limit(3);
 
       if (error) throw error;
+      
+      console.log('📬 Notifications fetched:', data?.length || 0, 'notifications');
       setNotifications(data || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
